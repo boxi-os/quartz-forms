@@ -33,9 +33,146 @@ plugins:
       forms: {}
 ```
 
+## Embedding a form
+
+Three ways on a page, one through the layout:
+
+````markdown
+```quartz-form
+contact
+```
+````
+
+```markdown
+{{form:contact}}
+```
+
+```yaml
+---
+form: contact # or a list: [contact, feedback]; `form: false` hides the layout form here
+---
+```
+
+```yaml
+# quartz.config.yaml: the same form on every page, placed like any component
+options:
+  layoutForm: feedback
+layout:
+  position: afterBody
+  priority: 20
+```
+
 ## Options
 
-The option table follows with the data model.
+All options live under `options:` of the plugin entry. A _Text_ is a string or a record by
+language code (`{ de: "Name", en: "Name" }`); the page language picks the entry.
+
+| Option           | Type                                  | Default         | Description                                                              |
+| ---------------- | ------------------------------------- | --------------- | ------------------------------------------------------------------------ |
+| `forms`          | `Record<id, Form>`                    | `{}`            | The forms, by id (`[a-z0-9-]`). See below.                               |
+| `transport`      | `Transport`                           | `{kind: relay}` | Where submissions go; every form may override single fields.             |
+| `keys`           | `Record<name, {file} \| {armored}>`   | `{}`            | Public PGP keys: a file relative to the site root, or the armored text.  |
+| `spam`           | `Spam`                                | see below       | Spam protection and limits; every form may override single fields.       |
+| `frontmatterKey` | `string`                              | `"form"`        | Frontmatter key that embeds a form or hides the layout form (`false`).   |
+| `codeBlockLang`  | `string`                              | `"quartz-form"` | Language tag of the code block that embeds a form.                       |
+| `layoutForm`     | `string`                              | `""`            | Id of the form placed through this entry's `layout` block. Empty: none.  |
+| `language`       | `"auto"` \| code                      | `"auto"`        | Language of the layout form: the page's, or a fixed code.                |
+| `texts`          | `Record<locale, Record<key, string>>` | `{}`            | Own wording for the plugin's texts, e.g. `de: { submit: "Abschicken" }`. |
+
+### Form
+
+| Key           | Type                                          | Default        | Description                                                                                                                                            |
+| ------------- | --------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `template`    | `contact` \| `feedback` \| `rsvp` \| `survey` | –              | Start from a built-in field set. Own `fields` replace it entirely.                                                                                     |
+| `title`       | Text                                          | –              | Heading above the form.                                                                                                                                |
+| `description` | Text                                          | –              | A sentence under the heading.                                                                                                                          |
+| `submitLabel` | Text                                          | plugin text    | Text of the submit button.                                                                                                                             |
+| `fields`      | `Field[]`                                     | –              | The fields, in order. Required unless `template` is set.                                                                                               |
+| `recipient`   | `string`                                      | –              | Relay: a _name_ the relay maps to an address in its own config. `mailto`: the address.                                                                 |
+| `subject`     | Text                                          | form id        | Fixed subject line.                                                                                                                                    |
+| `transport`   | partial Transport                             | global         | Overrides single transport fields.                                                                                                                     |
+| `encryption`  | `{mode, keys?, showFingerprint?}`             | `mode: off`    | `required`: nothing leaves unencrypted (needs JavaScript). `optional`: a ticked toggle the visitor may untick. `keys`: names from `keys`, default all. |
+| `anonymous`   | `boolean`                                     | `false`        | See [Anonymous](#anonymous).                                                                                                                           |
+| `pageContext` | `boolean`                                     | `false`        | Send the page's title and slug along (feedback). Never for anonymous forms.                                                                            |
+| `spam`        | partial Spam                                  | global         | Overrides single spam fields.                                                                                                                          |
+| `success`     | `{mode, text?, slug?}`                        | `mode: inline` | `inline`: a sentence replaces the form. `redirect`: go to the page `slug` (checked at build).                                                          |
+| `className`   | `string`                                      | –              | Extra class(es) next to `quartz-form`.                                                                                                                 |
+
+### Fields
+
+Every field has `type`, `name` (a letter, then letters, digits, `_` or `-`; unique per form) and,
+except `hidden` and `consent`, a `label` (Text). Optional on most: `required`, `hint` (Text).
+
+| `type`                                                      | Extra keys                                                                                 |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `text`, `email`, `tel`, `url`, `number`, `date`, `textarea` | `placeholder` (Text), `autocomplete`, `pattern`, `min`, `max`, `step`, `rows`, `maxLength` |
+| `select`, `radio`, `checkboxes`                             | `options: [{value, label}]`                                                                |
+| `checkbox`                                                  | –                                                                                          |
+| `scale`                                                     | `min`, `max` (integers, at most 21 steps), `minLabel`, `maxLabel`                          |
+| `consent`                                                   | `text` (Text), `link`, `linkLabel`; always required                                        |
+| `pgpKey`                                                    | the visitor's own public key (pasted or chosen as a file); at most one                     |
+| `hidden`                                                    | `value`                                                                                    |
+
+### Transport
+
+| Key      | Values                                                  | Description                                                                  |
+| -------- | ------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `kind`   | `relay`, `endpoint`, `formspree`, `web3forms`, `mailto` | The plugin's PHP relay; any POST URL; two service presets; the mail program. |
+| `url`    | URL, or the service's form id / access key              | Required for `relay`, `endpoint` and the presets.                            |
+| `format` | `json` \| `form`                                        | Body encoding for `endpoint` (the relay always gets JSON).                   |
+| `extra`  | `Record<string, string>`                                | Fields sent with every submission.                                           |
+
+### Spam
+
+| Key                 | Default | Description                                                                      |
+| ------------------- | ------- | -------------------------------------------------------------------------------- |
+| `honeypot`          | `true`  | An invisible field that must stay empty.                                         |
+| `minSeconds`        | `3`     | Seconds between opening the page and sending; `0` turns it off.                  |
+| `pow`               | `false` | Proof of work the relay checks (`relay` only).                                   |
+| `powDifficulty`     | `16`    | Leading zero bits; 16 takes a fraction of a second.                              |
+| `captcha`           | `none`  | `turnstile` or `hcaptcha`; loads that provider's script. Ignored when anonymous. |
+| `captchaSiteKey`    | `""`    | The provider's site key.                                                         |
+| `rateLimitPerHour`  | `60`    | Submissions per form and hour the relay accepts; counted without addresses.      |
+| `maxFieldLength`    | `2000`  | Default length limit of a single-line field.                                     |
+| `maxTextareaLength` | `20000` | Default length limit of a textarea.                                              |
+| `maxKeyLength`      | `16384` | Length limit of a pasted public key.                                             |
+| `maxBytes`          | `65536` | Size limit of a whole submission.                                                |
+
+## Anonymous
+
+`anonymous: true` on a form means, and the code enforces it:
+
+- No required personal field: `email`, `tel`, `pgpKey` and fields whose `autocomplete` names a
+  person become optional (the build says so).
+- No page context, no `Reply-To`, no third-party captcha (nothing of the visitor goes to a third
+  party), and the relay logs nothing.
+
+What it cannot promise: your hoster's access log, the network in between, and what a form
+service (`formspree`, `web3forms`) records on its side. The build warns about that combination.
+
+## Encryption
+
+OpenPGP.js runs in the visitor's browser, loaded from `static/quartz-forms/openpgp/` only on
+pages that need it. The message (`Label: value` per field, the page, the visitor's key) is
+encrypted to the configured public keys; only the armored ciphertext leaves the page, as the
+body of the mail. Read it with `gpg`, Thunderbird, Mailvelope or GPG Suite. The fingerprint of the
+recipient key is shown under the form so a visitor can compare it with the one you publish.
+
+The build checks every key in use: readable, public, not revoked, not expired, able to encrypt;
+it logs the fingerprint and stops on a problem.
+
+## Validation
+
+The rules of a field stand once, in its definition, and are applied three times: at build time
+(ids, names, options, keys, transport, redirect pages), in the browser (with messages in the page
+language, on leaving a field and on sending) and in the relay (every plain-text field; an
+encrypted submission only by its armor and size).
+
+## Texts
+
+Every sentence the plugin shows comes from `src/i18n/locales/` (`en-US`, `de-DE`) and can be
+replaced per locale: `texts: { de: { submit: "Abschicken" } }`. Keys are those of `en-US.ts`;
+`{name}` placeholders are filled by the code.
 
 ## The relay
 
