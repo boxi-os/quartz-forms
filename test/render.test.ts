@@ -282,3 +282,22 @@ describe("renderForm", () => {
     expect(toString(renderMissing("x", true)!)).toBe("quartz-forms: no form x in options.forms.");
   });
 });
+
+describe("captcha container", () => {
+  it("renders the provider's container with the site key, never for anonymous forms", () => {
+    const turnstile = render(
+      contact({ spam: { captcha: "turnstile", captchaSiteKey: "abc" } }),
+    ).html;
+    expect(turnstile).toContain(
+      '<div class="quartz-form__captcha cf-turnstile" data-sitekey="abc" data-captcha="turnstile"></div>',
+    );
+    const h = render(contact({ spam: { captcha: "hcaptcha", captchaSiteKey: "abc" } })).html;
+    expect(h).toContain('class="quartz-form__captcha h-captcha"');
+    const anon = render(
+      contact({ anonymous: true, spam: { captcha: "hcaptcha", captchaSiteKey: "abc" } }),
+    );
+    expect(anon.html).not.toContain("quartz-form__captcha");
+    expect(anon.config.spam.captcha).toBe("none");
+    expect(render(contact()).html).not.toContain("quartz-form__captcha");
+  });
+});

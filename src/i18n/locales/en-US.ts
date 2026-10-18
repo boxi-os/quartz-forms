@@ -36,6 +36,7 @@ export default {
   encryptionUnavailable: "Encryption could not be loaded; the message was not sent.",
   noScript: "This form sends encrypted and needs JavaScript to do so.",
   tooFast: "Please wait a moment before sending.",
+  captchaRequired: "Please complete the check below before sending.",
   sendFailed: "The message could not be sent. Please try again later.",
   rejected: "The message was not accepted: {reason}",
   rateLimited: "Too many messages at the moment. Please try again later.",

@@ -504,6 +504,7 @@ export function clientConfig(form: ResolvedForm, ctx: RenderContext): ClientConf
       encryptedForMany: t.encryptedForMany,
       encryptionUnavailable: t.encryptionUnavailable,
       tooFast: t.tooFast,
+      captchaRequired: t.captchaRequired,
       sendFailed: t.sendFailed,
       rejected: t.rejected,
       rateLimited: t.rateLimited,
@@ -567,6 +568,20 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
       h("p", { className: ["quartz-form__encrypted"], dataFingerprint: "true", hidden: true }),
     );
 
+  // The third-party captcha widget renders into this container; its script is loaded by the
+  // browser script only when such a form is on the page. Anonymous forms never get one.
+  const captcha =
+    form.spam.captcha !== "none" && !form.anonymous
+      ? h("div", {
+          className: [
+            "quartz-form__captcha",
+            form.spam.captcha === "turnstile" ? "cf-turnstile" : "h-captcha",
+          ],
+          dataSitekey: form.spam.captchaSiteKey,
+          dataCaptcha: form.spam.captcha,
+        })
+      : null;
+
   return h(
     "form",
     {
@@ -615,6 +630,7 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
         : null,
       ...Object.entries(hidden).map(([k, v]) => h("input", { type: "hidden", name: k, value: v })),
       ...encryptionRow,
+      captcha,
       h("div", { className: ["quartz-form__actions"] }, [
         h(
           "button",

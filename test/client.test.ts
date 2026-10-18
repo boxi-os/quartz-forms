@@ -540,3 +540,87 @@ describe("proof of work", () => {
     expect(body.pow).toBeUndefined();
   });
 });
+
+describe("captcha", () => {
+  it("loads the provider script once, refuses to send without a token and sends the token along", async () => {
+    const form = mount(
+      contact({
+        ...quick,
+        spam: { minSeconds: 0, captcha: "turnstile", captchaSiteKey: "site-key" },
+      }),
+    );
+    expect(
+      form.querySelector(".quartz-form__captcha.cf-turnstile")?.getAttribute("data-sitekey"),
+    ).toBe("site-key");
+    await nav();
+    const scripts = document.head.querySelectorAll(
+      'script[src="https://challenges.cloudflare.com/turnstile/v0/api.js"]',
+    );
+    expect(scripts.length).toBe(1);
+    await nav();
+    expect(
+      document.head.querySelectorAll('script[src^="https://challenges.cloudflare.com"]').length,
+    ).toBe(1);
+
+    fill(form, "message", "x");
+    await submit(form);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(status(form).text).toBe("Please complete the check below before sending.");
+
+    // the widget writes its token into a hidden input inside the container
+    const token = document.createElement("input");
+    token.type = "hidden";
+    token.name = "cf-turnstile-response";
+    token.value = "tok-123";
+    form.querySelector(".quartz-form__captcha")!.appendChild(token);
+    fetchMock.mockResolvedValueOnce(ok());
+    await submit(form);
+    const body = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
+    expect(body.captcha).toBe("tok-123");
+    document.head.querySelectorAll("script").forEach((s) => s.remove());
+  });
+
+  it("renders no widget and loads no script for an anonymous form", async () => {
+    const form = mount(
+      contact({
+        ...quick,
+        anonymous: true,
+        spam: { minSeconds: 0, captcha: "hcaptcha", captchaSiteKey: "k" },
+      }),
+    );
+    expect(form.querySelector(".quartz-form__captcha")).toBeNull();
+    await nav();
+    expect(document.head.querySelector('script[src^="https://js.hcaptcha.com"]')).toBeNull();
+    fetchMock.mockResolvedValueOnce(ok());
+    fill(form, "message", "x");
+    await submit(form);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("hands a service its token under the widget's own field name, and shows the service's field message", async () => {
+    const form = mount(
+      contact({ ...quick, spam: { minSeconds: 0, captcha: "hcaptcha", captchaSiteKey: "k" } }),
+      {
+        transport: { kind: "formspree", url: "abc" },
+      },
+    );
+    await nav();
+    const token = document.createElement("textarea");
+    token.name = "h-captcha-response";
+    token.value = "h-tok";
+    form.querySelector(".quartz-form__captcha")!.appendChild(token);
+    fill(form, "message", "x");
+    fetchMock.mockResolvedValueOnce(
+      ok(
+        { errors: [{ field: "message", code: "TYPE_TEXT", message: "should be text" }] },
+        { status: 422 },
+      ),
+    );
+    await submit(form);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://formspree.io/f/abc");
+    expect(JSON.parse(String(init.body))["h-captcha-response"]).toBe("h-tok");
+    expect(errorOf(form, "message")).toBe("should be text");
+    document.head.querySelectorAll("script").forEach((s) => s.remove());
+  });
+});

@@ -51,7 +51,7 @@ interface QfRelayResponse {
   ok?: boolean;
   error?: string;
   message?: string;
-  errors?: { field?: string; code?: string }[];
+  errors?: { field?: string; code?: string; message?: string }[];
 }
 
 const QF_HONEYPOT = "_hp_website";
@@ -386,6 +386,41 @@ async function qfCheckVisitorKey(
   if (status) status.textContent = accepted ?? "";
 }
 
+/* ---- Third-party captcha: loaded once per page, only when a form on it asks for one ---- */
+
+const QF_CAPTCHA_SCRIPTS: Record<string, string> = {
+  turnstile: "https://challenges.cloudflare.com/turnstile/v0/api.js",
+  hcaptcha: "https://js.hcaptcha.com/1/api.js",
+};
+
+function qfLoadCaptcha(provider: string): void {
+  const src = QF_CAPTCHA_SCRIPTS[provider];
+  if (!src) return;
+  if (document.querySelector(`script[src="${src}"]`)) return;
+  const script = document.createElement("script");
+  script.src = src;
+  script.async = true;
+  script.defer = true;
+  document.head.appendChild(script);
+}
+
+/** The token the widget wrote into the form; both providers add a hidden input. */
+function qfCaptchaToken(form: HTMLFormElement, provider: string): string {
+  const name = provider === "turnstile" ? "cf-turnstile-response" : "h-captcha-response";
+  const el = form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement | null;
+  return el ? String(el.value ?? "") : "";
+}
+
+function qfResetCaptcha(provider: string): void {
+  const w = window as unknown as { turnstile?: { reset(): void }; hcaptcha?: { reset(): void } };
+  try {
+    if (provider === "turnstile") w.turnstile?.reset();
+    else if (provider === "hcaptcha") w.hcaptcha?.reset();
+  } catch {
+    // the widget is not there yet
+  }
+}
+
 /* ---- Proof of work for the relay: a few hundred milliseconds of hashing, no third party ---- */
 
 interface QfPow {
@@ -443,6 +478,7 @@ async function qfSend(
   cfg: QfConfig,
   values: Record<string, QfValue>,
   ciphertext: string | undefined,
+  captchaToken = "",
 ): Promise<QfRelayResponse> {
   const tr = cfg.transport;
   const common = {
@@ -451,6 +487,7 @@ async function qfSend(
     ts: (form.elements.namedItem("ts") as HTMLInputElement | null)?.value ?? "",
     page: cfg.page?.slug,
     pow: await qfProofOfWork(cfg),
+    captcha: captchaToken || undefined,
   };
   if (tr.kind === "mailto") {
     const body = ciphertext ?? qfSerialize(cfg, values);
@@ -478,6 +515,10 @@ async function qfSend(
     else for (const [k, v] of Object.entries(values)) flat[k] = Array.isArray(v) ? v.join(", ") : v;
     if (cfg.subject) flat._subject = cfg.subject;
     if (cfg.page) flat._page = cfg.page.slug;
+    // The services verify the widget's token themselves, under the widget's own field name.
+    if (captchaToken)
+      flat[cfg.spam.captcha === "turnstile" ? "cf-turnstile-response" : "h-captcha-response"] =
+        captchaToken;
     if (tr.format === "form") {
       response = await fetch(tr.url, {
         method: "POST",
@@ -555,6 +596,7 @@ function qfBind(form: HTMLFormElement): void {
   const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
   if (button?.dataset.enableWithJs === "true") button.disabled = false;
   if (cfg.encryption.mode !== "off") void qfShowFingerprint(form, cfg);
+  if (cfg.spam.captcha !== "none" && !cfg.anonymous) qfLoadCaptcha(cfg.spam.captcha);
 
   const onBlur = (event: Event) => {
     const target = event.target as HTMLElement | null;
@@ -600,6 +642,15 @@ function qfBind(form: HTMLFormElement): void {
       return;
     }
 
+    let captchaToken = "";
+    if (cfg.spam.captcha !== "none" && !cfg.anonymous) {
+      captchaToken = qfCaptchaToken(form, cfg.spam.captcha);
+      if (!captchaToken) {
+        qfStatus(form, "error", qfText(cfg, "captchaRequired"));
+        return;
+      }
+    }
+
     const values: Record<string, QfValue> = {};
     for (const rule of cfg.fields) values[rule.name] = qfValueOf(form, rule);
 
@@ -621,7 +672,8 @@ function qfBind(form: HTMLFormElement): void {
           return;
         }
       }
-      const result = await qfSend(form, cfg, values, ciphertext);
+      const result = await qfSend(form, cfg, values, ciphertext, captchaToken);
+      if (!result.ok && cfg.spam.captcha !== "none") qfResetCaptcha(cfg.spam.captcha);
       if (result.ok) {
         qfFinish(form, cfg, encrypt);
         return;
@@ -631,7 +683,10 @@ function qfBind(form: HTMLFormElement): void {
         for (const e of result.errors) {
           const rule = cfg.fields.find((r) => r.name === e.field);
           if (!rule) continue;
-          const message = qfFieldErrorText(cfg, rule, e.code);
+          const message =
+            e.message && !cfg.texts[e.code ?? ""] && cfg.transport.kind !== "relay"
+              ? e.message
+              : qfFieldErrorText(cfg, rule, e.code);
           qfShowError(form, rule.name, message);
           problems.push({ name: rule.name, message });
         }

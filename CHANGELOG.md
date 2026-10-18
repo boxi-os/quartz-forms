@@ -57,6 +57,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   non-anonymous form's e-mail field; nothing is logged. A no-JavaScript POST gets a redirect or
   a plain page. The browser script fetches the challenge and hashes in batches so the page stays
   responsive. **Not yet run against a PHP interpreter** (none installed here); see the README.
+- Third-party captcha (Turnstile, hCaptcha): the renderer places the provider's container with
+  the site key, the browser script loads the provider's script once per page and only when such
+  a form is on it, refuses to send without a token and hands the token to the relay (`captcha`)
+  or to a service under the widget's own field name. Never for anonymous forms. Service presets
+  (`formspree`, `web3forms`) post flat fields with `Accept: application/json`; a service's field
+  message is shown at the field.
 
 - Scaffold: manifest with the three categories (transformer, emitter, component), build and test
   tooling copied from quartz-navigations, bilingual README skeleton.
