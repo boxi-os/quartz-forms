@@ -6,8 +6,8 @@ export { FormBox } from './components/index.js';
 declare const Forms: QuartzTransformerPlugin<Partial<QuartzFormsOptions>>;
 
 /**
- * Copies the OpenPGP.js browser bundle into `static/quartz-forms/` when a rendered form
- * encrypts. Filled in with the encryption step.
+ * Copies the OpenPGP.js browser bundle into the site when a form needs it, and checks the keys
+ * the forms encrypt to (the deep check level 1 could not do without the library).
  */
 declare const FormsAssets: QuartzEmitterPlugin<Partial<QuartzFormsOptions>>;
 

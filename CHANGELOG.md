@@ -36,8 +36,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   JSON envelope, to an endpoint or a service preset as flat fields (JSON or form body), or opens
   the mail program for `mailto`; shows the relay's field errors at the fields, rate limits and
   refusals as sentences; thank-you sentence in place or redirect through Quartz's SPA router;
-  reads the visitor's key file into the key field. Encryption and proof of work are stubs until
-  their steps land.
+  reads the visitor's key file into the key field. Proof of work is a stub until the relay lands.
+- Encryption with OpenPGP.js 6.3.2: the browser loads the lightweight bundle from
+  `static/quartz-forms/openpgp/` only on pages that need it, parses the recipient keys once,
+  shows the fingerprint under the form, encrypts the serialised message (`required`, or
+  `optional` with the toggle ticked) and sends only the armored ciphertext; the visitor's own
+  key is checked (public, not expired) and its fingerprint shown. The build copies the bundle
+  and its LGPL licence text unmodified into `dist/vendor/openpgp/` (CI compares them); the
+  emitter copies it into the site and runs the deep key check (readable, public, not revoked,
+  not expired, able to encrypt), logs every key's fingerprint once and stops the build on a bad
+  key. Roundtrip test: what the browser script encrypts, the owner's private key decrypts.
 
 - Scaffold: manifest with the three categories (transformer, emitter, component), build and test
   tooling copied from quartz-navigations, bilingual README skeleton.

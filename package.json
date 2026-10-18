@@ -71,6 +71,7 @@
     "hast-util-to-string": "^3.0.1",
     "hastscript": "^9.0.1",
     "jsdom": "^25.0.1",
+    "openpgp": "^6.3.2",
     "preact": "^10.28.2",
     "preact-render-to-string": "^6.8.1",
     "prettier": "^3.6.2",

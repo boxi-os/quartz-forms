@@ -1,7 +1,9 @@
 import { defineConfig } from "tsup";
 import type { Plugin } from "esbuild";
+import fs from "fs";
 import path from "path";
 import { validateManifest } from "./src/build/validate-manifest";
+import { BROWSER_FILES, NODE_FILE } from "./src/pgp/load";
 
 validateManifest();
 
@@ -63,6 +65,29 @@ const inlineScriptPlugin: Plugin = {
  */
 const SINGLETON_EXTERNALS = [/^preact($|\/)/, /^@jackyzha0\/quartz($|\/)/, /^vfile($|\/)/];
 
+/**
+ * OpenPGP.js is not bundled either: the browser loads it as a separate file from
+ * `static/quartz-forms/openpgp/`, the build step from `dist/vendor/openpgp/node/`. Both are
+ * copied below from the installed package, unmodified, with its LGPL licence text; a
+ * development checkout before the first build falls back to the dev dependency (`src/pgp/load.ts`).
+ */
+const OPENPGP_EXTERNAL = [/^openpgp($|\/)/];
+
+function copyVendor(): void {
+  const from = path.resolve("node_modules/openpgp");
+  const to = path.resolve("dist/vendor/openpgp");
+  fs.mkdirSync(path.join(to, "node"), { recursive: true });
+  for (const file of BROWSER_FILES)
+    fs.copyFileSync(path.join(from, "dist/lightweight", file), path.join(to, file));
+  fs.copyFileSync(path.join(from, "dist", NODE_FILE), path.join(to, NODE_FILE));
+  fs.copyFileSync(path.join(from, "LICENSE"), path.join(to, "LICENSE"));
+  const pkg = JSON.parse(fs.readFileSync(path.join(from, "package.json"), "utf8"));
+  fs.writeFileSync(
+    path.join(to, "VERSION"),
+    `openpgp ${pkg.version} (${pkg.license}), copied unmodified from the npm package by tsup.config.ts\n`,
+  );
+}
+
 /** tsup externalizes `dependencies`; `@quartz-community/*` must be pulled back into the bundle. */
 const FORCE_BUNDLED = [/^@quartz-community\//];
 
@@ -83,7 +108,10 @@ export default defineConfig({
   outDir: "dist",
   platform: "node",
   noExternal: FORCE_BUNDLED,
-  external: SINGLETON_EXTERNALS,
+  external: [...SINGLETON_EXTERNALS, ...OPENPGP_EXTERNAL],
+  onSuccess: async () => {
+    copyVendor();
+  },
   banner: {
     js: 'import { createRequire } from "module"; const require = createRequire(import.meta.url);',
   },

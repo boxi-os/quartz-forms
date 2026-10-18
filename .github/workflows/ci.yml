@@ -55,11 +55,17 @@ jobs:
             builtins.has(bareName(spec)) ||
             hostPackages.some((name) => isPackage(spec, name));
 
+          // dist/vendor/ holds OpenPGP.js, copied unmodified and loaded at runtime as
+          // separate files; it is checked for completeness below, not for its imports.
           const collect = (dir, out = []) => {
             for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
               const p = path.join(dir, entry.name);
-              if (entry.isDirectory()) collect(p, out);
-              else if (entry.name.endsWith(".js")) out.push(p);
+              if (entry.isDirectory()) {
+                if (dir === "dist" && entry.name === "vendor") continue;
+                collect(p, out);
+                continue;
+              }
+              if (entry.name.endsWith(".js")) out.push(p);
             }
             return out;
           };
@@ -121,3 +127,12 @@ jobs:
           );
           EOF
           node "$RUNNER_TEMP/verify-dist-bundling.cjs"
+      - name: Verify the vendored OpenPGP.js is complete and unmodified
+        run: |
+          set -e
+          for f in openpgp.min.mjs argon2id.min.mjs legacy_ciphers.min.mjs nacl-fast.min.mjs noble_curves.min.mjs noble_hashes.min.mjs unbzip2-stream.min.mjs; do
+            cmp "node_modules/openpgp/dist/lightweight/$f" "dist/vendor/openpgp/$f"
+          done
+          cmp node_modules/openpgp/dist/node/openpgp.min.mjs dist/vendor/openpgp/node/openpgp.min.mjs
+          cmp node_modules/openpgp/LICENSE dist/vendor/openpgp/LICENSE
+          echo "dist/vendor/openpgp matches the installed openpgp package."

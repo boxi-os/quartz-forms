@@ -40,6 +40,7 @@ export default defineConfig({
   plugins: [stringImports],
   test: {
     environment: "node",
+    env: { QUARTZ_FORMS_DEV_OPENPGP: "1" },
     include: ["test/**/*.test.ts"],
     reporters: ["default"],
   },

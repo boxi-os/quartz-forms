@@ -47,3 +47,6 @@ coverage/
 # Claude: locally linked skills (symlinks with absolute paths) and personal project config
 .claude/skills/
 .claude/wiki-docs.json
+
+# Keys and output the tests generate
+test/.tmp/

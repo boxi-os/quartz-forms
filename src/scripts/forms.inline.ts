@@ -275,9 +275,115 @@ function qfSerialize(cfg: QfConfig, values: Record<string, QfValue>): string {
   return lines.join("\n");
 }
 
-/** Where the encryption step hooks in; filled in with OpenPGP in the next step. */
-async function qfEncrypt(_cfg: QfConfig, _plaintext: string): Promise<string> {
-  throw new Error("encryption not available");
+/* ---- Encryption: OpenPGP.js, loaded from the site only when a form needs it ---- */
+
+interface QfPgpKey {
+  getFingerprint(): string;
+  isPrivate(): boolean;
+  getExpirationTime(): Promise<Date | null | number>;
+}
+
+interface QfOpenpgp {
+  readKey(args: { armoredKey: string }): Promise<QfPgpKey>;
+  createMessage(args: { text: string }): Promise<unknown>;
+  encrypt(args: { message: unknown; encryptionKeys: unknown; format?: string }): Promise<string>;
+}
+
+let qfOpenpgpPromise: Promise<QfOpenpgp> | undefined;
+
+/**
+ * The library comes from `static/quartz-forms/openpgp/`, where the emitter put it; a test may
+ * hand in a module instead. One load per page, shared by every form.
+ */
+function qfOpenpgp(): Promise<QfOpenpgp> {
+  const injected = (window as unknown as { __quartzFormsOpenpgp?: QfOpenpgp }).__quartzFormsOpenpgp;
+  if (injected) return Promise.resolve(injected);
+  if (!qfOpenpgpPromise) {
+    const url = `${qfBasePath().replace(/\/+$/, "")}/static/quartz-forms/openpgp/openpgp.min.mjs`;
+    qfOpenpgpPromise = import(/* @vite-ignore */ url).then((m) => m as QfOpenpgp);
+    qfOpenpgpPromise.catch(() => {
+      qfOpenpgpPromise = undefined;
+    });
+  }
+  return qfOpenpgpPromise;
+}
+
+function qfFingerprint(hex: string): string {
+  return (hex.toUpperCase().match(/.{1,4}/g) ?? []).join(" ");
+}
+
+const qfKeyCache = new Map<string, Promise<QfPgpKey[]>>();
+
+/** The recipient keys of a form, parsed once. */
+function qfRecipientKeys(cfg: QfConfig): Promise<QfPgpKey[]> {
+  const cacheKey = cfg.encryption.keys.join("\n");
+  let keys = qfKeyCache.get(cacheKey);
+  if (!keys) {
+    keys = qfOpenpgp().then((pgp) =>
+      Promise.all(cfg.encryption.keys.map((armoredKey) => pgp.readKey({ armoredKey }))),
+    );
+    qfKeyCache.set(cacheKey, keys);
+  }
+  return keys;
+}
+
+async function qfEncrypt(cfg: QfConfig, plaintext: string): Promise<string> {
+  const pgp = await qfOpenpgp();
+  const keys = await qfRecipientKeys(cfg);
+  if (keys.length === 0) throw new Error("no keys");
+  const message = await pgp.createMessage({ text: plaintext });
+  return pgp.encrypt({ message, encryptionKeys: keys, format: "armored" });
+}
+
+/** Fills the fingerprint line under the form, so the visitor can compare it with the owner's. */
+async function qfShowFingerprint(form: HTMLFormElement, cfg: QfConfig): Promise<void> {
+  const line = form.querySelector<HTMLElement>("[data-fingerprint]");
+  if (!line || !cfg.encryption.showFingerprint) return;
+  try {
+    const keys = await qfRecipientKeys(cfg);
+    if (keys.length === 1)
+      line.textContent = qfText(cfg, "encryptedFor", {
+        fingerprint: qfFingerprint(keys[0]!.getFingerprint()),
+      });
+    else line.textContent = qfText(cfg, "encryptedForMany", { count: keys.length });
+    line.hidden = false;
+  } catch {
+    // Nothing shown; sending will report that encryption is unavailable.
+  }
+}
+
+/** The visitor's own key: readable, public, not expired; then its fingerprint is shown. */
+async function qfCheckVisitorKey(
+  form: HTMLFormElement,
+  cfg: QfConfig,
+  rule: QfRule,
+): Promise<void> {
+  const status = form.querySelector<HTMLElement>(
+    `#${form.querySelector(`[data-field="${rule.name}"] textarea`)?.id}-status`,
+  );
+  const value = qfValueOf(form, rule);
+  if (typeof value !== "string" || value === "") {
+    if (status) status.textContent = "";
+    return;
+  }
+  let message: string | null = null;
+  let accepted: string | null = null;
+  try {
+    const pgp = await qfOpenpgp();
+    const key = await pgp.readKey({ armoredKey: value });
+    if (key.isPrivate()) message = qfText(cfg, "keyNotPublic");
+    else {
+      const expires = await key.getExpirationTime();
+      if (expires instanceof Date && expires.getTime() < Date.now())
+        message = qfText(cfg, "keyExpired");
+      else
+        accepted = qfText(cfg, "keyAccepted", { fingerprint: qfFingerprint(key.getFingerprint()) });
+    }
+  } catch {
+    message = qfText(cfg, "keyInvalid");
+  }
+  qfShowError(form, rule.name, message);
+  if (status) status.textContent = accepted ?? "";
 }
 
 /** Proof of work for the relay: filled in with the relay step. */
@@ -406,12 +512,14 @@ function qfBind(form: HTMLFormElement): void {
 
   const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
   if (button?.dataset.enableWithJs === "true") button.disabled = false;
+  if (cfg.encryption.mode !== "off") void qfShowFingerprint(form, cfg);
 
   const onBlur = (event: Event) => {
     const target = event.target as HTMLElement | null;
     const name = target?.getAttribute("name");
     const rule = name ? cfg.fields.find((r) => r.name === name) : undefined;
     if (!rule || rule.type === "hidden") return;
+    if (rule.type === "pgpKey") return void qfCheckVisitorKey(form, cfg, rule);
     // Only report after the visitor has written something or left a required field empty.
     const value = qfValueOf(form, rule);
     const empty = Array.isArray(value) ? value.length === 0 : value === "";
@@ -526,7 +634,7 @@ function qfBind(form: HTMLFormElement): void {
       reader.onload = () => {
         area.value = String(reader.result ?? "");
         area.dispatchEvent(new Event("input", { bubbles: true }));
-        qfShowError(form, keyRule.name, qfCheck(cfg, keyRule, qfValueOf(form, keyRule)));
+        void qfCheckVisitorKey(form, cfg, keyRule);
       };
       reader.readAsText(file);
     };

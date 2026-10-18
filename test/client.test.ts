@@ -367,3 +367,136 @@ describe("sending", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("encryption", () => {
+  // jsdom gives the test its own `Uint8Array`, while Node's TextEncoder (which OpenPGP.js uses)
+  // returns Node's. OpenPGP.js checks `instanceof` against the global, so the global is Node's here.
+  beforeAll(() => {
+    vi.stubGlobal("Uint8Array", Object.getPrototypeOf(Buffer.prototype).constructor);
+  });
+
+  it("encrypts the serialised message for the recipient key and shows the fingerprint", async () => {
+    const openpgp = await import("openpgp");
+    const { generatePair, decrypt } = await import("./keys");
+    const pair = await generatePair();
+    (window as unknown as { __quartzFormsOpenpgp: unknown }).__quartzFormsOpenpgp = openpgp;
+    const form = mount(
+      contact({
+        ...quick,
+        encryption: { mode: "required" },
+        pageContext: true,
+        fields: [
+          { type: "text", name: "name", label: "Name" },
+          { type: "textarea", name: "message", label: "Message", required: true },
+          {
+            type: "checkboxes",
+            name: "topics",
+            label: "Topics",
+            options: [
+              { value: "a", label: "A" },
+              { value: "b", label: "B" },
+            ],
+          },
+        ],
+      }),
+      { keys: { owner: { armored: pair.publicKey } } },
+    );
+    await nav();
+    for (let i = 0; i < 10; i++) await tick();
+    const line = form.querySelector<HTMLElement>("[data-fingerprint]")!;
+    expect(line.hidden).toBe(false);
+    expect(line.textContent).toMatch(
+      /^Encrypted in your browser for the key ([0-9A-F]{4} ){9}[0-9A-F]{4}\.$/,
+    );
+
+    fetchMock.mockResolvedValueOnce(ok());
+    fill(form, "name", "Ada");
+    fill(form, "message", "Top secret");
+    (form.querySelector('input[name="topics"][value="b"]') as HTMLInputElement).checked = true;
+    await submit(form);
+    for (let i = 0; i < 20; i++) await tick();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
+    expect(body.encrypted).toBe(true);
+    expect(body.fields).toBeUndefined();
+    expect(body.page).toBe("docs/page");
+    expect(body.ciphertext).toMatch(/^-----BEGIN PGP MESSAGE-----/);
+    expect(JSON.stringify(body)).not.toContain("Top secret");
+    expect(await decrypt(body.ciphertext, pair.privateKey)).toBe(
+      "Name: Ada\nMessage:\nTop secret\nTopics: b\n\nPage: Page (docs/page)",
+    );
+    expect(status(form)).toEqual({
+      state: "success",
+      text: "Thank you, your message has been sent encrypted.",
+    });
+    delete (window as unknown as { __quartzFormsOpenpgp?: unknown }).__quartzFormsOpenpgp;
+  }, 30_000);
+
+  it("sends plain text when the visitor unticks the optional encryption", async () => {
+    const openpgp = await import("openpgp");
+    const { generatePair } = await import("./keys");
+    const pair = await generatePair();
+    (window as unknown as { __quartzFormsOpenpgp: unknown }).__quartzFormsOpenpgp = openpgp;
+    const form = mount(contact({ ...quick, encryption: { mode: "optional" } }), {
+      keys: { owner: { armored: pair.publicKey } },
+    });
+    await nav();
+    (form.elements.namedItem("_encrypt") as HTMLInputElement).checked = false;
+    fetchMock.mockResolvedValueOnce(ok());
+    fill(form, "message", "plain");
+    await submit(form);
+    const body = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
+    expect(body).toMatchObject({ encrypted: false, fields: { message: "plain" } });
+    delete (window as unknown as { __quartzFormsOpenpgp?: unknown }).__quartzFormsOpenpgp;
+  }, 30_000);
+
+  it("checks the visitor's own key and shows its fingerprint, or why it is refused", async () => {
+    const openpgp = await import("openpgp");
+    const { generatePair } = await import("./keys");
+    const [visitor, expiredKey] = await Promise.all([
+      generatePair({ name: "Visitor" }),
+      generatePair({ expired: true }),
+    ]);
+    (window as unknown as { __quartzFormsOpenpgp: unknown }).__quartzFormsOpenpgp = openpgp;
+    const form = mount(
+      contact({
+        ...quick,
+        fields: [
+          { type: "pgpKey", name: "key", label: "Key" },
+          { type: "textarea", name: "message", label: "M", required: true },
+        ],
+      }),
+    );
+    await nav();
+    const area = form.elements.namedItem("key") as HTMLTextAreaElement;
+    const leave = async () => {
+      area.dispatchEvent(new Event("focusout", { bubbles: true }));
+      for (let i = 0; i < 10; i++) await tick();
+    };
+    area.value = visitor.publicKey;
+    await leave();
+    expect(errorOf(form, "key")).toBeNull();
+    expect(form.querySelector("#qf-f-key-status")!.textContent).toMatch(
+      /^Key accepted, fingerprint ([0-9A-F]{4} ){9}[0-9A-F]{4}\.$/,
+    );
+    area.value = visitor.privateKey;
+    await leave();
+    expect(errorOf(form, "key")).toBe("This is a private key. Please provide your public key.");
+    area.value = expiredKey.publicKey;
+    await leave();
+    expect(errorOf(form, "key")).toBe("This key has expired.");
+    area.value = "hello";
+    await leave();
+    expect(errorOf(form, "key")).toBe("This is not a PGP public key.");
+
+    // the key travels inside the message
+    area.value = visitor.publicKey;
+    await leave();
+    fetchMock.mockResolvedValueOnce(ok());
+    fill(form, "message", "hi");
+    await submit(form);
+    const body = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
+    expect(body.fields.key).toBe(visitor.publicKey.trim());
+    delete (window as unknown as { __quartzFormsOpenpgp?: unknown }).__quartzFormsOpenpgp;
+  }, 30_000);
+});
