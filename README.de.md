@@ -40,6 +40,13 @@ plugins:
 
 Die Optionstabelle folgt mit dem Datenmodell.
 
+## Das Relay
+
+`relay/php/` enthält ein einzelnes `send.php` für klassisches Webhosting mit PHP. `npm run
+relay:config -- /pfad/zur/site` schreibt seine erzeugte Konfiguration aus der `quartz.config.yaml`
+der Website; Empfängeradressen kommen von Hand in `config.php` und gelangen nie auf die Website.
+Siehe [relay/php/README.md](relay/php/README.md) (englisch).
+
 ## Entwicklung
 
 ```bash

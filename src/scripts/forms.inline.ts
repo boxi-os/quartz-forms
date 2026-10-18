@@ -386,9 +386,51 @@ async function qfCheckVisitorKey(
   if (status) status.textContent = accepted ?? "";
 }
 
-/** Proof of work for the relay: filled in with the relay step. */
-async function qfProofOfWork(_cfg: QfConfig): Promise<string | undefined> {
-  return undefined;
+/* ---- Proof of work for the relay: a few hundred milliseconds of hashing, no third party ---- */
+
+interface QfPow {
+  challenge: string;
+  nonce: string;
+}
+
+function qfLeadingZeroBits(bytes: Uint8Array): number {
+  let bits = 0;
+  for (const b of bytes) {
+    if (b === 0) {
+      bits += 8;
+      continue;
+    }
+    bits += Math.clz32(b) - 24;
+    break;
+  }
+  return bits;
+}
+
+/**
+ * Fetches the hour's challenge from the relay and finds a nonce whose SHA-256 over
+ * `challenge:nonce` has the required leading zero bits. Hashes in batches and yields between
+ * them so the page stays responsive. Returns nothing when the form does not ask for it.
+ */
+async function qfProofOfWork(cfg: QfConfig): Promise<QfPow | undefined> {
+  if (!cfg.spam.pow || cfg.transport.kind !== "relay") return undefined;
+  const url = new URL(cfg.transport.url, window.location.toString());
+  url.searchParams.set("challenge", cfg.id);
+  const res = await fetch(url.toString(), { headers: { Accept: "application/json" } });
+  const data = (await res.json()) as { pow?: boolean; challenge?: string; difficulty?: number };
+  if (!data.pow || !data.challenge) return undefined;
+  const difficulty = data.difficulty ?? cfg.spam.powDifficulty;
+  const encoder = new TextEncoder();
+  let nonce = 0;
+  for (;;) {
+    for (let i = 0; i < 64; i++, nonce++) {
+      const digest = new Uint8Array(
+        await crypto.subtle.digest("SHA-256", encoder.encode(`${data.challenge}:${nonce}`)),
+      );
+      if (qfLeadingZeroBits(digest) >= difficulty)
+        return { challenge: data.challenge, nonce: String(nonce) };
+    }
+    await new Promise((r) => setTimeout(r, 0));
+  }
 }
 
 function qfInternalUrl(slug: string): string {

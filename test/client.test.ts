@@ -500,3 +500,43 @@ describe("encryption", () => {
     delete (window as unknown as { __quartzFormsOpenpgp?: unknown }).__quartzFormsOpenpgp;
   }, 30_000);
 });
+
+describe("proof of work", () => {
+  it("fetches the challenge, finds a nonce with the required leading zero bits and sends both", async () => {
+    const { createHash } = await import("node:crypto");
+    const form = mount(contact({ ...quick, spam: { minSeconds: 0, pow: true, powDifficulty: 8 } }));
+    await nav();
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (String(url).includes("?challenge=f")) {
+        expect(init?.method ?? "GET").toBe("GET");
+        return ok({ ok: true, pow: true, challenge: "abc123", difficulty: 8 });
+      }
+      return ok();
+    });
+    fill(form, "message", "work");
+    await submit(form);
+    for (let i = 0; i < 50; i++) await tick();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(String(fetchMock.mock.calls[0]![0])).toBe(
+      "https://example.org/forms/send.php?challenge=f",
+    );
+    const body = JSON.parse(String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body));
+    expect(body.pow).toEqual({ challenge: "abc123", nonce: expect.stringMatching(/^\d+$/) });
+    const digest = createHash("sha256").update(`abc123:${body.pow.nonce}`).digest();
+    expect(digest[0]).toBe(0); // 8 leading zero bits
+    expect(status(form).state).toBe("success");
+  }, 30_000);
+
+  it("sends no proof when the relay says the form does not need one", async () => {
+    const form = mount(contact({ ...quick, spam: { minSeconds: 0, pow: true } }));
+    await nav();
+    fetchMock.mockImplementation(async (url: string) =>
+      String(url).includes("?challenge=") ? ok({ ok: true, pow: false }) : ok(),
+    );
+    fill(form, "message", "x");
+    await submit(form);
+    for (let i = 0; i < 10; i++) await tick();
+    const body = JSON.parse(String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body));
+    expect(body.pow).toBeUndefined();
+  });
+});

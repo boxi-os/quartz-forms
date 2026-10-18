@@ -48,7 +48,8 @@
     "format": "prettier . --check",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run lint && npm run format && npm run test"
+    "check": "npm run typecheck && npm run lint && npm run format && npm run test",
+    "relay:config": "node scripts/relay-config.mjs"
   },
   "peerDependencies": {
     "preact": "^10.0.0",
@@ -85,7 +86,8 @@
     "unified": "^11.0.5",
     "unist-util-visit": "^5.1.0",
     "vfile": "^6.0.3",
-    "vitest": "^2.1.9"
+    "vitest": "^2.1.9",
+    "yaml": "^2.9.1"
   },
   "quartz": {
     "name": "quartz-forms",

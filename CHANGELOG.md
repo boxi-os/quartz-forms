@@ -46,6 +46,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   emitter copies it into the site and runs the deep key check (readable, public, not revoked,
   not expired, able to encrypt), logs every key's fingerprint once and stops the build on a bad
   key. Roundtrip test: what the browser script encrypts, the owner's private key decrypts.
+- The relay (`relay/php/send.php`, PHP ≥ 8.1, no dependencies): validation level 3 against the
+  definition `npm run relay:config -- <site>` writes into `config.generated.php` (forms, fields,
+  spam settings; `config.php` with secret, origins, from and the recipient addresses is created
+  once and never overwritten). Checks origin, honeypot, time trap, a stateless proof of work
+  (HMAC challenge per form and hour), Turnstile/hCaptcha tokens, a per-form hourly counter
+  without addresses, size, every plain-text field (unknown, required, length, options, e-mail,
+  number range, pattern) with `{field, code}` answers, and that an encrypted submission is an
+  armored PGP message. Mails through `mail()`, sendmail or an outbox file; Reply-To only from a
+  non-anonymous form's e-mail field; nothing is logged. A no-JavaScript POST gets a redirect or
+  a plain page. The browser script fetches the challenge and hashes in batches so the page stays
+  responsive. **Not yet run against a PHP interpreter** (none installed here); see the README.
 
 - Scaffold: manifest with the three categories (transformer, emitter, component), build and test
   tooling copied from quartz-navigations, bilingual README skeleton.
