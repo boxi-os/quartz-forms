@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
-import { resolveOrThrow, logHints } from './chunk-IHFS2UCT.js';
-export { FormBox_default as FormBox, Forms, defaultOptions, resolveOptions, resolveOrThrow, resolveText, templateNames, templateOf } from './chunk-IHFS2UCT.js';
+import { resolveOrThrow, logHints } from './chunk-APOAHHRS.js';
+export { FormBox_default as FormBox, Forms, defaultOptions, resolveOptions, resolveOrThrow, resolveText, templateNames, templateOf } from './chunk-APOAHHRS.js';
 
 createRequire(import.meta.url);
 

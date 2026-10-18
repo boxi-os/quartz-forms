@@ -1,0 +1,369 @@
+// @vitest-environment jsdom
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
+import ts from "typescript";
+import { toHtml } from "hast-util-to-html";
+import { resolveOrThrow } from "../src/options";
+import { makeContext } from "../src/render/context";
+import { renderForm } from "../src/render/form";
+import type { FormDefinition, QuartzFormsOptions } from "../src/types";
+import { contact, options } from "./helpers";
+
+/**
+ * Runs the browser script the way Quartz does: compiled to plain JS, evaluated once, driven by
+ * the `nav` event, against the markup the real renderer produces.
+ */
+const cleanups: (() => void)[] = [];
+const fetchMock = vi.fn();
+const navigateMock = vi.fn();
+
+function mount(def: FormDefinition, extra: Partial<QuartzFormsOptions> = {}, lang = "en") {
+  const opts = resolveOrThrow(options({ forms: { f: def }, ...extra }));
+  const form = opts.forms.f!;
+  const ctx = makeContext(opts, form, {
+    lang,
+    idPrefix: "qf-f",
+    page: { title: "Page", slug: "docs/page" },
+    serve: false,
+  });
+  document.body.dataset.basepath = "";
+  document.body.innerHTML = `<main>${toHtml(renderForm(form, ctx))}</main>`;
+  return document.querySelector<HTMLFormElement>("form.quartz-form")!;
+}
+
+async function nav() {
+  for (const fn of cleanups.splice(0)) fn();
+  document.dispatchEvent(new CustomEvent("nav", { detail: { url: "docs/page" } }) as never);
+  await tick();
+}
+
+const tick = () => new Promise((r) => setTimeout(r, 0));
+
+async function submit(form: HTMLFormElement) {
+  form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+  // the handler awaits fetch and json(); give it a few turns
+  for (let i = 0; i < 5; i++) await tick();
+}
+
+function fill(form: HTMLFormElement, name: string, value: string) {
+  const el = form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement;
+  el.value = value;
+}
+
+function status(form: HTMLFormElement) {
+  const el = form.querySelector<HTMLElement>(".quartz-form__status")!;
+  return { state: el.dataset.state, text: el.textContent };
+}
+
+function errorOf(form: HTMLFormElement, name: string) {
+  const el = form.querySelector<HTMLElement>(`[data-field="${name}"] .quartz-form__error`)!;
+  return el.hidden ? null : el.textContent;
+}
+
+function ok(body: unknown = { ok: true }, init: { status?: number } = {}) {
+  return new Response(JSON.stringify(body), {
+    status: init.status ?? 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+beforeAll(() => {
+  window.addCleanup = (fn) => cleanups.push(fn as () => void);
+  (window as unknown as { __quartzFormsNavigate: unknown }).__quartzFormsNavigate = navigateMock;
+  vi.stubGlobal("fetch", fetchMock);
+  const source = fs.readFileSync(path.join(__dirname, "../src/scripts/forms.inline.ts"), "utf8");
+  // esbuild refuses to run inside jsdom's realm, so strip types with the TypeScript compiler.
+  const { outputText } = ts.transpileModule(source, {
+    compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.None },
+  });
+  new Function(outputText)();
+});
+
+beforeEach(() => {
+  fetchMock.mockReset();
+  navigateMock.mockReset();
+  vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-19T10:00:00Z"));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+const quick = { spam: { minSeconds: 0 } } satisfies Partial<FormDefinition>;
+
+describe("validation in the browser", () => {
+  it("fills the timestamp, switches off native validation and reports empty required fields", async () => {
+    const form = mount(contact(quick));
+    await nav();
+    expect(form.noValidate).toBe(true);
+    const ts = Number((form.elements.namedItem("ts") as HTMLInputElement).value);
+    expect(Math.abs(ts - Date.now())).toBeLessThan(1000);
+    await submit(form);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(errorOf(form, "message")).toBe("This field is required.");
+    expect(errorOf(form, "name")).toBeNull();
+    const area = form.elements.namedItem("message") as HTMLTextAreaElement;
+    expect(area.getAttribute("aria-invalid")).toBe("true");
+    expect(document.activeElement).toBe(area);
+    expect(status(form)).toEqual({ state: "error", text: "Please check one field." });
+  });
+
+  it("checks types, bounds, patterns, choices and consent, in the page language", async () => {
+    const form = mount(
+      contact({
+        ...quick,
+        fields: [
+          { type: "email", name: "email", label: "E", required: true },
+          { type: "url", name: "url", label: "U" },
+          { type: "tel", name: "tel", label: "T" },
+          { type: "number", name: "n", label: "N", min: 1, max: 5 },
+          { type: "text", name: "code", label: "C", pattern: "[A-Z]{3}" },
+          { type: "text", name: "long", label: "L", maxLength: 3 },
+          {
+            type: "radio",
+            name: "r",
+            label: "R",
+            required: true,
+            options: [{ value: "a", label: "A" }],
+          },
+          {
+            type: "checkboxes",
+            name: "c",
+            label: "C",
+            required: true,
+            options: [{ value: "a", label: "A" }],
+          },
+          { type: "scale", name: "s", label: "S", required: true, min: 1, max: 3 },
+          { type: "consent", name: "ok", text: "ok" },
+        ],
+      }),
+      {},
+      "de",
+    );
+    await nav();
+    fill(form, "email", "nope");
+    fill(form, "url", "ftp://x");
+    fill(form, "tel", "12");
+    fill(form, "n", "7");
+    fill(form, "code", "abc");
+    fill(form, "long", "abcd");
+    await submit(form);
+    expect(errorOf(form, "email")).toBe("Bitte geben Sie eine gültige E-Mail-Adresse ein.");
+    expect(errorOf(form, "url")).toBe("Bitte geben Sie eine gültige Webadresse ein.");
+    expect(errorOf(form, "tel")).toBe("Bitte geben Sie eine gültige Telefonnummer ein.");
+    expect(errorOf(form, "n")).toBe("Bitte geben Sie höchstens 5 ein.");
+    expect(errorOf(form, "code")).toBe("Bitte verwenden Sie das verlangte Format.");
+    expect(errorOf(form, "long")).toBe("Bitte verwenden Sie höchstens 3 Zeichen.");
+    expect(errorOf(form, "r")).toBe("Bitte wählen Sie eine Option.");
+    expect(errorOf(form, "c")).toBe("Bitte wählen Sie mindestens eine Option.");
+    expect(errorOf(form, "s")).toBe("Bitte wählen Sie eine Option.");
+    expect(errorOf(form, "ok")).toBe("Bitte stimmen Sie vor dem Senden zu.");
+    expect(status(form).text).toBe("Bitte prüfen Sie 10 Felder.");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("validates a field when the visitor leaves it, and clears the error once it is fixed", async () => {
+    const form = mount(
+      contact({
+        ...quick,
+        fields: [
+          { type: "email", name: "email", label: "E" },
+          { type: "textarea", name: "m", label: "M", required: true },
+        ],
+      }),
+    );
+    await nav();
+    const email = form.elements.namedItem("email") as HTMLInputElement;
+    email.value = "bad";
+    email.dispatchEvent(new Event("focusout", { bubbles: true }));
+    expect(errorOf(form, "email")).toBe("Please enter a valid e-mail address.");
+    email.value = "a@b.co";
+    email.dispatchEvent(new Event("focusout", { bubbles: true }));
+    expect(errorOf(form, "email")).toBeNull();
+    // leaving an optional field empty says nothing
+    email.value = "";
+    email.dispatchEvent(new Event("focusout", { bubbles: true }));
+    expect(errorOf(form, "email")).toBeNull();
+  });
+});
+
+describe("sending", () => {
+  it("posts the envelope to the relay and shows the success sentence in place", async () => {
+    const form = mount(contact(quick));
+    await nav();
+    fetchMock.mockResolvedValueOnce(ok());
+    fill(form, "name", "Ada");
+    fill(form, "message", "Hello there");
+    await submit(form);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://example.org/forms/send.php");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body))).toEqual({
+      form: "f",
+      lang: "en",
+      ts: (form.elements.namedItem("ts") as HTMLInputElement).value,
+      encrypted: false,
+      fields: { name: "Ada", message: "Hello there" },
+    });
+    expect(status(form)).toEqual({
+      state: "success",
+      text: "Thank you, your message has been sent.",
+    });
+    expect((form.querySelector('[data-field="name"]') as HTMLElement).hidden).toBe(true);
+    expect(form.dataset.state).toBe("sent");
+  });
+
+  it("sends the page along only when the form has page context", async () => {
+    const form = mount(contact({ ...quick, pageContext: true }));
+    await nav();
+    fetchMock.mockResolvedValueOnce(ok());
+    fill(form, "message", "x");
+    await submit(form);
+    expect(
+      JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body)).page,
+    ).toBe("docs/page");
+  });
+
+  it("pretends to send when the honeypot is filled, and sends nothing", async () => {
+    const form = mount(contact(quick));
+    await nav();
+    fill(form, "message", "spam");
+    fill(form, "_hp_website", "http://spam.example");
+    await submit(form);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(status(form).state).toBe("success");
+  });
+
+  it("refuses a submission faster than minSeconds, and accepts it later", async () => {
+    const form = mount(contact({ spam: { minSeconds: 3 } }));
+    await nav();
+    fill(form, "message", "quick");
+    await submit(form);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(status(form)).toEqual({ state: "error", text: "Please wait a moment before sending." });
+    vi.setSystemTime(Date.now() + 4000);
+    fetchMock.mockResolvedValueOnce(ok());
+    await submit(form);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the relay's field errors at the fields and its rate limit as a sentence", async () => {
+    const form = mount(contact(quick));
+    await nav();
+    fill(form, "message", "x");
+    fetchMock.mockResolvedValueOnce(
+      ok(
+        { ok: false, error: "invalid", errors: [{ field: "message", code: "too_long" }] },
+        { status: 400 },
+      ),
+    );
+    await submit(form);
+    expect(errorOf(form, "message")).toBe("Please use at most 20000 characters.");
+    expect(status(form).text).toBe("Please check one field.");
+    fetchMock.mockResolvedValueOnce(new Response("", { status: 429 }));
+    await submit(form);
+    expect(status(form).text).toBe("Too many messages at the moment. Please try again later.");
+    fetchMock.mockResolvedValueOnce(
+      ok({ ok: false, message: "origin not allowed" }, { status: 403 }),
+    );
+    await submit(form);
+    expect(status(form).text).toBe("The message was not accepted: origin not allowed");
+    fetchMock.mockRejectedValueOnce(new TypeError("network"));
+    await submit(form);
+    expect(status(form).text).toBe("The message could not be sent. Please try again later.");
+    const button = form.querySelector<HTMLButtonElement>("button[type=submit]")!;
+    expect(button.disabled).toBe(false);
+  });
+
+  it("redirects to the site's page after a successful send", async () => {
+    const form = mount(contact({ ...quick, success: { mode: "redirect", slug: "thanks" } }));
+    document.body.dataset.basepath = "/repo";
+    await nav();
+    fetchMock.mockResolvedValueOnce(ok());
+    fill(form, "message", "x");
+    await submit(form);
+    expect(navigateMock).toHaveBeenCalledWith("/repo/thanks");
+  });
+
+  it("opens the mail program with subject and the serialised message for mailto", async () => {
+    const form = mount(
+      contact({
+        ...quick,
+        recipient: "o@example.org",
+        subject: "Hi",
+        fields: [
+          { type: "text", name: "name", label: "Name" },
+          { type: "textarea", name: "message", label: "Message", required: true },
+        ],
+      }),
+      {
+        transport: { kind: "mailto" },
+      },
+    );
+    await nav();
+    fill(form, "name", "Ada");
+    fill(form, "message", "Line one\nLine two");
+    await submit(form);
+    expect(fetchMock).not.toHaveBeenCalled();
+    const url = navigateMock.mock.calls[0]![0] as string;
+    expect(url.startsWith("mailto:o@example.org?subject=Hi&body=")).toBe(true);
+    expect(decodeURIComponent(url.split("&body=")[1]!)).toBe(
+      "Name: Ada\nMessage:\nLine one\nLine two",
+    );
+    expect(status(form).state).toBe("success");
+  });
+
+  it("posts flat fields to an endpoint, as JSON or as a form body, with the extra fields", async () => {
+    const json = mount(contact(quick), {
+      transport: { kind: "endpoint", url: "https://e.example/x", extra: { to: "sales" } },
+    });
+    await nav();
+    fetchMock.mockResolvedValueOnce(ok());
+    fill(json, "message", "x");
+    await submit(json);
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(init.body))).toEqual({ to: "sales", name: "", message: "x" });
+
+    const form = mount(contact(quick), {
+      transport: { kind: "endpoint", url: "https://e.example/x", format: "form" },
+    });
+    await nav();
+    fetchMock.mockResolvedValueOnce(ok());
+    fill(form, "message", "y");
+    await submit(form);
+    const body = (fetchMock.mock.calls[1] as [string, RequestInit])[1].body as URLSearchParams;
+    expect(body).toBeInstanceOf(URLSearchParams);
+    expect(body.get("message")).toBe("y");
+  });
+
+  it("enables the button of an encryption-required form and refuses to send while encryption is unavailable", async () => {
+    const form = mount(contact({ ...quick, encryption: { mode: "required" } }), {
+      keys: {
+        k: {
+          armored: "-----BEGIN PGP PUBLIC KEY BLOCK-----\nx\n-----END PGP PUBLIC KEY BLOCK-----",
+        },
+      },
+    });
+    const button = form.querySelector<HTMLButtonElement>("button[type=submit]")!;
+    expect(button.disabled).toBe(true);
+    await nav();
+    expect(button.disabled).toBe(false);
+    fill(form, "message", "secret");
+    await submit(form);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(status(form).text).toBe("Encryption could not be loaded; the message was not sent.");
+  });
+
+  it("binds a form once, even when nav fires again", async () => {
+    const form = mount(contact(quick));
+    await nav();
+    await nav();
+    fetchMock.mockResolvedValue(ok());
+    fill(form, "message", "x");
+    await submit(form);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
