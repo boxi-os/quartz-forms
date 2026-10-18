@@ -5,7 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0] - 2026-10-19
+
+First working version, private. Measured on 2026-10-19 in a throwaway copy of the gui-test site
+built with Quartz 5.0.0, driven in Chrome with playwright-core: all four embeddings render, the
+code block leaves no `<pre>` behind, element ids stay unique with two instances on a page, empty
+submits show field errors in German with focus and summary, an encryption-required form sends
+only an armored PGP message that `gpg` decrypts to the labelled text, the optional toggle sends
+plain text when unticked, the proof of work passes the mock relay's check and the redirect lands
+on the thank-you page, `form: false` hides the layout form, an English page gets English texts,
+forms survive SPA navigation without double binding, no horizontal scroll at 375 px, inputs
+follow the dark theme, no console errors. QuartzControl reads the schema (9 of 9 options as
+fields). Not measured: the PHP relay against an interpreter, the no-JavaScript path.
 
 ### Added
 
@@ -63,6 +74,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   or to a service under the widget's own field name. Never for anonymous forms. Service presets
   (`formspree`, `web3forms`) post flat fields with `Accept: application/json`; a service's field
   message is shown at the field.
+- The message as the recipient reads it names choices by their labels in the page language and
+  draws a checkbox or consent as `[x]`/`[ ]` plus its text (first measured as `Thema: bug` and a
+  sentence followed by `: yes`). The browser script, the relay and its generated config agree.
+- The stylesheet brings checkboxes and radios back to the browser's own (`all: revert`): a theme
+  that draws task-list checkboxes with `appearance: none` and a negative margin pushed ours out
+  of the form (measured on the gui-test template).
 
 - Scaffold: manifest with the three categories (transformer, emitter, component), build and test
   tooling copied from quartz-navigations, bilingual README skeleton.

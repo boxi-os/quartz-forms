@@ -365,6 +365,8 @@ export interface ClientFieldRule {
   max?: number;
   pattern?: string;
   options?: string[];
+  /** Label per option value, in the page language, for the message the recipient reads. */
+  optionLabels?: Record<string, string>;
 }
 
 export interface ClientConfig {
@@ -432,6 +434,9 @@ export function clientConfig(form: ResolvedForm, ctx: RenderContext): ClientConf
       case "radio":
       case "checkboxes":
         rule.options = f.options.map((o) => o.value);
+        rule.optionLabels = Object.fromEntries(
+          f.options.map((o) => [o.value, resolveText(o.label, ctx.lang) ?? o.value]),
+        );
         break;
       case "scale":
         rule.min = f.min;

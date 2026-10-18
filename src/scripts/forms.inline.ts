@@ -15,6 +15,7 @@ interface QfRule {
   max?: number;
   pattern?: string;
   options?: string[];
+  optionLabels?: Record<string, string>;
 }
 
 interface QfConfig {
@@ -266,7 +267,13 @@ function qfSerialize(cfg: QfConfig, values: Record<string, QfValue>): string {
       if (typeof value === "string" && value) key = value;
       continue;
     }
-    const shown = Array.isArray(value) ? value.join(", ") : value;
+    // Choices are shown as the visitor read them; a checkbox as a ticked or empty box.
+    const named = (v: string) => rule.optionLabels?.[v] ?? v;
+    if (rule.type === "checkbox" || rule.type === "consent") {
+      lines.push(`[${value === "" ? " " : "x"}] ${rule.label}`);
+      continue;
+    }
+    const shown = Array.isArray(value) ? value.map(named).join(", ") : named(value);
     if (shown === "" && !rule.required) continue;
     lines.push(rule.type === "textarea" ? `${rule.label}:\n${shown}` : `${rule.label}: ${shown}`);
   }

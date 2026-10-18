@@ -88,6 +88,7 @@ describe("relay-config", () => {
     );
     expect(generated).toMatch(/'name' => 'message',[\s\S]*?'maxLength' => 500/);
     expect(generated).toMatch(/'name' => 'topic',[\s\S]*?'options' => \[\n\s+'a',\n\s+'b',\n\s+\]/);
+    expect(generated).toMatch(/'optionLabels' => \[\n\s+'a' => 'A',\n\s+'b' => 'B',\n\s+\]/);
     expect(generated).toMatch(/'name' => 'rating',[\s\S]*?'min' => 1,\n\s+'max' => 5/);
     expect(generated).toMatch(
       /'name' => 'ok',\n\s+'type' => 'consent',\n\s+'required' => true,\n\s+'label' => 'Einverstanden'/,

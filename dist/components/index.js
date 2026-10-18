@@ -1,5 +1,5 @@
 import { createRequire } from 'module';
-export { FormBox_default as FormBox } from '../chunk-74KBVFWE.js';
+export { FormBox_default as FormBox } from '../chunk-UNPT3BJI.js';
 
 createRequire(import.meta.url);
 //# sourceMappingURL=index.js.map

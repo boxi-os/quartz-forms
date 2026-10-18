@@ -5,7 +5,7 @@ Website: Kontakt, Feedback, Anmeldung und Umfrage, zur Build-Zeit gerendert, im 
 mit OpenPGP verschlüsselt, bevor sie die Seite verlassen, und über einen konfigurierbaren Versandweg
 verschickt.
 
-**Stand: frühe Entwicklung, privat.** Noch nichts veröffentlicht.
+**Stand: 0.1.0, privat.** Läuft in einem gemessenen Bau; das PHP-Relay ist noch nicht gegen einen Interpreter gelaufen.
 
 - Formulare werden einmal in `quartz.config.yaml` definiert (`options.forms`), nach Kennung
 - Eine Seite bindet ein Formular mit einem ` ```quartz-form `-Codeblock, einem

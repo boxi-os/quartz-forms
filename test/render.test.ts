@@ -254,7 +254,14 @@ describe("renderForm", () => {
     );
     expect(config.fields).toEqual([
       { name: "t", type: "text", label: "T", required: true, maxLength: 10, pattern: "^a+$" },
-      { name: "r", type: "radio", label: "R", required: false, options: ["x"] },
+      {
+        name: "r",
+        type: "radio",
+        label: "R",
+        required: false,
+        options: ["x"],
+        optionLabels: { x: "X" },
+      },
       { name: "s", type: "scale", label: "S", required: false, min: 1, max: 5 },
       { name: "c", type: "consent", label: "ok", required: true },
     ]);

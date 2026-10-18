@@ -116,6 +116,8 @@ for (const form of Object.values(opts.forms)) {
         case "radio":
         case "checkboxes":
           rule.options = f.options.map((o) => o.value);
+          // label per value, as Text (string or by language), for the mail body
+          rule.optionLabels = Object.fromEntries(f.options.map((o) => [o.value, o.label]));
           break;
         case "scale":
           rule.min = f.min;

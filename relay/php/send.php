@@ -318,9 +318,12 @@ function qf_check_field(array $rule, mixed $value): ?string
     return null;
 }
 
-function qf_label(array $rule, string $lang): string
+/** A Text (string, or record by language) in the submission's language. */
+function qf_text(mixed $label, string $lang, string $fallback = ''): string
 {
-    $label = $rule['label'] ?? $rule['name'];
+    if ($label === null) {
+        return $fallback;
+    }
     if (!is_array($label)) {
         return (string) $label;
     }
@@ -337,6 +340,11 @@ function qf_label(array $rule, string $lang): string
         }
     }
     return (string) reset($label);
+}
+
+function qf_label(array $rule, string $lang): string
+{
+    return qf_text($rule['label'] ?? null, $lang, (string) $rule['name']);
 }
 
 /** The message as the recipient reads it, the same shape the browser produces when encrypting. */
@@ -356,11 +364,22 @@ function qf_serialize(array $formCfg, array $fields, string $lang, ?array $page)
             }
             continue;
         }
-        $shown = is_array($value) ? implode(', ', $value) : trim((string) $value);
+        $label = qf_label($rule, $lang);
+        // Choices are shown as the visitor read them; a checkbox as a ticked or empty box.
+        if ($rule['type'] === 'checkbox' || $rule['type'] === 'consent') {
+            $lines[] = '[' . ((string) $value === '' ? ' ' : 'x') . '] ' . $label;
+            continue;
+        }
+        $named = function ($v) use ($rule, $lang): string {
+            $labels = $rule['optionLabels'] ?? null;
+            return is_array($labels) && array_key_exists((string) $v, $labels)
+                ? qf_text($labels[(string) $v], $lang, (string) $v)
+                : (string) $v;
+        };
+        $shown = is_array($value) ? implode(', ', array_map($named, $value)) : $named(trim((string) $value));
         if ($shown === '' && empty($rule['required'])) {
             continue;
         }
-        $label = qf_label($rule, $lang);
         $lines[] = $rule['type'] === 'textarea' ? "$label:\n$shown" : "$label: $shown";
     }
     if ($page !== null) {
@@ -614,11 +633,7 @@ if (!is_string($to) || $to === '' || str_contains($to, '@example.')) {
     qf_fail(500, 'recipient', 'the relay has no address for this form');
 }
 
-$subject = $formCfg['subject'] ?? null;
-if (is_array($subject)) {
-    $subject = qf_label(['label' => $subject, 'name' => $formId], $lang);
-}
-$subject = (string) ($subject ?? $formId);
+$subject = qf_text($formCfg['subject'] ?? null, $lang, $formId);
 if (!empty($config['subjectPrefix'])) {
     $subject = $config['subjectPrefix'] . ' ' . $subject;
 }

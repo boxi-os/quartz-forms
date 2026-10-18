@@ -423,7 +423,7 @@ describe("encryption", () => {
     expect(body.ciphertext).toMatch(/^-----BEGIN PGP MESSAGE-----/);
     expect(JSON.stringify(body)).not.toContain("Top secret");
     expect(await decrypt(body.ciphertext, pair.privateKey)).toBe(
-      "Name: Ada\nMessage:\nTop secret\nTopics: b\n\nPage: Page (docs/page)",
+      "Name: Ada\nMessage:\nTop secret\nTopics: B\n\nPage: Page (docs/page)",
     );
     expect(status(form)).toEqual({
       state: "success",
@@ -622,5 +622,48 @@ describe("captcha", () => {
     expect(JSON.parse(String(init.body))["h-captcha-response"]).toBe("h-tok");
     expect(errorOf(form, "message")).toBe("should be text");
     document.head.querySelectorAll("script").forEach((s) => s.remove());
+  });
+});
+
+describe("the message as the recipient reads it", () => {
+  it("names choices by their labels and draws checkboxes as boxes", async () => {
+    const form = mount(
+      contact({
+        ...quick,
+        transport: { kind: "mailto" },
+        recipient: "o@example.org",
+        fields: [
+          {
+            type: "select",
+            name: "topic",
+            label: "Topic",
+            options: [{ value: "bug", label: { en: "Bug report", de: "Fehler" } }],
+          },
+          {
+            type: "checkboxes",
+            name: "days",
+            label: "Days",
+            options: [
+              { value: "mo", label: "Monday" },
+              { value: "tu", label: "Tuesday" },
+            ],
+          },
+          { type: "checkbox", name: "news", label: "Send me news" },
+          { type: "consent", name: "ok", text: "I agree." },
+          { type: "textarea", name: "m", label: "Message", required: true },
+        ],
+      }),
+      { transport: { kind: "mailto" } },
+    );
+    await nav();
+    (form.elements.namedItem("topic") as HTMLSelectElement).value = "bug";
+    (form.querySelector('input[name="days"][value="tu"]') as HTMLInputElement).checked = true;
+    (form.elements.namedItem("ok") as HTMLInputElement).checked = true;
+    fill(form, "m", "hi");
+    await submit(form);
+    const url = navigateMock.mock.calls[0]![0] as string;
+    expect(decodeURIComponent(url.split("&body=")[1]!)).toBe(
+      "Topic: Bug report\nDays: Tuesday\n[ ] Send me news\n[x] I agree.\nMessage:\nhi",
+    );
   });
 });
