@@ -1,0 +1,182 @@
+{
+  "name": "quartz-forms",
+  "version": "0.0.1",
+  "description": "Quartz v5 plugin for web forms: contact, feedback, sign-up and survey forms rendered at build time, validated in the browser, encrypted with OpenPGP before they leave the page, and sent through a configurable transport (own relay, generic endpoint, mailto).",
+  "type": "module",
+  "license": "UNLICENSED",
+  "private": true,
+  "author": "boxi-os",
+  "homepage": "https://github.com/boxi-os/quartz-forms",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/boxi-os/quartz-forms"
+  },
+  "keywords": [
+    "quartz",
+    "quartz-plugin",
+    "forms",
+    "contact-form",
+    "openpgp"
+  ],
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js"
+    },
+    "./components": {
+      "types": "./dist/components/index.d.ts",
+      "import": "./dist/components/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint . --max-warnings=0",
+    "format": "prettier . --check",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm run lint && npm run format && npm run test"
+  },
+  "peerDependencies": {
+    "preact": "^10.0.0",
+    "vfile": "^6.0.3"
+  },
+  "dependencies": {
+    "@quartz-community/types": "^0.2.1",
+    "@quartz-community/utils": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/hast": "^3.0.4",
+    "@types/mdast": "^4.0.4",
+    "@types/node": "^24.10.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "jsdom": "^25.0.1",
+    "preact": "^10.28.2",
+    "prettier": "^3.6.2",
+    "sass": "^1.97.3",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "unist-util-visit": "^5.1.0",
+    "vfile": "^6.0.3",
+    "vitest": "^2.1.9"
+  },
+  "quartz": {
+    "name": "quartz-forms",
+    "displayName": "Forms",
+    "description": "Web forms for Quartz: contact, feedback, sign-up and survey forms, encrypted with OpenPGP in the browser, sent through a configurable transport.",
+    "category": [
+      "transformer",
+      "emitter",
+      "component"
+    ],
+    "version": "0.0.1",
+    "quartzVersion": ">=5.0.0",
+    "dependencies": [],
+    "defaultEnabled": true,
+    "defaultOrder": 70,
+    "defaultOptions": {
+      "forms": {},
+      "frontmatterKey": "form",
+      "codeBlockLang": "quartz-form",
+      "language": "auto"
+    },
+    "components": {
+      "FormBox": {
+        "displayName": "Form",
+        "defaultPosition": "afterBody",
+        "defaultPriority": 20
+      }
+    },
+    "configSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "forms": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/formDefinition"
+          },
+          "description": "The forms of this site, by id. A page embeds a form by this id.",
+          "x-quartz-group": "Forms",
+          "x-quartz-order": 10,
+          "x-quartz-l10n": {
+            "de": {
+              "description": "Die Formulare dieser Website, nach Kennung. Eine Seite bindet ein Formular über diese Kennung ein.",
+              "group": "Formulare"
+            }
+          }
+        },
+        "frontmatterKey": {
+          "type": "string",
+          "description": "Frontmatter key that embeds a form on a page or hides the global one (`form: contact`, `form: false`).",
+          "x-quartz-group": "Technical",
+          "x-quartz-order": 900,
+          "x-quartz-advanced": true,
+          "x-quartz-l10n": {
+            "de": {
+              "description": "Frontmatter-Schlüssel, der ein Formular auf einer Seite einbindet oder das globale ausblendet (`form: kontakt`, `form: false`).",
+              "group": "Technisch"
+            }
+          }
+        },
+        "codeBlockLang": {
+          "type": "string",
+          "description": "Language tag of the code block that embeds a form in the text (a fenced block whose language is this tag).",
+          "x-quartz-group": "Technical",
+          "x-quartz-order": 910,
+          "x-quartz-advanced": true,
+          "x-quartz-l10n": {
+            "de": {
+              "description": "Sprachkennung des Codeblocks, der ein Formular im Text einbindet (ein eingezäunter Block mit dieser Kennung als Sprache).",
+              "group": "Technisch"
+            }
+          }
+        },
+        "language": {
+          "type": "string",
+          "description": "Language of the form placed through the layout: `auto` takes the page language, or a language code.",
+          "x-quartz-group": "Technical",
+          "x-quartz-order": 920,
+          "x-quartz-l10n": {
+            "de": {
+              "description": "Sprache des über das Layout platzierten Formulars: `auto` nimmt die Seitensprache, oder ein Sprachcode.",
+              "group": "Technisch"
+            }
+          }
+        }
+      },
+      "$defs": {
+        "formDefinition": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {}
+        }
+      }
+    }
+  },
+  "engines": {
+    "node": ">=22",
+    "npm": ">=10.9.2"
+  },
+  "allowScripts": {
+    "esbuild@0.27.7": true,
+    "esbuild@0.21.5": true
+  }
+}

@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run typecheck --if-present
+      - run: npm run lint --if-present
+      - run: npm run format --if-present
+      - run: npm run test --if-present
+      - run: npm run build
+      - name: Verify committed dist/ is up to date
+        run: |
+          git add --intent-to-add dist
+          if ! git diff --exit-code --stat -- dist; then
+            echo "ERROR: the freshly built dist/ differs from the committed one."
+            echo "Run 'npm run build' and commit dist/ together with the source change."
+            exit 1
+          fi
+          echo "dist/ matches the committed build output."
+      - name: Verify dist bundling
+        run: |
+          cat > "$RUNNER_TEMP/verify-dist-bundling.cjs" <<'EOF'
+          const fs = require("fs");
+          const path = require("path");
+          const { builtinModules } = require("module");
+
+          const pkg = JSON.parse(fs.readFileSync("package.json", "utf-8"));
+          const peerDeps = Object.keys(pkg.peerDependencies || {});
+          const builtins = new Set(builtinModules);
+
+          // Everything Quartz provides at runtime: the host itself plus the declared
+          // peerDependencies, which Quartz symlinks into the plugin directory. Anything
+          // else — dependencies included — is never installed there and must be bundled.
+          const hostPackages = ["@jackyzha0/quartz", ...peerDeps];
+
+          const bareName = (spec) =>
+            spec.startsWith("@") ? spec.split("/").slice(0, 2).join("/") : spec.split("/")[0];
+
+          const isPackage = (spec, name) => spec === name || spec.startsWith(name + "/");
+
+          const allowedImport = (spec) =>
+            spec.startsWith("node:") ||
+            builtins.has(bareName(spec)) ||
+            hostPackages.some((name) => isPackage(spec, name));
+
+          const collect = (dir, out = []) => {
+            for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+              const p = path.join(dir, entry.name);
+              if (entry.isDirectory()) collect(p, out);
+              else if (entry.name.endsWith(".js")) out.push(p);
+            }
+            return out;
+          };
+
+          if (!fs.existsSync("dist")) {
+            console.error("ERROR: dist/ is missing. Run `npm run build` first.");
+            process.exit(1);
+          }
+
+          // Every emitted entry point is checked, not just dist/index.js: Quartz loads a
+          // component-only plugin through dist/components/index.js.
+          const files = collect("dist");
+          if (files.length === 0) {
+            console.error("ERROR: dist/ contains no .js files.");
+            process.exit(1);
+          }
+
+          const importRe =
+            /^\s*(?:import\s+.*\s+from|export\s+.*\s+from)\s+["']([^"'./][^"']*)["']/gm;
+          const errors = [];
+
+          for (const file of files) {
+            for (const m of fs.readFileSync(file, "utf-8").matchAll(importRe)) {
+              if (allowedImport(m[1])) continue;
+              errors.push(
+                `${file}: imports "${m[1]}" externally, but Quartz will not have it installed. ` +
+                  `Move it out of "dependencies" so tsup bundles it, or add it to peerDependencies.`,
+              );
+            }
+
+            // The counterpart: a singleton that got inlined resolves to a second instance
+            // at runtime. The sourcemap lists every module esbuild copied into the bundle.
+            const mapFile = `${file}.map`;
+            if (!fs.existsSync(mapFile)) {
+              errors.push(`${file}: no sourcemap, cannot verify that singletons stay external.`);
+              continue;
+            }
+            const sources = JSON.parse(fs.readFileSync(mapFile, "utf-8")).sources || [];
+            for (const name of peerDeps) {
+              const inlined = sources.filter((s) => s.includes(`node_modules/${name}/`));
+              if (inlined.length === 0) continue;
+              errors.push(
+                `${file}: bundles a copy of "${name}" (e.g. ${inlined[0]}), which must stay a ` +
+                  `single shared instance. Check that noExternal in tsup.config.ts does not ` +
+                  `shadow SINGLETON_EXTERNALS.`,
+              );
+            }
+          }
+
+          if (errors.length > 0) {
+            console.error("ERROR: dist/ bundling is wrong:");
+            for (const e of errors) console.error(`  - ${e}`);
+            process.exit(1);
+          }
+
+          console.log(
+            `dist/ bundling verified in ${files.length} file(s): only ${hostPackages.join(", ")} ` +
+              `stay external, and none of them is inlined.`,
+          );
+          EOF
+          node "$RUNNER_TEMP/verify-dist-bundling.cjs"

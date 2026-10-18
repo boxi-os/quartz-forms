@@ -1,0 +1,8 @@
+// The single stylesheet of quartz-forms. Colours and fonts come from Quartz's theme variables;
+// every tunable value is a `--quartz-forms-*` custom property.
+.quartz-form {
+  --quartz-forms-gap: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--quartz-forms-gap);
+}
