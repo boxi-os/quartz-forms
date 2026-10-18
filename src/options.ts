@@ -35,6 +35,7 @@ export const defaultOptions: QuartzFormsOptions = {
   spam: defaultSpam,
   frontmatterKey: "form",
   codeBlockLang: "quartz-form",
+  layoutForm: "",
   language: "auto",
   texts: {},
 };
@@ -130,6 +131,7 @@ export function resolveOptions(userOpts?: Partial<QuartzFormsOptions>): Resolved
     spam,
     frontmatterKey: typeof user.frontmatterKey === "string" ? user.frontmatterKey : "form",
     codeBlockLang: typeof user.codeBlockLang === "string" ? user.codeBlockLang : "quartz-form",
+    layoutForm: typeof user.layoutForm === "string" ? user.layoutForm : "",
     language: typeof user.language === "string" ? user.language : "auto",
     texts: isObject(user.texts) ? (user.texts as Record<string, Record<string, string>>) : {},
     problems: [],

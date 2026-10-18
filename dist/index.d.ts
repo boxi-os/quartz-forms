@@ -3,10 +3,6 @@ import { QuartzFormsOptions, ResolvedOptions, Text, FormTemplate, FormDefinition
 export { EncryptionConfig, FormField, ResolvedForm, SpamConfig, SuccessConfig, TransportConfig } from './types.js';
 export { FormBox } from './components/index.js';
 
-/**
- * Embeds forms into pages: the ```quartz-form code block (mdast), the `{{form:id}}` placeholder
- * and the frontmatter key (hast). Filled in with the data model.
- */
 declare const Forms: QuartzTransformerPlugin<Partial<QuartzFormsOptions>>;
 
 /**

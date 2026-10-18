@@ -1,8 +1,266 @@
 // The single stylesheet of quartz-forms. Colours and fonts come from Quartz's theme variables;
-// every tunable value is a `--quartz-forms-*` custom property.
+// every tunable value is a `--quartz-forms-*` custom property a site overrides in custom.scss.
 .quartz-form {
-  --quartz-forms-gap: 0.75rem;
+  --quartz-forms-gap: 1rem;
+  --quartz-forms-radius: 5px;
+  --quartz-forms-border: var(--lightgray);
+  --quartz-forms-border-focus: var(--secondary);
+  --quartz-forms-field-bg: var(--light);
+  --quartz-forms-error: #b3261e;
+  --quartz-forms-success: #2e7d32;
+  --quartz-forms-button-bg: var(--secondary);
+  --quartz-forms-button-fg: var(--light);
+  --quartz-forms-max-width: 40rem;
+
   display: flex;
   flex-direction: column;
   gap: var(--quartz-forms-gap);
+  max-width: var(--quartz-forms-max-width);
+  margin: 1.5rem 0;
+  font-family: var(--bodyFont);
+  color: var(--darkgray);
+
+  &__title {
+    margin: 0;
+    font-family: var(--headerFont);
+    color: var(--dark);
+  }
+
+  &__description,
+  &__note,
+  &__hint {
+    margin: 0;
+    font-size: 0.9em;
+    color: var(--gray);
+  }
+
+  &__note--anonymous {
+    color: var(--darkgray);
+  }
+
+  &__note--noscript {
+    color: var(--quartz-forms-error);
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  &__label,
+  legend.quartz-form__label {
+    font-weight: 600;
+    color: var(--dark);
+    padding: 0;
+  }
+
+  &__required {
+    color: var(--quartz-forms-error);
+  }
+
+  &__sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.5rem 0.65rem;
+    font: inherit;
+    color: var(--dark);
+    background: var(--quartz-forms-field-bg);
+    border: 1px solid var(--quartz-forms-border);
+    border-radius: var(--quartz-forms-radius);
+
+    &:focus-visible {
+      outline: 2px solid var(--quartz-forms-border-focus);
+      outline-offset: 1px;
+    }
+
+    &[aria-invalid="true"] {
+      border-color: var(--quartz-forms-error);
+    }
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 5rem;
+  }
+
+  &__group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-inline-size: 0;
+  }
+
+  &__option {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+
+    input {
+      flex: none;
+      accent-color: var(--secondary);
+    }
+
+    label {
+      font-weight: normal;
+    }
+  }
+
+  &__scale-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  &__scale-steps {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  &__scale-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    font-size: 0.85em;
+
+    input {
+      accent-color: var(--secondary);
+    }
+  }
+
+  &__scale-caption {
+    font-size: 0.85em;
+    color: var(--gray);
+  }
+
+  &__key {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  &__key-file {
+    align-self: flex-start;
+  }
+
+  &__key-status {
+    margin: 0;
+    font-size: 0.85em;
+    color: var(--gray);
+    font-family: var(--codeFont);
+  }
+
+  &__error {
+    margin: 0;
+    font-size: 0.9em;
+    color: var(--quartz-forms-error);
+  }
+
+  &__hp {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  &__button {
+    display: inline-block;
+    padding: 0.55rem 1.1rem;
+    font: inherit;
+    font-weight: 600;
+    color: var(--quartz-forms-button-fg);
+    background: var(--quartz-forms-button-bg);
+    border: 0;
+    border-radius: var(--quartz-forms-radius);
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--quartz-forms-border-focus);
+      outline-offset: 2px;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    &--secondary {
+      color: var(--dark);
+      background: var(--lightgray);
+    }
+  }
+
+  &__status {
+    min-height: 1.4em;
+    font-size: 0.95em;
+
+    &[data-state="error"] {
+      color: var(--quartz-forms-error);
+    }
+
+    &[data-state="success"] {
+      color: var(--quartz-forms-success);
+    }
+  }
+
+  &__encrypted {
+    margin: 0;
+    font-size: 0.85em;
+    color: var(--gray);
+
+    code {
+      font-size: 0.95em;
+    }
+  }
+
+  &--missing {
+    padding: 0.75rem 1rem;
+    border: 2px dashed var(--quartz-forms-error);
+    border-radius: var(--quartz-forms-radius);
+    color: var(--quartz-forms-error);
+
+    p {
+      margin: 0;
+    }
+  }
+}
+
+.quartz-form-box .quartz-form {
+  margin: 0;
+}
+
+:root[saved-theme="dark"] .quartz-form {
+  --quartz-forms-error: #f2b8b5;
+  --quartz-forms-success: #a5d6a7;
 }

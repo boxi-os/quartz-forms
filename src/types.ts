@@ -32,6 +32,11 @@ export interface QuartzFormsOptions {
   /** Language tag of the fenced code block that embeds a form in the text. */
   codeBlockLang: string;
   /**
+   * Id of the form placed through the layout block of this plugin entry (sidebar, footer, after
+   * the body on every page). Empty: nothing is placed; forms are embedded per page only.
+   */
+  layoutForm: string;
+  /**
    * Language of the form placed through the layout: `auto` takes the page language
    * (`frontmatter.lang`, else the site locale), or a language code.
    */
@@ -280,6 +285,7 @@ export interface ResolvedOptions {
   spam: SpamConfig;
   frontmatterKey: string;
   codeBlockLang: string;
+  layoutForm: string;
   language: string;
   texts: Record<string, Record<string, string>>;
   /** Problems the build must not pass over; `resolveOptions` throws them, this keeps them readable. */

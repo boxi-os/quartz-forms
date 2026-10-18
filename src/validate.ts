@@ -370,6 +370,8 @@ export function validate(opts: ResolvedOptions, rawForms: Record<string, unknown
   if (!LANGUAGE_OPTION.test(opts.language))
     out.problems.push(`language: "${opts.language}" is neither auto nor a language code`);
   if (!opts.frontmatterKey.trim()) out.problems.push("frontmatterKey: empty");
+  if (opts.layoutForm && !(opts.layoutForm in opts.forms))
+    out.problems.push(`layoutForm: no form "${opts.layoutForm}"`);
   if (!opts.codeBlockLang.trim() || /\s/.test(opts.codeBlockLang))
     out.problems.push("codeBlockLang: one word without spaces");
 

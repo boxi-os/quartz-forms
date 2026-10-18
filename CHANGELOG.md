@@ -20,6 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   logged once. The anonymous mode is enforced here, not only hinted: required personal fields
   become optional, the page context is dropped.
 - The plugin's own texts in `en-US` and `de-DE`, overridable per locale through `options.texts`.
+- Rendering: `renderForm()` turns a form into hast (labels, required marks, hints, error slots
+  wired by `aria-describedby`, fieldsets for choices and scales, consent with link, the
+  visitor's-key field with file button and status line, honeypot, envelope fields, a status
+  region and the browser configuration as JSON). The transformer embeds a form through a
+  ` ```quartz-form ` code block, a `{{form:id}}` placeholder (also percent-encoded) or the
+  frontmatter key; `form: false` hides the layout form. `FormBox` renders `options.layoutForm`
+  through the layout block. Unknown form ids stop the build (a visible hint in serve mode);
+  redirect slugs are checked against the site's pages.
+- The stylesheet: Quartz theme variables, `--quartz-forms-*` custom properties, dark mode.
 
 - Scaffold: manifest with the three categories (transformer, emitter, component), build and test
   tooling copied from quartz-navigations, bilingual README skeleton.

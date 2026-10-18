@@ -66,12 +66,22 @@
     "@typescript-eslint/parser": "^7.18.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
+    "hast-util-to-html": "^9.0.5",
+    "hast-util-to-jsx-runtime": "^2.3.6",
+    "hast-util-to-string": "^3.0.1",
+    "hastscript": "^9.0.1",
     "jsdom": "^25.0.1",
     "preact": "^10.28.2",
+    "preact-render-to-string": "^6.8.1",
     "prettier": "^3.6.2",
+    "rehype-raw": "^7.0.0",
+    "rehype-stringify": "^10.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
     "sass": "^1.97.3",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
+    "unified": "^11.0.5",
     "unist-util-visit": "^5.1.0",
     "vfile": "^6.0.3",
     "vitest": "^2.1.9"
@@ -111,6 +121,7 @@
       },
       "frontmatterKey": "form",
       "codeBlockLang": "quartz-form",
+      "layoutForm": "",
       "language": "auto",
       "texts": {}
     },
@@ -205,6 +216,18 @@
           "x-quartz-order": 910,
           "x-quartz-advanced": true,
           "x-quartz-group": "Technical"
+        },
+        "layoutForm": {
+          "type": "string",
+          "description": "Id of the form placed through the layout block of this entry (sidebar, footer, after the body on every page). Empty: forms are embedded per page only.",
+          "x-quartz-l10n": {
+            "de": {
+              "description": "Kennung des Formulars, das über den Layout-Block dieses Eintrags platziert wird (Sidebar, Footer, unter dem Text auf jeder Seite). Leer: Formulare nur je Seite eingebunden.",
+              "group": "Formulare"
+            }
+          },
+          "x-quartz-order": 50,
+          "x-quartz-group": "Forms"
         },
         "language": {
           "type": "string",
