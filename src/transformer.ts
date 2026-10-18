@@ -1,5 +1,5 @@
 import type { QuartzTransformerPlugin } from "@quartz-community/types";
-import { resolveOptions } from "./options";
+import { resolveOrThrow, logHints } from "./options";
 import type { QuartzFormsOptions } from "./types";
 
 /**
@@ -7,7 +7,8 @@ import type { QuartzFormsOptions } from "./types";
  * and the frontmatter key (hast). Filled in with the data model.
  */
 export const Forms: QuartzTransformerPlugin<Partial<QuartzFormsOptions>> = (userOpts) => {
-  const opts = resolveOptions(userOpts);
+  const opts = resolveOrThrow(userOpts);
+  logHints(opts);
   return {
     name: "Forms",
     markdownPlugins() {

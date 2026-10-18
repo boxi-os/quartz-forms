@@ -1,29 +1,289 @@
 /**
- * Options of quartz-forms. This interface is the single source of truth: `quartz.configSchema`
- * in package.json is checked against it member by member (test/config-schema.test.ts), and
- * `defaultOptions` in src/options.ts must satisfy it.
+ * Options of quartz-forms. This file is the single source of truth for the data model:
+ * `quartz.configSchema` in package.json is checked against it member by member
+ * (test/config-schema.test.ts), `defaultOptions` in src/options.ts must satisfy it, and the
+ * three validation levels (build, browser, relay) derive their rules from the same fields.
  */
+
+/**
+ * A user-facing text: one string for every language, or a record keyed by language code
+ * (`{ de: "Name", en: "Name" }`). Resolution: exact code, then primary subtag, then the first
+ * value. QuartzControl offers the site's languages as keys (`x-quartz-keys: "languages"`).
+ */
+export type Text = string | Record<string, string>;
+
 export interface QuartzFormsOptions {
-  /** The forms of this site, by id. A page embeds a form by this id. */
+  /** The forms of this site, by id (`[a-z0-9-]`). A page embeds a form by this id. */
   forms: Record<string, FormDefinition>;
+  /** Where a submission goes. Every form can override single fields of it. */
+  transport: TransportConfig;
+  /**
+   * Public PGP keys, by name. A form names the keys it encrypts to; a key is read from a file
+   * relative to the site root (`quartz/static/keys/owner.asc`) or written inline as armored text.
+   */
+  keys: Record<string, PgpKeySource>;
+  /** Spam protection and size limits. Every form can override single fields of it. */
+  spam: SpamConfig;
   /**
    * Frontmatter key that embeds a form on a page (`form: contact`) or hides the form placed
    * through the layout on this page (`form: false`).
    */
   frontmatterKey: string;
-  /** Language tag of the code block that embeds a form in the text (```quartz-form). */
+  /** Language tag of the fenced code block that embeds a form in the text. */
   codeBlockLang: string;
   /**
    * Language of the form placed through the layout: `auto` takes the page language
    * (`frontmatter.lang`, else the site locale), or a language code.
    */
   language: string;
+  /**
+   * Own wording for the plugin's texts, by locale and text key (`de: { submit: "Abschicken" }`).
+   * The keys are those of src/i18n/locales/en-US.ts.
+   */
+  texts: Record<string, Record<string, string>>;
 }
 
-/** One form. Filled in with the data model in the next step. */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface FormDefinition {}
+/** The four field sets that ship with the plugin; `fields` replaces the template's fields. */
+export type FormTemplate = "contact" | "feedback" | "rsvp" | "survey";
 
-export interface ResolvedOptions extends QuartzFormsOptions {
-  forms: Record<string, FormDefinition>;
+export interface FormDefinition {
+  /** Start from a built-in field set. Own `fields` replace it entirely. */
+  template?: FormTemplate;
+  /** Heading above the form. */
+  title?: Text;
+  /** A sentence under the heading. */
+  description?: Text;
+  /** Text of the submit button; default from the plugin's texts. */
+  submitLabel?: Text;
+  /** The fields, in order. Required unless `template` is set. */
+  fields?: FormField[];
+  /**
+   * Who receives the submission. For the relay this is a name the relay maps to an address in
+   * its own `config.php`; the address never reaches the site. For `mailto` it is the address.
+   */
+  recipient?: string;
+  /** Fixed subject line of the mail. With `anonymous` it must not contain field values. */
+  subject?: Text;
+  /** Overrides single fields of the global transport. */
+  transport?: Partial<TransportConfig>;
+  /** Encryption in the browser before sending. Default: off. */
+  encryption?: EncryptionConfig;
+  /**
+   * Anonymous mode: no required personal fields, no Reply-To, no page context, no third-party
+   * captcha, and the relay logs nothing. What this cannot promise is in the README.
+   */
+  anonymous?: boolean;
+  /** Send the page's title, slug and URL along (for a feedback form). Default: false. */
+  pageContext?: boolean;
+  /** Overrides single fields of the global spam settings. */
+  spam?: Partial<SpamConfig>;
+  /** What happens after a successful send. Default: a thank-you sentence in place. */
+  success?: SuccessConfig;
+  /** Extra class(es) on the form element, next to the fixed `quartz-form`. */
+  className?: string;
+}
+
+export type InputFieldType = "text" | "email" | "tel" | "url" | "number" | "date" | "textarea";
+
+/** A single-value field rendered as `<input>` or `<textarea>`. */
+export interface InputField {
+  type: InputFieldType;
+  /** Name in the submission (`[a-z0-9_-]`, unique per form). */
+  name: string;
+  label: Text;
+  required?: boolean;
+  placeholder?: Text;
+  /** A sentence under the field. */
+  hint?: Text;
+  /** HTML `autocomplete` token (`name`, `email`, `tel`, `off`). */
+  autocomplete?: string;
+  /** Regular expression the value must match (HTML `pattern`). */
+  pattern?: string;
+  /** Lower bound for `number`. */
+  min?: number;
+  /** Upper bound for `number`. */
+  max?: number;
+  /** Step for `number`. */
+  step?: number;
+  /** Rows of a `textarea`. */
+  rows?: number;
+  /** Maximum length in characters; default from the spam settings. */
+  maxLength?: number;
+}
+
+export interface ChoiceOption {
+  value: string;
+  label: Text;
+}
+
+/** One of several (`select`, `radio`) or several of several (`checkboxes`). */
+export interface ChoiceField {
+  type: "select" | "radio" | "checkboxes";
+  name: string;
+  label: Text;
+  required?: boolean;
+  hint?: Text;
+  options: ChoiceOption[];
+}
+
+/** A single checkbox with a label. */
+export interface CheckboxField {
+  type: "checkbox";
+  name: string;
+  label: Text;
+  required?: boolean;
+  hint?: Text;
+}
+
+/** A rating from `min` to `max`, rendered as a row of radio buttons. */
+export interface ScaleField {
+  type: "scale";
+  name: string;
+  label: Text;
+  required?: boolean;
+  hint?: Text;
+  min: number;
+  max: number;
+  /** Caption at the low end. */
+  minLabel?: Text;
+  /** Caption at the high end. */
+  maxLabel?: Text;
+}
+
+/** A checkbox the visitor must tick, with a sentence and an optional link (privacy policy). */
+export interface ConsentField {
+  type: "consent";
+  name: string;
+  text: Text;
+  /** Link target shown after the sentence. */
+  link?: string;
+  /** Link text; default from the plugin's texts. */
+  linkLabel?: Text;
+}
+
+/**
+ * The visitor's own public PGP key, pasted or chosen as an `.asc` file, so the owner can reply
+ * encrypted. Checked in the browser; its fingerprint is shown; sent as part of the message.
+ */
+export interface PgpKeyField {
+  type: "pgpKey";
+  name: string;
+  label: Text;
+  required?: boolean;
+  hint?: Text;
+}
+
+/** A fixed value sent along, invisible. */
+export interface HiddenField {
+  type: "hidden";
+  name: string;
+  value: string;
+}
+
+export type FormField =
+  InputField | ChoiceField | CheckboxField | ScaleField | ConsentField | PgpKeyField | HiddenField;
+
+/**
+ * `relay`: the plugin's own PHP relay. `endpoint`: any URL that takes a POST. `formspree`,
+ * `web3forms`: presets for those services. `mailto`: opens the visitor's mail program.
+ */
+export type TransportKind = "relay" | "endpoint" | "formspree" | "web3forms" | "mailto";
+
+export interface TransportConfig {
+  kind: TransportKind;
+  /** POST target for `relay` and `endpoint`; the form id or access key for the presets. */
+  url?: string;
+  /** Body encoding for `endpoint`; `relay` always sends JSON. */
+  format?: "json" | "form";
+  /** Extra fields sent with every submission (a service's access key, for instance). */
+  extra?: Record<string, string>;
+}
+
+export interface PgpKeySource {
+  /** Path of an armored public key, relative to the site root. */
+  file?: string;
+  /** The armored public key itself. */
+  armored?: string;
+}
+
+export type EncryptionMode = "required" | "optional" | "off";
+
+export interface EncryptionConfig {
+  /**
+   * `required`: nothing is sent unencrypted; without JavaScript the form cannot send.
+   * `optional`: the visitor decides with a checkbox (on by default). `off`: plain text.
+   */
+  mode: EncryptionMode;
+  /** Names from `keys` to encrypt to; default: all keys. */
+  keys?: string[];
+  /** Show the recipient key's fingerprint under the form. Default: true. */
+  showFingerprint?: boolean;
+}
+
+export interface SpamConfig {
+  /** An invisible field that must stay empty. */
+  honeypot: boolean;
+  /** Seconds a visitor needs at least between opening the page and sending. 0 turns it off. */
+  minSeconds: number;
+  /** Proof of work checked by the relay (`transport.kind: relay` only). */
+  pow: boolean;
+  /** Leading zero bits the proof must reach; 16 takes a fraction of a second. */
+  powDifficulty: number;
+  /** A third-party captcha. Loads that provider's script; ignored for anonymous forms. */
+  captcha: "none" | "turnstile" | "hcaptcha";
+  /** The provider's site key. */
+  captchaSiteKey: string;
+  /** Submissions per form and hour the relay accepts; 0 turns it off. No addresses are stored. */
+  rateLimitPerHour: number;
+  /** Default maximum length of a single-line field, in characters. */
+  maxFieldLength: number;
+  /** Default maximum length of a textarea, in characters. */
+  maxTextareaLength: number;
+  /** Maximum length of a pasted public key, in characters. */
+  maxKeyLength: number;
+  /** Maximum size of a whole submission, in bytes. */
+  maxBytes: number;
+}
+
+export interface SuccessConfig {
+  /** `inline`: a sentence replaces the form. `redirect`: go to a page of the site. */
+  mode: "inline" | "redirect";
+  /** The sentence for `inline`; default from the plugin's texts. */
+  text?: Text;
+  /** Slug of the page for `redirect` (`thanks`, `kontakt/danke`). */
+  slug?: string;
+}
+
+/* ---- Resolved shapes (defaults applied), used by render, transformer and component ---- */
+
+export interface ResolvedForm {
+  id: string;
+  title?: Text;
+  description?: Text;
+  submitLabel?: Text;
+  fields: FormField[];
+  recipient?: string;
+  subject?: Text;
+  transport: TransportConfig;
+  encryption: Required<EncryptionConfig>;
+  anonymous: boolean;
+  pageContext: boolean;
+  spam: SpamConfig;
+  success: SuccessConfig;
+  className?: string;
+}
+
+export interface ResolvedOptions {
+  forms: Record<string, ResolvedForm>;
+  transport: TransportConfig;
+  keys: Record<string, PgpKeySource>;
+  spam: SpamConfig;
+  frontmatterKey: string;
+  codeBlockLang: string;
+  language: string;
+  texts: Record<string, Record<string, string>>;
+  /** Problems the build must not pass over; `resolveOptions` throws them, this keeps them readable. */
+  problems: string[];
+  /** Things worth a line in the log, once. */
+  hints: string[];
 }

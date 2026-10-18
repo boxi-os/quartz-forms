@@ -90,6 +90,13 @@ function checkObject(members: Map<string, ts.TypeNode>, schema: Schema, at: stri
 
 function checkType(node: ts.TypeNode, schema: Schema, at: string): void {
   const literals = stringLiterals(node);
+  if (literals && literals.length === 1 && ts.isLiteralTypeNode(node)) {
+    // A discriminator such as `type: "checkbox"`: an enum of one, which every reader knows.
+    const values = Array.isArray(schema.enum) ? schema.enum : [];
+    if (values.length !== 1 || values[0] !== literals[0])
+      problems.push(`${at}: enum ${JSON.stringify(values)} is not ${JSON.stringify(literals)}`);
+    return;
+  }
   if (literals && literals.length > 1) {
     const values = Array.isArray(schema.enum) ? schema.enum : [];
     if ([...values].sort().join("|") !== [...literals].sort().join("|")) {
@@ -142,9 +149,9 @@ function checkType(node: ts.TypeNode, schema: Schema, at: string): void {
       else checkType(args[1]!, resolve(schema.additionalProperties), `${at}.*`);
       return;
     }
-    if (name === "Omit" || name === "Pick") {
+    if (name === "Omit" || name === "Pick" || name === "Partial" || name === "Required") {
       const inner = args[0]!;
-      const keys = stringLiterals(args[1]!) ?? [];
+      const keys = args[1] ? (stringLiterals(args[1]) ?? []) : [];
       const decl =
         ts.isTypeReferenceNode(inner) && ts.isIdentifier(inner.typeName)
           ? decls.get(inner.typeName.text)
@@ -155,7 +162,9 @@ function checkType(node: ts.TypeNode, schema: Schema, at: string): void {
       }
       const all = membersOf(decl);
       const kept = new Map(
-        [...all].filter(([k]) => (name === "Omit" ? !keys.includes(k) : keys.includes(k))),
+        [...all].filter(([k]) =>
+          name === "Omit" ? !keys.includes(k) : name === "Pick" ? keys.includes(k) : true,
+        ),
       );
       checkObject(kept, schema, `${at}.`);
       return;

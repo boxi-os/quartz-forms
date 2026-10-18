@@ -1,5 +1,5 @@
 import type { QuartzEmitterPlugin } from "@quartz-community/types";
-import { resolveOptions } from "./options";
+import { resolveOrThrow, logHints } from "./options";
 import type { QuartzFormsOptions } from "./types";
 
 /**
@@ -7,7 +7,8 @@ import type { QuartzFormsOptions } from "./types";
  * encrypts. Filled in with the encryption step.
  */
 export const FormsAssets: QuartzEmitterPlugin<Partial<QuartzFormsOptions>> = (userOpts) => {
-  const opts = resolveOptions(userOpts);
+  const opts = resolveOrThrow(userOpts);
+  logHints(opts);
   return {
     name: "FormsAssets",
     async emit() {

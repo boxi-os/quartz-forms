@@ -4,6 +4,20 @@
 export { Forms } from "./transformer";
 export { FormsAssets } from "./emitter";
 export { default as FormBox } from "./components/FormBox";
-export { resolveOptions, defaultOptions } from "./options";
+export { resolveOptions, resolveOrThrow, defaultOptions } from "./options";
+export { resolveText } from "./text";
+export { templateNames, templateOf } from "./templates";
 
-export type { QuartzFormsOptions, FormDefinition, ResolvedOptions } from "./types";
+export type {
+  QuartzFormsOptions,
+  FormDefinition,
+  FormField,
+  FormTemplate,
+  Text,
+  TransportConfig,
+  SpamConfig,
+  EncryptionConfig,
+  SuccessConfig,
+  ResolvedForm,
+  ResolvedOptions,
+} from "./types";

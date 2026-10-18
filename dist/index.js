@@ -1,12 +1,13 @@
 import { createRequire } from 'module';
-import { resolveOptions } from './chunk-LVBNGFRY.js';
-export { FormBox_default as FormBox, defaultOptions, resolveOptions } from './chunk-LVBNGFRY.js';
+import { resolveOrThrow, logHints } from './chunk-JGSMUCPV.js';
+export { FormBox_default as FormBox, defaultOptions, resolveOptions, resolveOrThrow, templateNames, templateOf } from './chunk-JGSMUCPV.js';
 
 createRequire(import.meta.url);
 
 // src/transformer.ts
 var Forms = (userOpts) => {
-  resolveOptions(userOpts);
+  const opts = resolveOrThrow(userOpts);
+  logHints(opts);
   return {
     name: "Forms",
     markdownPlugins() {
@@ -20,7 +21,8 @@ var Forms = (userOpts) => {
 
 // src/emitter.ts
 var FormsAssets = (userOpts) => {
-  resolveOptions(userOpts);
+  const opts = resolveOrThrow(userOpts);
+  logHints(opts);
   return {
     name: "FormsAssets",
     async emit() {
@@ -29,6 +31,21 @@ var FormsAssets = (userOpts) => {
   };
 };
 
-export { Forms, FormsAssets };
+// src/text.ts
+function resolveText(text, lang) {
+  if (text === void 0) return void 0;
+  if (typeof text === "string") return text;
+  const entries = Object.entries(text);
+  if (entries.length === 0) return void 0;
+  const want = lang.toLowerCase();
+  const exact = entries.find(([k]) => k.toLowerCase() === want);
+  if (exact) return exact[1];
+  const primary = want.split(/[-_]/)[0];
+  const sub = entries.find(([k]) => k.toLowerCase().split(/[-_]/)[0] === primary);
+  if (sub) return sub[1];
+  return entries[0][1];
+}
+
+export { Forms, FormsAssets, resolveText };
 //# sourceMappingURL=index.js.map
 //# sourceMappingURL=index.js.map

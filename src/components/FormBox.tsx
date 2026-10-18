@@ -3,7 +3,7 @@ import type {
   QuartzComponentConstructor,
   QuartzComponentProps,
 } from "@quartz-community/types";
-import { resolveOptions } from "../options";
+import { resolveOrThrow, logHints } from "../options";
 import type { QuartzFormsOptions } from "../types";
 import style from "./styles/forms.scss";
 // @ts-expect-error: bundled to a browser-ready string by the inline-script loader in tsup.config.ts
@@ -14,7 +14,8 @@ import script from "../scripts/forms.inline";
  * data model; this constructor already wires the stylesheet and the browser script.
  */
 export default ((userOpts?: Partial<QuartzFormsOptions>) => {
-  const opts = resolveOptions(userOpts);
+  const opts = resolveOrThrow(userOpts);
+  logHints(opts);
 
   const FormBox: QuartzComponent = (_props: QuartzComponentProps) => {
     if (Object.keys(opts.forms).length === 0) return null;
