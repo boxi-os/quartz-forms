@@ -25,6 +25,10 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   `quartz.config.yaml` by `relay:config`, mail into an outbox file) and covers the challenge and
   CORS, every refusal, the accepted mails, the plain-form path and the rate limit; CI installs
   PHP and runs `php -l`. Without `php` the suite is skipped with a warning.
+- On the plain-form path every ticked `checkboxes` field was refused as `invalid`: the boxes
+  share the field's name, and `parse_str` kept only the last value as a string. The relay parses
+  the body itself now, collecting repeated names into a list, and takes a single tick as a list
+  of one. The `survey` template works without JavaScript again.
 
 ## [0.1.1] - 2026-10-19
 

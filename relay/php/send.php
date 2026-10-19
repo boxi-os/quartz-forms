@@ -225,6 +225,33 @@ function qf_rate_limited(array $config, string $form, int $perHour): bool
     return $limited;
 }
 
+/**
+ * A form-urlencoded body as the browser sends it: a name that occurs more than once (the boxes
+ * of a `checkboxes` field all share the field's name) becomes a list. `parse_str` kept only the
+ * last value, so every ticked `checkboxes` field was refused as `invalid` on the plain-form path
+ * (review finding, 2026-10-19).
+ */
+function qf_parse_form(string $raw): array
+{
+    $out = [];
+    foreach (explode('&', $raw) as $pair) {
+        if ($pair === '') {
+            continue;
+        }
+        $eq = strpos($pair, '=');
+        $name = urldecode($eq === false ? $pair : substr($pair, 0, $eq));
+        $value = $eq === false ? '' : urldecode(substr($pair, $eq + 1));
+        if (!array_key_exists($name, $out)) {
+            $out[$name] = $value;
+        } elseif (is_array($out[$name])) {
+            $out[$name][] = $value;
+        } else {
+            $out[$name] = [$out[$name], $value];
+        }
+    }
+    return $out;
+}
+
 function qf_captcha_valid(array $spam, mixed $token): bool
 {
     $provider = $spam['captcha'] ?? 'none';
@@ -259,6 +286,10 @@ function qf_check_field(array $rule, mixed $value): ?string
     if ($isList) {
         if ($value === null || $value === '') {
             $value = [];
+        }
+        if (is_string($value)) {
+            // one box ticked on the plain-form path
+            $value = [$value];
         }
         if (!is_array($value)) {
             return 'invalid';
@@ -530,7 +561,7 @@ if (strlen($raw) > $maxBytes) {
 
 $isForm = str_contains($_SERVER['CONTENT_TYPE'] ?? '', 'application/x-www-form-urlencoded');
 if ($isForm) {
-    parse_str($raw, $data);
+    $data = qf_parse_form($raw);
     $envelope = [
         'form' => $data['form'] ?? '',
         'lang' => $data['lang'] ?? '',

@@ -64,6 +64,22 @@ const siteOptions = {
       encryption: { mode: "optional" },
       fields: [{ type: "text", name: "a", label: "A" }],
     },
+    multi: {
+      recipient: "owner",
+      fields: [
+        {
+          type: "checkboxes",
+          name: "topics",
+          label: "Topics",
+          required: true,
+          options: [
+            { value: "news", label: "News" },
+            { value: "guides", label: "Guides" },
+          ],
+        },
+        { type: "text", name: "note", label: "Note" },
+      ],
+    },
     limited: {
       recipient: "owner",
       spam: { rateLimitPerHour: 3 },
@@ -416,6 +432,23 @@ describe.skipIf(!php)("relay: a browser without JavaScript (plain form post)", (
   it("skips the time trap and the proof of work, which only the script can supply", async () => {
     const r = await plain({ form: "contact", lang: "de-DE", ...contactFields });
     expect(r.status).toBe(303);
+  });
+  it("collects the boxes of a checkboxes field, which share one name, into a list", async () => {
+    // The browser sends topics=news&topics=guides; parse_str kept only the last one.
+    const two = await post("form=multi&lang=de-DE&topics=news&topics=guides&note=x", {
+      raw: true,
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "text/html" },
+    });
+    expect(two.status).toBe(200);
+    expect(lastMail().body).toContain("Topics: News, Guides");
+    const one = await plain({ form: "multi", lang: "de-DE", topics: "news" });
+    expect(one.status).toBe(200);
+    expect(lastMail().body).toContain("Topics: News");
+    const none = await plain({ form: "multi", lang: "de-DE", note: "x" });
+    expect(none.status).toBe(400);
+    expect(none.text).toContain("some fields were not accepted");
+    const bad = await plain({ form: "multi", lang: "de-DE", topics: "spam" });
+    expect(bad.status).toBe(400);
   });
   it("refuses a form with noScript: false, which the script may still use", async () => {
     const r = await plain({ form: "survey", lang: "de-DE", usage: "often" });
