@@ -135,6 +135,12 @@ const siteOptions = {
       pageContext: true,
       fields: [{ type: "text", name: "a", label: "A" }],
     },
+    anoncap: {
+      recipient: "owner",
+      anonymous: true,
+      spam: { captcha: "turnstile", captchaSiteKey: "k" },
+      fields: [{ type: "text", name: "a", label: "A" }],
+    },
     parity: { recipient: "owner", fields: parityFields },
   },
 };
@@ -263,6 +269,7 @@ beforeAll(async () => {
     path.join(dir, "verify.php"),
     `<?php
 header('Content-Type: application/json');
+file_put_contents(__DIR__ . '/verify.log', "x", FILE_APPEND);
 echo json_encode(['success' => ($_POST['secret'] ?? '') === 'cap-secret' && ($_POST['response'] ?? '') === 'good']);
 `,
   );
@@ -899,6 +906,25 @@ describe.skipIf(!php)("relay: refusals", () => {
     } finally {
       writeConfig();
     }
+  });
+  it("an anonymous form with a captcha configured asks for no token and never calls the provider", async () => {
+    // What the README's `captcha` row says ("ignored when anonymous") and the build hints, held
+    // at the relay too (second review, aside 4, 2026-10-19): no token, no provider call, and no
+    // captchaSecret needed in config.php.
+    const calls = () =>
+      fs.existsSync(path.join(dir, "verify.log"))
+        ? fs.statSync(path.join(dir, "verify.log")).size
+        : 0;
+    const before: [number, number] = [calls(), mails().length];
+    expect((await post(env("anoncap", { a: "x" }))).json).toEqual({ ok: true });
+    writeConfig({ extra: "" });
+    try {
+      expect((await post(env("anoncap", { a: "y" }))).json).toEqual({ ok: true });
+    } finally {
+      writeConfig();
+    }
+    expect([calls(), mails().length]).toEqual([before[0], before[1] + 2]);
+    expect(lastMail().body).toContain("A: y");
   });
   it("size: a submission above maxBytes is 413, measured against the form's own limit", async () => {
     const r = await post(
