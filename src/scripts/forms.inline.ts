@@ -891,7 +891,9 @@ async function qfSend(
     if (ciphertext) flat.message = ciphertext;
     else for (const [k, v] of Object.entries(values)) flat[k] = Array.isArray(v) ? v.join(", ") : v;
     if (cfg.subject) flat._subject = cfg.subject;
-    if (cfg.page) flat._page = cfg.page.slug;
+    // The page only beside a plaintext message: an encrypted one has it in its text, as for the
+    // relay since review finding 23 (fiftieth review, N3: the service saw the slug in the clear).
+    if (cfg.page && !ciphertext) flat._page = cfg.page.slug;
     // The services verify the widget's token themselves, under the widget's own field name.
     if (captchaToken)
       flat[cfg.spam.captcha === "turnstile" ? "cf-turnstile-response" : "h-captcha-response"] =

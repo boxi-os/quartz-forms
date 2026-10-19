@@ -261,7 +261,9 @@ provider's widget (the build says so for an encrypting form with `captcha`), Qua
 another plugin's script. In the clear travel the form's id, the page's language, the stamp (the
 second the page was opened), that the message is encrypted, and the size of the ciphertext; the
 mail carries the form's subject and no `Reply-To`, so you answer once you have decrypted the
-visitor's address.
+visitor's address. A service (`endpoint`, `formspree`, `web3forms`) gets the ciphertext as `message`
+with the form's `subject` as `_subject`, the transport's `extra` fields and a captcha's token
+beside it; the page stays inside the ciphertext.
 
 If OpenPGP.js cannot be loaded in a visitor's browser (network, content blocker, a strict CSP),
 an encrypting form says so and sends nothing. A form that does not encrypt still sends; a key the

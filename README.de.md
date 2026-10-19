@@ -274,7 +274,9 @@ Formular mit `captcha`), Quartz' `analytics`, das Skript eines anderen Plugins. 
 Kennung des Formulars, die Sprache der Seite, der Stempel (die Sekunde, in der die Seite geöffnet
 wurde), dass die Nachricht verschlüsselt ist, und die Größe des Chiffrats; die Mail trägt den
 Betreff des Formulars und kein `Reply-To`, du antwortest also, wenn du die Adresse des Besuchers
-entschlüsselt hast.
+entschlüsselt hast. Ein Dienst (`endpoint`, `formspree`, `web3forms`) bekommt das Chiffrat als
+`message`, daneben den `subject` des Formulars als `_subject`, die `extra`-Felder des Versandwegs
+und das Token eines Captchas; die Seite bleibt im Chiffrat.
 
 Kann OpenPGP.js im Browser eines Besuchers nicht geladen werden (Netz, Content-Blocker, eine
 strenge CSP), sagt ein verschlüsselndes Formular das und sendet nichts. Ein Formular, das nicht

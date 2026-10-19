@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed: after the relay refused a stamp (its secret had changed while the page was open), a form
   with `pow` sent the new stamp with the proof of the old challenge and read "the check before
   sending did not pass"; the proof is now worked out again on the new ticket.
+- Fixed: a service (`endpoint`, `formspree`, `web3forms`) got the page's slug as `_page` in the
+  clear beside an encrypted message; the page now stays inside the ciphertext, as with the relay.
+  The README says what travels beside it (`_subject`, `extra`).
 
 ## [0.5.4] - 2026-10-19
 

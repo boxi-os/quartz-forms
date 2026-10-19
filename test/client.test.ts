@@ -815,6 +815,33 @@ describe("encryption", () => {
     delete (window as unknown as { __quartzFormsOpenpgp?: unknown }).__quartzFormsOpenpgp;
   }, 30_000);
 
+  it("sends a service the page beside a plaintext message only", async () => {
+    // Fiftieth review, N3: _page travelled in the clear beside the ciphertext.
+    const openpgp = await import("openpgp");
+    const { generatePair, decrypt } = await import("./keys");
+    const pair = await generatePair();
+    (window as unknown as { __quartzFormsOpenpgp: unknown }).__quartzFormsOpenpgp = openpgp;
+    const bodyOf = async (mode: "required" | "off") => {
+      fetchMock.mockReset();
+      fetchMock.mockResolvedValue(ok());
+      const form = mount(contact({ ...quick, encryption: { mode }, pageContext: true }), {
+        transport: { kind: "endpoint", url: "https://e.example/x" },
+        keys: { owner: { armored: pair.publicKey } },
+      });
+      await nav();
+      for (let i = 0; i < 10; i++) await tick();
+      fill(form, "message", "Top secret");
+      await submit(form);
+      await until(() => fetchMock.mock.calls.length > 0);
+      return JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
+    };
+    const encrypted = await bodyOf("required");
+    expect(encrypted._page).toBeUndefined();
+    expect(await decrypt(encrypted.message, pair.privateKey)).toContain("Page: Page (docs/page)");
+    expect((await bodyOf("off"))._page).toBe("docs/page");
+    delete (window as unknown as { __quartzFormsOpenpgp?: unknown }).__quartzFormsOpenpgp;
+  }, 30_000);
+
   it("encrypts the serialised message for the recipient key and shows the fingerprint", async () => {
     const openpgp = await import("openpgp");
     const { generatePair, decrypt } = await import("./keys");
