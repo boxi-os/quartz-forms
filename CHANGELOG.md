@@ -140,6 +140,12 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   comment in the renderer claimed the script sets `action` after encrypting (it sends with
   `fetch`); the relay's header said the page sends a recipient name, and the page's form
   configuration carried that name without anyone reading it, so it is gone.
+- A value of the wrong type in the envelope (`{"form":["x"]}`, a list as `lang`, lists as the
+  parts of the proof, a string as `fields`) made PHP print a warning or a fatal error with the
+  relay's path on disk before, or instead of, the JSON answer, wherever `display_errors` is on
+  (the default of `php -S`). Every value the relay reads from the envelope is now checked for
+  its type and refused as JSON when it is not a string where a string belongs; a field value
+  that is not a string is `invalid` (`true` used to pass as "1", a scale's first step).
 
 ## [0.1.1] - 2026-10-19
 

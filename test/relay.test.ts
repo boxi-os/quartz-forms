@@ -476,6 +476,71 @@ describe.skipIf(!php)("relay: refusals", () => {
     expect(r.json).toEqual({ ok: true });
     expect(mails().length).toBe(before);
   });
+  it("a value of the wrong type anywhere in the envelope is refused as JSON, never with a PHP warning", async () => {
+    // Review finding 17 (2026-10-19): `{"form":["x"]}` made `(string)` print "Warning: Array to
+    // string conversion in /…/send.php on line 558" before the JSON, with the relay's path.
+    const logBefore = fs.readFileSync(path.join(dir, "php.log"), "utf8").length;
+    const cases: [string, Record<string, unknown>, number, string | null][] = [
+      ["form is a list", { form: ["feedback"] }, 404, "unknown_form"],
+      ["form is a number", { form: 7 }, 404, "unknown_form"],
+      ["lang is a list", { ...env("feedback", { rating: "4" }), lang: ["de"] }, 200, null],
+      ["ts is a list", { ...env("feedback", { rating: "4" }), ts: [ts()] }, 400, "stamp"],
+      ["ts is a number", { ...env("feedback", { rating: "4" }), ts: 1 }, 400, "stamp"],
+      [
+        "pow parts are lists",
+        {
+          ...env("contact", { email: "a@b.cd", message: "x" }),
+          pow: { challenge: ["a"], nonce: ["b"] },
+        },
+        400,
+        "pow",
+      ],
+      [
+        "pow is a string",
+        { ...env("contact", { email: "a@b.cd", message: "x" }), pow: "abc" },
+        400,
+        "pow",
+      ],
+      [
+        "encrypted is a list",
+        { ...env("feedback", { rating: "4" }), encrypted: ["yes"] },
+        400,
+        "encryption",
+      ],
+      [
+        "ciphertext is an object",
+        { form: "enc", lang: "de", ts: ts(), encrypted: true, ciphertext: { a: 1 } },
+        400,
+        "ciphertext",
+      ],
+      ["fields is a string", { ...env("feedback", {}), fields: "rating=4" }, 400, "fields"],
+      ["fields is a list", { ...env("feedback", {}), fields: ["4"] }, 400, "invalid"],
+      ["a field is an object", env("feedback", { rating: { a: 1 } }), 400, "invalid"],
+      ["a field is a number", env("feedback", { rating: 4 }), 400, "invalid"],
+      ["a field is true", env("feedback", { rating: true }), 400, "invalid"],
+      [
+        "the honeypot is a list",
+        { ...env("feedback", { rating: "4" }), _hp_website: ["x"] },
+        200,
+        null,
+      ],
+      [
+        "page and title are not strings",
+        { ...env("feedback", { rating: "4" }), page: ["x"], pageTitle: 3 },
+        200,
+        null,
+      ],
+    ];
+    for (const [name, body, status, code] of cases) {
+      const r = await post(body);
+      expect([name, r.json === null ? r.text.slice(0, 120) : "json"]).toEqual([name, "json"]);
+      expect([name, r.status, r.json?.error ?? null]).toEqual([name, status, code]);
+    }
+    const challenge = await get("challenge[]=feedback");
+    expect([challenge.status, challenge.json?.error]).toEqual([404, "unknown_form"]);
+    const log = fs.readFileSync(path.join(dir, "php.log"), "utf8").slice(logBefore);
+    expect(log.match(/Warning|Deprecated|Fatal|TypeError/g) ?? []).toEqual([]);
+  });
   it("fields: unknown, required, not an option, too long", async () => {
     const unknown = await post(env("feedback", { rating: "4", bogus: "1" }));
     expect(unknown.status).toBe(400);

@@ -219,6 +219,16 @@ function qf_stamp_age(array $config, mixed $stamp): ?int
     return ($age < -60 || $age > 86400) ? null : $age;
 }
 
+/**
+ * The value when it is a string, else ''. A list or a number where the page sends a string is
+ * not a string: `(string)` on `{"form":["x"]}` printed "Warning: Array to string conversion in
+ * /…/send.php" before the JSON, with the relay's path (review finding 17, 2026-10-19).
+ */
+function qf_str(mixed $value): string
+{
+    return is_string($value) ? $value : '';
+}
+
 function qf_leading_zero_bits(string $hex): int
 {
     $bits = 0;
@@ -236,11 +246,11 @@ function qf_leading_zero_bits(string $hex): int
 
 function qf_pow_valid(array $config, string $form, int $difficulty, mixed $pow): bool
 {
-    if (!is_array($pow) || !isset($pow['challenge'], $pow['nonce'])) {
+    if (!is_array($pow) || !is_string($pow['challenge'] ?? null) || !is_string($pow['nonce'] ?? null)) {
         return false;
     }
-    $challenge = (string) $pow['challenge'];
-    $nonce = (string) $pow['nonce'];
+    $challenge = $pow['challenge'];
+    $nonce = $pow['nonce'];
     if (strlen($nonce) > 64 || !preg_match('/^[A-Za-z0-9_-]+$/', $nonce)) {
         return false;
     }
@@ -522,10 +532,11 @@ function qf_check_field(array $rule, mixed $value): ?string
         }
         return null;
     }
-    if (is_array($value)) {
+    if ($value !== null && !is_string($value)) {
+        // A form value is a string; `true` became "1" and passed as a scale's first step.
         return 'invalid';
     }
-    $value = trim((string) ($value ?? ''));
+    $value = trim($value ?? '');
     if (!mb_check_encoding($value, 'UTF-8')) {
         // Only the plain-form path can deliver this (json_decode refuses it); preg_match would
         // answer false on it, which used to count as a pass.
@@ -763,7 +774,7 @@ if ($method === 'OPTIONS') {
 $forms = $config['forms'] ?? [];
 
 if ($method === 'GET') {
-    $form = (string) ($_GET['challenge'] ?? '');
+    $form = qf_str($_GET['challenge'] ?? null);
     if ($form === '' || !isset($forms[$form])) {
         qf_json(404, ['ok' => false, 'error' => 'unknown_form', 'message' => 'no such form']);
     }
@@ -821,10 +832,10 @@ if ($isForm) {
     }
 }
 
-$lang = preg_replace('/[^A-Za-z0-9_-]/', '', (string) ($envelope['lang'] ?? '')) ?: 'en';
+$lang = preg_replace('/[^A-Za-z0-9_-]/', '', qf_str($envelope['lang'] ?? null)) ?: 'en';
 $qfLang = $lang; // read by the no-JavaScript answer page
 
-$formId = (string) ($envelope['form'] ?? '');
+$formId = qf_str($envelope['form'] ?? null);
 if ($formId === '' || !isset($forms[$formId])) {
     qf_fail(404, 'unknown_form', 'no such form');
 }
@@ -863,7 +874,9 @@ if (!empty($spam['honeypot'])) {
         }
         qf_json(200, ['ok' => true]);
     }
-    unset($envelope['fields'][QF_HONEYPOT]);
+    if (is_array($envelope['fields'] ?? null)) {
+        unset($envelope['fields'][QF_HONEYPOT]);
+    }
 }
 
 // Time trap: the script fetched a signed stamp when the page was opened and sends it as `ts`;
@@ -884,7 +897,7 @@ if (!empty($spam['pow']) && !$isForm) {
     if (!qf_pow_valid($config, $formId, (int) ($spam['powDifficulty'] ?? 16), $pow)) {
         qf_fail(400, 'pow', 'the proof of work is missing or wrong');
     }
-    if (qf_pow_spent($config, (string) $pow['challenge'], (string) $pow['nonce'])) {
+    if (qf_pow_spent($config, $pow['challenge'], $pow['nonce'])) {
         qf_fail(400, 'pow', 'this proof of work was already used');
     }
 }
