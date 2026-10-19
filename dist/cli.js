@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
-import { pluginRoot, checkKey } from './chunk-SUCTO2FU.js';
-import { __commonJS, __require, __toESM, messageLang, publicKeyBlock, messageText, formatMessage, conditionsOf, isNamed, resolveOptions } from './chunk-5SUPXVMN.js';
+import { pluginRoot, checkKey } from './chunk-64PSLSFV.js';
+import { __commonJS, __require, __toESM, messageLang, publicKeyBlock, messageText, formatMessage, conditionsOf, isNamed, resolveOptions } from './chunk-WJ7RKWLZ.js';
 import fs from 'fs';
 import path from 'path';
 import { spawnSync } from 'child_process';
@@ -7582,9 +7582,12 @@ function resolveAt(site) {
   return inSite(site.dir, () => resolveOptions(site.rawOptions));
 }
 function localized(report) {
-  if (!report.code) return report;
-  const { code, params, ...rest } = report;
-  return { ...rest, problem: m(code, params) };
+  const { code, params, noticeCode, noticeParams, ...rest } = report;
+  return {
+    ...rest,
+    ...code ? { problem: m(code, params) } : {},
+    ...noticeCode ? { notice: m(noticeCode, noticeParams) } : {}
+  };
 }
 async function keyReports(site, opts) {
   return inSiteAsync(site.dir, async () => {

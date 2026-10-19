@@ -236,6 +236,7 @@ var en = {
   pgpRevoked: () => "this key is revoked",
   pgpExpired: (p) => `this key expired on ${s(p, "date")}`,
   pgpNoEncrypt: () => "this key cannot encrypt (no encryption subkey)",
+  pgpNewAlgorithm: (p) => `this key encrypts with ${s(p, "algorithm")} as RFC 9580 writes it, which GnuPG cannot read: gpg does not decrypt mails sent to it`,
   keyMissingSource: () => "neither file nor armored",
   keyFileUnreadable: () => "not found or not readable",
   // a form
@@ -382,6 +383,7 @@ var de = {
   pgpRevoked: () => "dieser Schl\xFCssel ist widerrufen",
   pgpExpired: (p) => `dieser Schl\xFCssel ist am ${s2(p, "date")} abgelaufen`,
   pgpNoEncrypt: () => "dieser Schl\xFCssel kann nicht verschl\xFCsseln (kein Verschl\xFCsselungs-Unterschl\xFCssel)",
+  pgpNewAlgorithm: (p) => `dieser Schl\xFCssel verschl\xFCsselt mit ${s2(p, "algorithm")} in der Form von RFC 9580, die GnuPG nicht lesen kann: Mails an ihn entschl\xFCsselt gpg nicht`,
   keyMissingSource: () => "weder file noch armored",
   keyFileUnreadable: () => "fehlt oder ist nicht lesbar",
   formIdPattern: (p) => `die Kennung des Formulars muss ${s2(p, "pattern")} entsprechen (Kleinbuchstaben, Ziffern, -)`,
@@ -1377,5 +1379,5 @@ function logHints(opts) {
 }
 
 export { __commonJS, __export, __require, __toESM, conditionOf, conditionsOf, defaultOptions, formatMessage, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-5SUPXVMN.js.map
-//# sourceMappingURL=chunk-5SUPXVMN.js.map
+//# sourceMappingURL=chunk-WJ7RKWLZ.js.map
+//# sourceMappingURL=chunk-WJ7RKWLZ.js.map

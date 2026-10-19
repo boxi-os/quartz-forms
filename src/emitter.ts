@@ -44,6 +44,8 @@ async function checkKeys(opts: ResolvedOptions, serve: boolean): Promise<void> {
       `key:${name}:${report.fingerprint}`,
       `key "${name}": ${report.fingerprint}${report.userIds[0] ? ` (${report.userIds[0]})` : ""}`,
     );
+    if (report.notice)
+      warnOnce(`keynotice:${name}:${report.fingerprint}`, `keys.${name}: ${report.notice}`);
   }
   if (problems.length === 0) return;
   const message = `${problems.length} key problem(s):\n${problems.map((p) => `  - ${p}`).join("\n")}`;

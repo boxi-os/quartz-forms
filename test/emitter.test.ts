@@ -140,6 +140,10 @@ describe("FormsAssets", () => {
         `key "owner": ${formatFingerprint(pair.fingerprint)} (Form Owner <owner@example.org>)`,
       ),
     );
+    // the test key is OpenPGP.js 6's curve25519: the build goes on and says what gpg cannot do
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("keys.owner: this key encrypts with X25519 as RFC 9580 writes it"),
+    );
   });
 
   it("stops the build on an expired or private key, but only warns in serve mode", async () => {

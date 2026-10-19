@@ -12,6 +12,10 @@ export interface KeyReport {
   /** The same as a message code, for another language. */
   code?: MessageCode;
   params?: Params;
+  /** What the owner should know about a key that passes, in English; it does not stop the build. */
+  notice?: string;
+  noticeCode?: MessageCode;
+  noticeParams?: Params;
 }
 
 function withProblem(report: KeyReport, code: MessageCode, params?: Params): KeyReport {
@@ -45,10 +49,23 @@ export async function checkKey(name: string, armored: string): Promise<KeyReport
     report.expires = expires.toISOString().slice(0, 10);
   if (expires instanceof Date && expires.getTime() < Date.now())
     return withProblem(report, "pgpExpired", { date: expires.toISOString().slice(0, 10) });
+  let algorithm: string;
   try {
-    await key.getEncryptionKey();
+    algorithm = (await key.getEncryptionKey()).getAlgorithmInfo().algorithm;
   } catch {
     return withProblem(report, "pgpNoEncrypt");
+  }
+  // X25519 and X448 under the ids RFC 9580 gave them (25, 26), as OpenPGP.js 6 writes them for
+  // `curve25519` and `curve448`: the browser encrypts to them, but GnuPG cannot decrypt (2.5.22,
+  // measured; fiftieth review, M2). Not a reason to stop the build, a reason to say it.
+  if (algorithm === "x25519" || algorithm === "x448") {
+    const noticeParams = { algorithm: algorithm.toUpperCase() };
+    return {
+      ...report,
+      notice: messageText("pgpNewAlgorithm", noticeParams),
+      noticeCode: "pgpNewAlgorithm",
+      noticeParams,
+    };
   }
   return report;
 }

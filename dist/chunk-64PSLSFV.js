@@ -1,5 +1,5 @@
 import { createRequire } from 'module';
-import { messageText } from './chunk-5SUPXVMN.js';
+import { messageText } from './chunk-WJ7RKWLZ.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
@@ -75,14 +75,24 @@ async function checkKey(name, armored) {
     report.expires = expires.toISOString().slice(0, 10);
   if (expires instanceof Date && expires.getTime() < Date.now())
     return withProblem(report, "pgpExpired", { date: expires.toISOString().slice(0, 10) });
+  let algorithm;
   try {
-    await key.getEncryptionKey();
+    algorithm = (await key.getEncryptionKey()).getAlgorithmInfo().algorithm;
   } catch {
     return withProblem(report, "pgpNoEncrypt");
+  }
+  if (algorithm === "x25519" || algorithm === "x448") {
+    const noticeParams = { algorithm: algorithm.toUpperCase() };
+    return {
+      ...report,
+      notice: messageText("pgpNewAlgorithm", noticeParams),
+      noticeCode: "pgpNewAlgorithm",
+      noticeParams
+    };
   }
   return report;
 }
 
 export { BROWSER_FILES, checkKey, pluginRoot, vendorDir };
-//# sourceMappingURL=chunk-SUCTO2FU.js.map
-//# sourceMappingURL=chunk-SUCTO2FU.js.map
+//# sourceMappingURL=chunk-64PSLSFV.js.map
+//# sourceMappingURL=chunk-64PSLSFV.js.map

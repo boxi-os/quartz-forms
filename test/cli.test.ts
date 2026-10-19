@@ -273,6 +273,27 @@ describe("cli check and key", () => {
     );
     expect(both.stdout).not.toContain("PRIVATE KEY");
   });
+
+  it("says of an X25519 key as RFC 9580 writes it that gpg cannot decrypt to it, in the asked language", async () => {
+    // Fiftieth review, M2: OpenPGP.js 6 writes such keys, gpg 2.5.22 imports no secret key from
+    // them and decrypts nothing sent to them. The build goes on; the owner hears it.
+    const x25519 = await generatePair();
+    const en = run(["key"], { QF_KEY_ARMORED: x25519.publicKey });
+    const key = en.json.key as { problem?: string; notice?: string; noticeCode?: string };
+    expect(key.problem).toBeUndefined();
+    expect(key.notice).toBe(
+      "this key encrypts with X25519 as RFC 9580 writes it, which GnuPG cannot read: gpg does not decrypt mails sent to it",
+    );
+    expect(key.noticeCode).toBeUndefined();
+    const de = run(["key", "--lang", "de"], { QF_KEY_ARMORED: x25519.publicKey });
+    expect((de.json.key as { notice?: string }).notice).toMatch(
+      /^dieser Schlüssel verschlüsselt mit X25519/,
+    );
+
+    const nist = await generatePair({ nist: true });
+    const plain = run(["key"], { QF_KEY_ARMORED: nist.publicKey });
+    expect(plain.json.key).not.toHaveProperty("notice");
+  });
 });
 
 describe("cli from an installed copy", () => {

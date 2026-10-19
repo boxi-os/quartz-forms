@@ -262,6 +262,10 @@ ihn mit dem vergleichen kann, den du veröffentlichst.
 
 Der Bau prüft jeden benutzten Schlüssel: lesbar, öffentlich, nicht widerrufen, nicht abgelaufen,
 verschlüsselungsfähig; er schreibt den Fingerabdruck ins Protokoll und bricht bei einem Problem ab.
+Ein Schlüssel, dessen Unterschlüssel zum Verschlüsseln X25519 oder X448 in der Form von RFC 9580 ist
+(so erzeugt OpenPGP.js 6 `curve25519` und `curve448`), besteht die Prüfung, aber GnuPG kann ihn
+nicht lesen (gemessen mit 2.5.22) und entschlüsselt nichts, was an ihn geht; der Bau sagt es. Ein
+mit `gpg` erzeugter Schlüssel (cv25519, RSA) hat das Problem nicht.
 
 Die Verschlüsselung schützt die Nachricht unterwegs und in deinem Postfach, nicht auf der Seite.
 Jedes Skript auf der Seite, auf der der Besucher tippt, kann die Felder lesen, bevor sie

@@ -8,7 +8,7 @@ export interface OpenpgpKey {
   isPrivate(): boolean;
   getExpirationTime(): Promise<Date | null | typeof Infinity>;
   isRevoked(): Promise<boolean>;
-  getEncryptionKey(): Promise<unknown>;
+  getEncryptionKey(): Promise<{ getAlgorithmInfo(): { algorithm: string } }>;
   getUserIDs(): string[];
 }
 

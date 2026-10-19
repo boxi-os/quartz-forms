@@ -1,9 +1,9 @@
 import { createRequire } from 'module';
-import { loadKeySources } from './chunk-PETLPORM.js';
-export { FormBox_default as FormBox, Forms, resolveText } from './chunk-PETLPORM.js';
-import { vendorDir, BROWSER_FILES, checkKey } from './chunk-SUCTO2FU.js';
-import { resolveOrThrow, logHints, warnOnce } from './chunk-5SUPXVMN.js';
-export { defaultOptions, resolveOptions, resolveOrThrow, templateNames, templateOf } from './chunk-5SUPXVMN.js';
+import { loadKeySources } from './chunk-SOQLB6SB.js';
+export { FormBox_default as FormBox, Forms, resolveText } from './chunk-SOQLB6SB.js';
+import { vendorDir, BROWSER_FILES, checkKey } from './chunk-64PSLSFV.js';
+import { resolveOrThrow, logHints, warnOnce } from './chunk-WJ7RKWLZ.js';
+export { defaultOptions, resolveOptions, resolveOrThrow, templateNames, templateOf } from './chunk-WJ7RKWLZ.js';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -38,6 +38,8 @@ async function checkKeys(opts, serve) {
       `key:${name}:${report.fingerprint}`,
       `key "${name}": ${report.fingerprint}${report.userIds[0] ? ` (${report.userIds[0]})` : ""}`
     );
+    if (report.notice)
+      warnOnce(`keynotice:${name}:${report.fingerprint}`, `keys.${name}: ${report.notice}`);
   }
   if (problems.length === 0) return;
   const message = `${problems.length} key problem(s):

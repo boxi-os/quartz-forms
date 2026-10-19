@@ -60,6 +60,7 @@ declare const en: {
     pgpRevoked: () => string;
     pgpExpired: (p: Params) => string;
     pgpNoEncrypt: () => string;
+    pgpNewAlgorithm: (p: Params) => string;
     keyMissingSource: () => string;
     keyFileUnreadable: () => string;
     formIdPattern: (p: Params) => string;

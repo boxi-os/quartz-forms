@@ -150,9 +150,12 @@ function resolveAt(site: Site): ResolvedOptions {
 
 /** A key report with its problem in this run's language. */
 function localized(report: KeyReport): KeyReport {
-  if (!report.code) return report;
-  const { code, params, ...rest } = report;
-  return { ...rest, problem: m(code, params) };
+  const { code, params, noticeCode, noticeParams, ...rest } = report;
+  return {
+    ...rest,
+    ...(code ? { problem: m(code, params) } : {}),
+    ...(noticeCode ? { notice: m(noticeCode, noticeParams) } : {}),
+  };
 }
 
 /** Every key the options name, read and checked as the build checks the ones in use. */

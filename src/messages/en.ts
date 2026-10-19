@@ -81,6 +81,8 @@ const en = {
   pgpRevoked: () => "this key is revoked",
   pgpExpired: (p: Params) => `this key expired on ${s(p, "date")}`,
   pgpNoEncrypt: () => "this key cannot encrypt (no encryption subkey)",
+  pgpNewAlgorithm: (p: Params) =>
+    `this key encrypts with ${s(p, "algorithm")} as RFC 9580 writes it, which GnuPG cannot read: gpg does not decrypt mails sent to it`,
   keyMissingSource: () => "neither file nor armored",
   keyFileUnreadable: () => "not found or not readable",
 
