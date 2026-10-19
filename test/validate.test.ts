@@ -346,6 +346,17 @@ describe("validate: transport, encryption, spam, success", () => {
       "forms.contact.spam.pow: has no effect without the relay",
       "forms.contact.spam.rateLimitPerHour: has no effect without the relay",
     ]);
+    // Written globally, the hint was missing: only the form's own spam block was looked at
+    // (noticed beside the second review's finding 4, 2026-10-19).
+    const globalRate = resolveOptions(
+      options({
+        transport: { kind: "endpoint", url: "https://e.example/x" },
+        spam: { rateLimitPerHour: 5 } as never,
+      }),
+    );
+    expect(globalRate.hints).toEqual([
+      "forms.contact.spam.rateLimitPerHour: has no effect without the relay",
+    ]);
     // With the relay, a plain post (noScript: true, the default) carries no proof: said.
     expect(resolveOptions(options({ spam: { pow: true } as never })).hints).toEqual([
       "forms.contact.spam.pow: a plain post without JavaScript (noScript: true) skips it; noScript: false requires the script",

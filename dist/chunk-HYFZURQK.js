@@ -924,7 +924,7 @@ function checkForm(form, raw, rawSpam, keyNames, out) {
     out.hints.push(`${at}: anonymous, so the ${sp.captcha} captcha is not loaded`);
   if (tr.kind !== "relay") {
     if (sp.pow) out.hints.push(`${at}.spam.pow: has no effect without the relay`);
-    if (sp.rateLimitPerHour > 0 && raw.spam?.rateLimitPerHour !== void 0)
+    if (sp.rateLimitPerHour > 0 && (raw.spam?.rateLimitPerHour !== void 0 || rawSpam.rateLimitPerHour !== void 0))
       out.hints.push(`${at}.spam.rateLimitPerHour: has no effect without the relay`);
   } else if (sp.noScript) {
     if (sp.pow)
@@ -4284,5 +4284,5 @@ var FormBox_default = ((userOpts) => {
 });
 
 export { FormBox_default, Forms, defaultOptions, loadKeySources, logHints, resolveOptions, resolveOrThrow, resolveText, templateNames, templateOf, warnOnce };
-//# sourceMappingURL=chunk-ADYXWCNN.js.map
-//# sourceMappingURL=chunk-ADYXWCNN.js.map
+//# sourceMappingURL=chunk-HYFZURQK.js.map
+//# sourceMappingURL=chunk-HYFZURQK.js.map

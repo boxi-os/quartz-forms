@@ -442,7 +442,11 @@ function checkForm(
     out.hints.push(`${at}: anonymous, so the ${sp.captcha} captcha is not loaded`);
   if (tr.kind !== "relay") {
     if (sp.pow) out.hints.push(`${at}.spam.pow: has no effect without the relay`);
-    if (sp.rateLimitPerHour > 0 && raw.spam?.rateLimitPerHour !== undefined)
+    // Written by the owner, globally or for the form; the default of 60 says nothing.
+    if (
+      sp.rateLimitPerHour > 0 &&
+      (raw.spam?.rateLimitPerHour !== undefined || rawSpam.rateLimitPerHour !== undefined)
+    )
       out.hints.push(`${at}.spam.rateLimitPerHour: has no effect without the relay`);
   } else if (sp.noScript) {
     // Only the script supplies a proof and a stamp, so a plain post walks past both (review
