@@ -325,16 +325,110 @@ describe("sending", () => {
     fetchMock.mockResolvedValueOnce(new Response("", { status: 429 }));
     await submit(form);
     expect(status(form).text).toBe("Too many messages at the moment. Please try again later.");
-    fetchMock.mockResolvedValueOnce(
-      ok({ ok: false, message: "origin not allowed" }, { status: 403 }),
-    );
-    await submit(form);
-    expect(status(form).text).toBe("The message was not accepted: origin not allowed");
     fetchMock.mockRejectedValueOnce(new TypeError("network"));
     await submit(form);
     expect(status(form).text).toBe("The message could not be sent. Please try again later.");
     const button = form.querySelector<HTMLButtonElement>("button[type=submit]")!;
     expect(button.disabled).toBe(false);
+  });
+
+  it("says every refusal of the relay in the page's words, and names the code for the site owner only", async () => {
+    // Review finding 19 (2026-10-19): the relay's English `message` was quoted inside the page's
+    // sentence ("Die Nachricht wurde nicht angenommen: please wait a moment before sending"), and
+    // errors for fields this page does not know (a stale config.generated.php) were skipped
+    // with the summary "Please check 0 field(s)."
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const form = mount(contact(quick));
+    await nav();
+    fill(form, "message", "x");
+    const refusals: [string, string, string][] = [
+      ["too_fast", "please wait a moment before sending", "Please wait a moment before sending."],
+      ["stamp", "the time stamp is missing", "Please reload the page and send again."],
+      [
+        "pow",
+        "this proof of work was already used",
+        "The check before sending did not pass. Please try again.",
+      ],
+      [
+        "captcha",
+        "the captcha was not solved",
+        "The check could not be confirmed. Please complete it again.",
+      ],
+      [
+        "rate_limited",
+        "too many messages at the moment",
+        "Too many messages at the moment. Please try again later.",
+      ],
+      [
+        "too_large",
+        "the submission is too large",
+        "The message is too large to send. Please shorten it.",
+      ],
+      // What the visitor cannot change (the relay's configuration, its mail server) is said as
+      // "could not be sent", and the code goes to the console, where the site owner looks.
+      ["origin", "origin not allowed", "The message could not be sent. Please try again later."],
+      [
+        "secret_config",
+        "secret is a placeholder",
+        "The message could not be sent. Please try again later.",
+      ],
+      [
+        "captcha_verify",
+        "provider unreachable",
+        "The message could not be sent. Please try again later.",
+      ],
+      [
+        "mail",
+        "the mail could not be handed over",
+        "The message could not be sent. Please try again later.",
+      ],
+    ];
+    for (const [code, message, expected] of refusals) {
+      warn.mockClear();
+      fetchMock.mockResolvedValueOnce(ok({ ok: false, error: code, message }, { status: 400 }));
+      await submit(form);
+      expect([code, status(form).text]).toEqual([code, expected]);
+      expect(status(form).text).not.toContain(message);
+      if (expected.startsWith("The message could not be sent")) {
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(String(warn.mock.calls[0]).includes(code)).toBe(true);
+        expect(String(warn.mock.calls[0]).includes(message)).toBe(true);
+      }
+    }
+    // Field errors for fields this page does not have: not "0 fields", but "could not be sent".
+    warn.mockClear();
+    fetchMock.mockResolvedValueOnce(
+      ok(
+        { ok: false, error: "invalid", errors: [{ field: "ghost", code: "unknown_field" }] },
+        { status: 400 },
+      ),
+    );
+    await submit(form);
+    expect(status(form).text).toBe("The message could not be sent. Please try again later.");
+    expect(String(warn.mock.calls[0])).toContain("ghost");
+    // A field the page knows but the relay does not (configs drifted apart): the same, not
+    // "please use the requested format" under a field the visitor filled correctly.
+    fetchMock.mockResolvedValueOnce(
+      ok(
+        { ok: false, error: "invalid", errors: [{ field: "message", code: "unknown_field" }] },
+        { status: 400 },
+      ),
+    );
+    await submit(form);
+    expect(errorOf(form, "message")).toBeNull();
+    expect(status(form).text).toBe("The message could not be sent. Please try again later.");
+    warn.mockRestore();
+  });
+
+  it("quotes an own endpoint's message, whose words the site chose itself", async () => {
+    const form = mount(
+      contact({ ...quick, transport: { kind: "endpoint", url: "https://e.example/x" } }),
+    );
+    await nav();
+    fill(form, "message", "x");
+    fetchMock.mockResolvedValueOnce(ok({ ok: false, message: "Postfach voll" }, { status: 400 }));
+    await submit(form);
+    expect(status(form).text).toBe("The message was not accepted: Postfach voll");
   });
 
   it("refuses a submission above maxBytes before sending, and says the relay's 413 the same way", async () => {

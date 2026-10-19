@@ -113,6 +113,14 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   private key or a paste of public and private block (OpenPGP.js reads the first block and calls
   it public). The check now runs again before sending and its result counts; a text that holds a
   private key block is refused in the browser and by the relay.
+- A refusal of the relay reached the visitor as the relay's English log sentence inside the
+  page's words ("Die Nachricht wurde nicht angenommen: please wait a moment before sending"), and
+  field errors for fields the page does not have (the site and `config.generated.php` drifted
+  apart) ended in "Please check 0 field(s)." Every code the visitor can act on now has a sentence
+  in the page's language (`too_fast`, `stamp` → `reloadPage`, `pow` → `proofRejected`,
+  `captcha` → `captchaFailed`, `rate_limited`, `too_large`); what only the site owner can change
+  is "could not be sent" to the visitor and a console warning with the code and the relay's
+  sentence. An own `endpoint` is still quoted (`rejected`), its words are the site's.
 
 ## [0.1.1] - 2026-10-19
 

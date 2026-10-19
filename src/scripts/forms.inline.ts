@@ -700,6 +700,38 @@ function qfFieldErrorText(
   }
 }
 
+/**
+ * The relay's refusal in the page's words. The relay answers in English for the log; its
+ * `message` used to be quoted inside the page's sentence ("Die Nachricht wurde nicht angenommen:
+ * please wait a moment before sending", review finding 19, 2026-10-19). Every code the visitor
+ * can act on has a sentence; what only the site owner can change (the relay's configuration, its
+ * mail server, an origin list) is "could not be sent" to the visitor and a console warning with
+ * the code for the owner. An own `endpoint` speaks the site's words and is quoted as before.
+ */
+function qfRefusalText(cfg: QfConfig, result: QfRelayResponse): string {
+  const sentences: Record<string, string> = {
+    too_fast: "tooFast",
+    stamp: "reloadPage",
+    pow: "proofRejected",
+    captcha: "captchaFailed",
+    rate_limited: "rateLimited",
+    too_large: "tooLarge",
+  };
+  const key = sentences[result.error ?? ""];
+  if (key) return qfText(cfg, key);
+  if (cfg.transport.kind !== "relay" && result.message)
+    return qfText(cfg, "rejected", { reason: result.message });
+  if (result.error || result.message || result.errors) {
+    const fields = (result.errors ?? []).map((e) => `${e.field ?? "?"}: ${e.code ?? "?"}`);
+    console.warn(
+      `quartz-forms: the relay refused form "${cfg.id}" with ${result.error ?? "no code"}` +
+        (result.message ? ` (${result.message})` : "") +
+        (fields.length ? `; fields ${fields.join(", ")}` : ""),
+    );
+  }
+  return qfText(cfg, "sendFailed");
+}
+
 function qfFinish(form: HTMLFormElement, cfg: QfConfig, encrypted: boolean): void {
   if (cfg.success.mode === "redirect" && cfg.success.slug) {
     qfNavigate(qfInternalUrl(cfg.success.slug), true);
@@ -835,18 +867,23 @@ function qfBind(form: HTMLFormElement): void {
         qfFinish(form, cfg, encrypt);
         return;
       }
-      if (result.errors && result.errors.length > 0) {
-        const problems: QfProblem[] = [];
-        for (const e of result.errors) {
-          const rule = cfg.fields.find((r) => r.name === e.field);
-          if (!rule) continue;
-          const message =
-            e.message && !cfg.texts[e.code ?? ""] && cfg.transport.kind !== "relay"
-              ? e.message
-              : qfFieldErrorText(cfg, rule, e.code);
-          qfShowError(form, rule.name, message);
-          problems.push({ name: rule.name, message });
-        }
+      // Errors at fields the visitor can correct. A field this page does not have, or one the
+      // relay does not know (`unknown_field`: the site and config.generated.php drifted apart),
+      // is nothing the visitor can fix, so it is said below as "could not be sent" and named in
+      // the console, where the site owner looks. Skipping those used to leave an empty list and
+      // the summary "please check 0 fields" (review finding 19, 2026-10-19).
+      const problems: QfProblem[] = [];
+      for (const e of result.errors ?? []) {
+        const rule = cfg.fields.find((r) => r.name === e.field);
+        if (!rule || e.code === "unknown_field") continue;
+        const message =
+          e.message && !cfg.texts[e.code ?? ""] && cfg.transport.kind !== "relay"
+            ? e.message
+            : qfFieldErrorText(cfg, rule, e.code);
+        qfShowError(form, rule.name, message);
+        problems.push({ name: rule.name, message });
+      }
+      if (problems.length > 0) {
         qfStatus(
           form,
           "error",
@@ -857,11 +894,7 @@ function qfBind(form: HTMLFormElement): void {
         qfFocusFirst(form, problems);
         return;
       }
-      if (result.error === "rate_limited") qfStatus(form, "error", qfText(cfg, "rateLimited"));
-      else if (result.error === "too_large") qfStatus(form, "error", qfText(cfg, "tooLarge"));
-      else if (result.message)
-        qfStatus(form, "error", qfText(cfg, "rejected", { reason: result.message }));
-      else qfStatus(form, "error", qfText(cfg, "sendFailed"));
+      qfStatus(form, "error", qfRefusalText(cfg, result));
     } catch {
       qfStatus(form, "error", qfText(cfg, "sendFailed"));
     } finally {

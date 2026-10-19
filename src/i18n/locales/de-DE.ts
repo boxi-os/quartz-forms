@@ -37,6 +37,10 @@ const deDE: Translation = {
   needsScript: "Dieses Formular braucht zum Senden JavaScript.",
   noScriptPlain: "Ohne JavaScript sendet dieses Formular unverschlüsselt.",
   tooFast: "Bitte warten Sie einen Moment vor dem Senden.",
+  reloadPage: "Bitte laden Sie die Seite neu und senden Sie noch einmal.",
+  proofRejected:
+    "Die Prüfung vor dem Senden ist fehlgeschlagen. Bitte versuchen Sie es noch einmal.",
+  captchaFailed: "Die Prüfung konnte nicht bestätigt werden. Bitte bestätigen Sie sie noch einmal.",
   captchaRequired: "Bitte bestätigen Sie vor dem Senden die Prüfung unten.",
   sendFailed:
     "Die Nachricht konnte nicht gesendet werden. Bitte versuchen Sie es später noch einmal.",
