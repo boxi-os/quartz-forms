@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
-import { loadKeySources } from './chunk-HUURYVOH.js';
-export { FormBox_default as FormBox, Forms, resolveText } from './chunk-HUURYVOH.js';
+import { loadKeySources } from './chunk-PETLPORM.js';
+export { FormBox_default as FormBox, Forms, resolveText } from './chunk-PETLPORM.js';
 import { vendorDir, BROWSER_FILES, checkKey } from './chunk-SUCTO2FU.js';
 import { resolveOrThrow, logHints, warnOnce } from './chunk-5SUPXVMN.js';
 export { defaultOptions, resolveOptions, resolveOrThrow, templateNames, templateOf } from './chunk-5SUPXVMN.js';

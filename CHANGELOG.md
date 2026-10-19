@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed: pressing "Send" or "Next" right after correcting a field could do nothing. The press took
+  the focus from the field, its error line went, the form got shorter and the button slid from
+  under the pointer before it was released. While a pointer is down in the form, the check of the
+  field left now waits until after the click.
+
 ## [0.5.4] - 2026-10-19
 
 - Fixed: `relay` created `config.php` with a fresh secret readable for everyone (0644) when no

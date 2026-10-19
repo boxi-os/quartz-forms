@@ -1245,8 +1245,7 @@ function qfBind(form: HTMLFormElement): void {
   if (cfg.encryption.mode !== "off") void qfShowFingerprint(form, cfg);
   const captcha = cfg.spam.captcha !== "none" && !cfg.anonymous ? cfg.spam.captcha : null;
 
-  const onBlur = (event: Event) => {
-    const target = event.target as HTMLElement | null;
+  const checkLeft = (target: HTMLElement | null) => {
     const name = target?.getAttribute("name");
     const rule = name ? cfg.fields.find((r) => r.name === name) : undefined;
     if (!rule || rule.type === "hidden") return;
@@ -1258,8 +1257,38 @@ function qfBind(form: HTMLFormElement): void {
     if (empty && !rule.required) return qfShowError(form, rule.name, null);
     qfShowError(form, rule.name, qfCheck(cfg, rule, value));
   };
+  // A press on a button takes the focus from the field first, and the line that check shows or
+  // hides changes the form's height: the button slid from under the pointer, mouseup landed
+  // elsewhere and the click was lost (fiftieth review, M1: 14px, "Senden" needed a second click).
+  // While a pointer is down in the form, the check waits until after the click.
+  let pressed = false;
+  let left: (HTMLElement | null)[] = [];
+  const onBlur = (event: Event) => {
+    const target = event.target as HTMLElement | null;
+    if (pressed) left.push(target);
+    else checkLeft(target);
+  };
+  const onPress = () => {
+    pressed = true;
+  };
+  const onRelease = () => {
+    if (!pressed) return;
+    pressed = false;
+    const queued = left;
+    left = [];
+    // pointerup, mouseup and click are one task; a timer runs after the click.
+    if (queued.length > 0) setTimeout(() => queued.forEach(checkLeft), 0);
+  };
   form.addEventListener("focusout", onBlur);
-  window.addCleanup(() => form.removeEventListener("focusout", onBlur));
+  form.addEventListener("pointerdown", onPress);
+  document.addEventListener("pointerup", onRelease);
+  document.addEventListener("pointercancel", onRelease);
+  window.addCleanup(() => {
+    form.removeEventListener("focusout", onBlur);
+    form.removeEventListener("pointerdown", onPress);
+    document.removeEventListener("pointerup", onRelease);
+    document.removeEventListener("pointercancel", onRelease);
+  });
 
   const keyRule = cfg.fields.find((r) => r.type === "pgpKey");
   // The fields' own check, of all of them or of one step's; then the visitor's key, if it counts.

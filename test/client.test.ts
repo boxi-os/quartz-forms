@@ -217,6 +217,38 @@ describe("validation in the browser", () => {
     email.dispatchEvent(new Event("focusout", { bubbles: true }));
     expect(errorOf(form, "email")).toBeNull();
   });
+
+  it("moves nothing while a button is pressed: the check of the field left waits for the click", async () => {
+    // Fiftieth review, M1: the press took the focus, the error line went, the button slid 14px
+    // from under the pointer and the click was lost.
+    const form = mount(
+      contact({ ...quick, fields: [{ type: "email", name: "email", label: "E" }] }),
+    );
+    await nav();
+    const email = form.elements.namedItem("email") as HTMLInputElement;
+    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    email.value = "bad";
+    email.dispatchEvent(new Event("focusout", { bubbles: true }));
+    expect(errorOf(form, "email")).toBe("Please enter a valid e-mail address.");
+
+    email.value = "a@b.co";
+    button.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    email.dispatchEvent(new Event("focusout", { bubbles: true }));
+    expect(errorOf(form, "email")).toBe("Please enter a valid e-mail address.");
+    document.body.dispatchEvent(new Event("pointerup", { bubbles: true }));
+    expect(errorOf(form, "email")).toBe("Please enter a valid e-mail address.");
+    await new Promise((r) => setTimeout(r, 0));
+    expect(errorOf(form, "email")).toBeNull();
+
+    // the same for an error that appears, and a release anywhere ends the wait
+    email.value = "worse";
+    form.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    email.dispatchEvent(new Event("focusout", { bubbles: true }));
+    expect(errorOf(form, "email")).toBeNull();
+    document.body.dispatchEvent(new Event("pointercancel", { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(errorOf(form, "email")).toBe("Please enter a valid e-mail address.");
+  });
 });
 
 describe("sending", () => {
