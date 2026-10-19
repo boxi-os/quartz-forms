@@ -34,6 +34,12 @@ declare const en: {
     widthValue: () => string;
     layoutValue: () => string;
     layoutSelect: () => string;
+    showIfNotAllowed: (p: Params) => string;
+    showIfShape: () => string;
+    showIfUnknown: (p: Params) => string;
+    showIfLater: (p: Params) => string;
+    showIfController: (p: Params) => string;
+    showIfValue: (p: Params) => string;
     keyShape: () => string;
     keyExactlyOne: () => string;
     keyOutside: (p: Params) => string;
@@ -231,6 +237,19 @@ interface FormDefinition {
  * six tracks that falls to halves and then to one column in a narrow container (forms.scss).
  */
 type FieldWidth = "full" | "half" | "third";
+/**
+ * Show a field only while an earlier field has one of the given values: a choice's option value,
+ * `"yes"` for a ticked checkbox, a scale's number as a string. With `checkboxes` one of the
+ * values ticked is enough. A field whose condition does not hold is not required, not checked,
+ * not sent and not mailed; a value posted for it anyway (a browser without JavaScript shows every
+ * field) is dropped, not refused.
+ */
+interface ShowIf {
+    /** The `name` of an earlier select, radio, checkboxes, checkbox or scale field. */
+    field: string;
+    /** The value, or values, that show the field. */
+    equals: string | string[];
+}
 /** How the options of a radio or checkboxes field stand: under each other or side by side. */
 type ChoiceLayout = "stacked" | "inline";
 type InputFieldType = "text" | "email" | "tel" | "url" | "number" | "date" | "textarea";
@@ -266,6 +285,8 @@ interface InputField {
     maxLength?: number;
     /** How much of the form's width the field takes; default `full`. */
     width?: FieldWidth;
+    /** Show the field only while an earlier field has one of the given values. */
+    showIf?: ShowIf;
 }
 interface ChoiceOption {
     value: string;
@@ -284,6 +305,8 @@ interface ChoiceField {
     /** `inline`: the options side by side, wrapping; `stacked` (default) under each other. A
      *  `select` has no options to arrange; the build says so. */
     layout?: ChoiceLayout;
+    /** Show the field only while an earlier field has one of the given values. */
+    showIf?: ShowIf;
 }
 /** A single checkbox with a label. */
 interface CheckboxField {
@@ -294,6 +317,8 @@ interface CheckboxField {
     hint?: Text;
     /** How much of the form's width the field takes; default `full`. */
     width?: FieldWidth;
+    /** Show the field only while an earlier field has one of the given values. */
+    showIf?: ShowIf;
 }
 /** A rating from `min` to `max`, rendered as a row of radio buttons. */
 interface ScaleField {
@@ -310,6 +335,8 @@ interface ScaleField {
     maxLabel?: Text;
     /** How much of the form's width the field takes; default `full`. */
     width?: FieldWidth;
+    /** Show the field only while an earlier field has one of the given values. */
+    showIf?: ShowIf;
 }
 /** A checkbox the visitor must tick, with a sentence and an optional link (privacy policy). */
 interface ConsentField {
@@ -335,6 +362,8 @@ interface PgpKeyField {
     hint?: Text;
     /** How much of the form's width the field takes; default `full`. */
     width?: FieldWidth;
+    /** Show the field only while an earlier field has one of the given values. */
+    showIf?: ShowIf;
 }
 /** A fixed value sent along, invisible. */
 interface HiddenField {
@@ -458,4 +487,4 @@ interface ResolvedOptions {
     hintMessages: Message[];
 }
 
-export type { CheckboxField, ChoiceField, ChoiceLayout, ChoiceOption, ConsentField, EncryptionConfig, EncryptionMode, FieldWidth, FormDefinition, FormField, FormTemplate, HiddenField, InputField, InputFieldType, PgpKeyField, PgpKeySource, QuartzFormsOptions, ResolvedForm, ResolvedOptions, ScaleField, SpamConfig, SuccessConfig, Text, TransportConfig, TransportKind };
+export type { CheckboxField, ChoiceField, ChoiceLayout, ChoiceOption, ConsentField, EncryptionConfig, EncryptionMode, FieldWidth, FormDefinition, FormField, FormTemplate, HiddenField, InputField, InputFieldType, PgpKeyField, PgpKeySource, QuartzFormsOptions, ResolvedForm, ResolvedOptions, ScaleField, ShowIf, SpamConfig, SuccessConfig, Text, TransportConfig, TransportKind };

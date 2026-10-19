@@ -6,6 +6,8 @@
 // (`.quartz-form-config`), which it derived from the form definition. Nothing here invents a rule.
 
 interface QfRule {
+  /** Conditions that must all hold for the field to count (src/conditions.ts). */
+  when?: { field: string; equals: string[] }[];
   name: string;
   type: string;
   label: string;
@@ -121,6 +123,53 @@ function qfValueOf(form: HTMLFormElement, rule: QfRule): QfValue {
       return el ? String(el.value ?? "").trim() : "";
     }
   }
+}
+
+/**
+ * The fields that count with these values: every condition of a field holds, and every field a
+ * condition names counts itself - one pass in form order, since a condition only names an earlier
+ * field (the build makes sure). The relay decides the same way (`qf_active` in send.php),
+ * measured against one catalog of cases (test/parity-cases.ts, conditionCases).
+ */
+function qfActive(cfg: QfConfig, values: Record<string, QfValue | undefined>): Set<string> {
+  const active = new Set<string>();
+  for (const rule of cfg.fields) {
+    const holds = (rule.when ?? []).every((cond) => {
+      if (!active.has(cond.field)) return false;
+      const value = values[cond.field];
+      const list = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
+      return list.some((v) => typeof v === "string" && cond.equals.includes(v.trim()));
+    });
+    if (holds) active.add(rule.name);
+  }
+  return active;
+}
+
+function qfValuesOf(form: HTMLFormElement, cfg: QfConfig): Record<string, QfValue> {
+  const values: Record<string, QfValue> = {};
+  for (const rule of cfg.fields) values[rule.name] = qfValueOf(form, rule);
+  return values;
+}
+
+/**
+ * Shows the fields whose conditions hold and hides the others, clearing what a hidden field said
+ * about itself; `aria-required` follows, since the markup leaves it off a conditional field (a
+ * browser without this script would refuse a post where the field does not apply).
+ */
+function qfApplyConditions(form: HTMLFormElement, cfg: QfConfig): Set<string> {
+  const active = qfActive(cfg, qfValuesOf(form, cfg));
+  for (const rule of cfg.fields) {
+    if (!rule.when) continue;
+    const on = active.has(rule.name);
+    const wrapper = form.querySelector<HTMLElement>(`[data-field="${rule.name}"]`);
+    if (wrapper) wrapper.hidden = !on;
+    if (!on) qfShowError(form, rule.name, null);
+    for (const control of qfControlsOf(form, rule.name)) {
+      if (on && rule.required) control.setAttribute("aria-required", "true");
+      else control.removeAttribute("aria-required");
+    }
+  }
+  return active;
 }
 
 function qfControlsOf(form: HTMLFormElement, name: string): Element[] {
@@ -251,8 +300,13 @@ function qfShowError(form: HTMLFormElement, name: string, message: string | null
 
 function qfValidate(form: HTMLFormElement, cfg: QfConfig): QfProblem[] {
   const problems: QfProblem[] = [];
+  const active = qfActive(cfg, qfValuesOf(form, cfg));
   for (const rule of cfg.fields) {
     if (rule.type === "hidden") continue;
+    if (!active.has(rule.name)) {
+      qfShowError(form, rule.name, null);
+      continue;
+    }
     const message = qfCheck(cfg, rule, qfValueOf(form, rule));
     qfShowError(form, rule.name, message);
     if (message) problems.push({ name: rule.name, message });
@@ -912,6 +966,7 @@ function qfBind(form: HTMLFormElement): void {
     const name = target?.getAttribute("name");
     const rule = name ? cfg.fields.find((r) => r.name === name) : undefined;
     if (!rule || rule.type === "hidden") return;
+    if (!qfActive(cfg, qfValuesOf(form, cfg)).has(rule.name)) return;
     if (rule.type === "pgpKey") return void qfCheckVisitorKey(form, cfg, rule);
     // Only report after the visitor has written something or left a required field empty.
     const value = qfValueOf(form, rule);
@@ -922,6 +977,18 @@ function qfBind(form: HTMLFormElement): void {
   form.addEventListener("focusout", onBlur);
   window.addCleanup(() => form.removeEventListener("focusout", onBlur));
 
+  // Conditional fields: shown and hidden as the fields they depend on change.
+  if (cfg.fields.some((r) => r.when)) {
+    qfApplyConditions(form, cfg);
+    const onChange = () => void qfApplyConditions(form, cfg);
+    form.addEventListener("change", onChange);
+    form.addEventListener("input", onChange);
+    window.addCleanup(() => {
+      form.removeEventListener("change", onChange);
+      form.removeEventListener("input", onChange);
+    });
+  }
+
   const keyRule = cfg.fields.find((r) => r.type === "pgpKey");
   let busy = false;
   const onSubmit = async (event: Event) => {
@@ -929,7 +996,12 @@ function qfBind(form: HTMLFormElement): void {
     if (busy) return;
 
     const problems = qfValidate(form, cfg);
-    if (problems.length === 0 && keyRule && qfValueOf(form, keyRule) !== "") {
+    if (
+      problems.length === 0 &&
+      keyRule &&
+      qfValueOf(form, keyRule) !== "" &&
+      qfActive(cfg, qfValuesOf(form, cfg)).has(keyRule.name)
+    ) {
       // The visitor's key is parsed, which takes a moment: no second submit meanwhile.
       busy = true;
       try {
@@ -971,8 +1043,12 @@ function qfBind(form: HTMLFormElement): void {
       }
     }
 
+    // Only what counts goes out: a field whose condition does not hold is neither sent nor
+    // encrypted (the relay would drop it anyway; mailto and the services would not).
+    const all = qfValuesOf(form, cfg);
+    const active = qfActive(cfg, all);
     const values: Record<string, QfValue> = {};
-    for (const rule of cfg.fields) values[rule.name] = qfValueOf(form, rule);
+    for (const rule of cfg.fields) if (active.has(rule.name)) values[rule.name] = all[rule.name]!;
 
     const toggle = form.elements.namedItem(QF_ENCRYPT_TOGGLE) as HTMLInputElement | null;
     const encrypt =

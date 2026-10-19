@@ -385,4 +385,52 @@ describe("captcha container", () => {
       '<div class="quartz-form__options"><div class="quartz-form__option">',
     );
   });
+
+  it("leaves the browser's own required off a conditional field and says when it is needed", () => {
+    const { html, config } = render(
+      contact({
+        fields: [
+          {
+            type: "radio",
+            name: "topic",
+            label: "Topic",
+            options: [
+              { value: "a", label: "Event" },
+              { value: "b", label: "Other" },
+            ],
+          },
+          {
+            type: "text",
+            name: "guests",
+            label: "Guests",
+            required: true,
+            showIf: { field: "topic", equals: ["a", "b"] },
+          },
+          { type: "checkbox", name: "news", label: "News" },
+          {
+            type: "email",
+            name: "mail",
+            label: "Mail",
+            required: true,
+            showIf: { field: "news", equals: "yes" },
+          },
+        ],
+      }),
+    );
+    const guests = html.slice(
+      html.indexOf('data-field="guests"'),
+      html.indexOf('data-field="news"'),
+    );
+    // the attributes go; the visible mark stays, since the field is required where it counts
+    expect(guests).not.toMatch(/ required(=|>| )|aria-required/);
+    expect(guests).toContain("quartz-form__required");
+    expect(guests).toContain(
+      '<noscript><p class="quartz-form__note quartz-form__note--when">Only needed if “Topic” is “Event” or “Other”.</p></noscript>',
+    );
+    expect(html).toContain("Only needed if “News” is ticked.");
+    const rule = config.fields.find((f) => f.name === "guests")!;
+    expect(rule.required).toBe(true);
+    expect(rule.when).toEqual([{ field: "topic", equals: ["a", "b"] }]);
+    expect(config.fields.find((f) => f.name === "topic")!.when).toBeUndefined();
+  });
 });

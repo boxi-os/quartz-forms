@@ -716,6 +716,47 @@ const QF_NUMBER = '/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i';
  * finding 2, 2026-10-19). With `(?<!\s)` only the first position of a run is tried, so the
  * work is the length of the value; measured without the JIT: 2 ms for 40 000 spaces.
  */
+/**
+ * Which fields count with these values: every condition (`when`) of a field holds and every field
+ * a condition names counts itself, decided in rule order (the build lets a condition name only an
+ * earlier field). A checkbox group arrives as a string from a plain post with one box ticked and
+ * as an array otherwise; any of its values may hold the condition. The browser script decides
+ * the same way (qfActive), held to one catalog of cases (test/parity-cases.ts).
+ *
+ * @param array<string, array<string, mixed>> $rules
+ * @param array<string, mixed> $fields
+ * @return array<string, bool>
+ */
+function qf_active(array $rules, array $fields): array
+{
+    $active = [];
+    foreach ($rules as $name => $rule) {
+        $holds = true;
+        foreach (($rule['when'] ?? []) as $cond) {
+            $controller = (string) ($cond['field'] ?? '');
+            if (empty($active[$controller])) {
+                $holds = false;
+                break;
+            }
+            $value = $fields[$controller] ?? null;
+            $values = is_array($value) ? $value : ($value === null ? [] : [$value]);
+            $hit = false;
+            foreach ($values as $v) {
+                if (is_string($v) && in_array(qf_trim($v), $cond['equals'] ?? [], true)) {
+                    $hit = true;
+                    break;
+                }
+            }
+            if (!$hit) {
+                $holds = false;
+                break;
+            }
+        }
+        $active[$name] = $holds;
+    }
+    return $active;
+}
+
 function qf_trim(string $value): string
 {
     return preg_replace('/^[' . QF_WS . ']+|(?<![' . QF_WS . '])[' . QF_WS . ']+$/u', '', $value)
@@ -1273,7 +1314,15 @@ if ($encrypted) {
             $errors[] = ['field' => (string) $name, 'code' => 'unknown_field'];
         }
     }
+    // A field whose conditions do not hold does not count: dropped before anything is checked, so
+    // it is neither required nor mailed, and what a browser without JavaScript posted for it goes
+    // too (it showed every field). Same decision as the browser script's qfActive.
+    $active = qf_active($rules, $fields);
     foreach ($rules as $name => $rule) {
+        if (empty($active[$name])) {
+            unset($fields[$name]);
+            continue;
+        }
         if ($rule['type'] === 'hidden') {
             // A fixed value the page sends along, invisible: the mail shows what the config says,
             // never what was posted (review finding, 2026-10-19: 900 × "x" arrived under the

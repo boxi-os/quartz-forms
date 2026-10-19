@@ -37,6 +37,14 @@ const de: { [K in keyof typeof en]: (p: Params, t: Translate) => string } = {
   widthValue: () => "full, half oder third",
   layoutValue: () => "stacked oder inline",
   layoutSelect: () => "wirkt nicht bei select, dessen Optionen eine aufklappende Liste sind",
+  showIfNotAllowed: (p) => `ein Feld vom Typ ${s(p, "type")} kann nicht bedingt sein`,
+  showIfShape: () =>
+    "{ field, equals } mit dem Namen eines Felds und einem Wert oder einer Liste davon",
+  showIfUnknown: (p) => `kein Feld „${s(p, "field")}“ in diesem Formular`,
+  showIfLater: (p) => `„${s(p, "field")}“ muss vor dem Feld stehen, das davon abhängt`,
+  showIfController: (p) =>
+    `„${s(p, "field")}“ ist ein Feld vom Typ ${s(p, "type")}; eine Bedingung braucht select, radio, checkboxes, checkbox oder scale`,
+  showIfValue: (p) => `„${s(p, "field")}“ kann den Wert „${s(p, "value")}“ nicht haben`,
 
   keyShape: () => "ein Schlüssel ist { file } oder { armored }",
   keyExactlyOne: () => "genau eines von file oder armored",

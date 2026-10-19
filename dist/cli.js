@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
-import { pluginRoot, checkKey } from './chunk-D46RJOJ7.js';
-import { __commonJS, __require, __toESM, messageLang, publicKeyBlock, messageText, formatMessage, resolveOptions } from './chunk-YJNLJZEX.js';
+import { pluginRoot, checkKey } from './chunk-DIFCZOOA.js';
+import { __commonJS, __require, __toESM, messageLang, publicKeyBlock, messageText, formatMessage, conditionsOf, resolveOptions } from './chunk-XBGAYCNU.js';
 import fs from 'fs';
 import path from 'path';
 import { spawnSync } from 'child_process';
@@ -7301,6 +7301,7 @@ function relayData(opts, baseUrl) {
   const { origin, basePath } = siteLocation(baseUrl);
   const forms = {};
   for (const form of Object.values(opts.forms)) {
+    const conditions = conditionsOf(form.fields);
     if (form.transport.kind !== "relay") continue;
     forms[form.id] = {
       recipient: form.recipient ?? null,
@@ -7323,6 +7324,7 @@ function relayData(opts, baseUrl) {
         maxBytes: form.spam.maxBytes
       },
       fields: form.fields.map((f) => {
+        const when = conditions.get(f.name);
         const rule = {
           name: f.name,
           type: f.type,
@@ -7361,6 +7363,7 @@ function relayData(opts, baseUrl) {
             rule.value = f.value;
             break;
         }
+        if (when) rule.when = when;
         return rule;
       })
     };

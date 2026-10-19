@@ -97,6 +97,20 @@ export interface FormDefinition {
  */
 export type FieldWidth = "full" | "half" | "third";
 
+/**
+ * Show a field only while an earlier field has one of the given values: a choice's option value,
+ * `"yes"` for a ticked checkbox, a scale's number as a string. With `checkboxes` one of the
+ * values ticked is enough. A field whose condition does not hold is not required, not checked,
+ * not sent and not mailed; a value posted for it anyway (a browser without JavaScript shows every
+ * field) is dropped, not refused.
+ */
+export interface ShowIf {
+  /** The `name` of an earlier select, radio, checkboxes, checkbox or scale field. */
+  field: string;
+  /** The value, or values, that show the field. */
+  equals: string | string[];
+}
+
 /** How the options of a radio or checkboxes field stand: under each other or side by side. */
 export type ChoiceLayout = "stacked" | "inline";
 
@@ -134,6 +148,8 @@ export interface InputField {
   maxLength?: number;
   /** How much of the form's width the field takes; default `full`. */
   width?: FieldWidth;
+  /** Show the field only while an earlier field has one of the given values. */
+  showIf?: ShowIf;
 }
 
 export interface ChoiceOption {
@@ -154,6 +170,8 @@ export interface ChoiceField {
   /** `inline`: the options side by side, wrapping; `stacked` (default) under each other. A
    *  `select` has no options to arrange; the build says so. */
   layout?: ChoiceLayout;
+  /** Show the field only while an earlier field has one of the given values. */
+  showIf?: ShowIf;
 }
 
 /** A single checkbox with a label. */
@@ -165,6 +183,8 @@ export interface CheckboxField {
   hint?: Text;
   /** How much of the form's width the field takes; default `full`. */
   width?: FieldWidth;
+  /** Show the field only while an earlier field has one of the given values. */
+  showIf?: ShowIf;
 }
 
 /** A rating from `min` to `max`, rendered as a row of radio buttons. */
@@ -182,6 +202,8 @@ export interface ScaleField {
   maxLabel?: Text;
   /** How much of the form's width the field takes; default `full`. */
   width?: FieldWidth;
+  /** Show the field only while an earlier field has one of the given values. */
+  showIf?: ShowIf;
 }
 
 /** A checkbox the visitor must tick, with a sentence and an optional link (privacy policy). */
@@ -209,6 +231,8 @@ export interface PgpKeyField {
   hint?: Text;
   /** How much of the form's width the field takes; default `full`. */
   width?: FieldWidth;
+  /** Show the field only while an earlier field has one of the given values. */
+  showIf?: ShowIf;
 }
 
 /** A fixed value sent along, invisible. */

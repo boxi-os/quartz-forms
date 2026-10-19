@@ -1,4 +1,5 @@
 import { h } from "hastscript";
+import { conditionsOf, type Condition } from "../conditions";
 import type { Element, ElementContent } from "hast";
 import type {
   ChoiceField,
@@ -102,6 +103,50 @@ function hintAndError(ctx: RenderContext, id: string, hint: Text | undefined): E
 
 function describedBy(id: string, hint: Text | undefined): string {
   return hint !== undefined ? `${id}-hint ${id}-error` : `${id}-error`;
+}
+
+/**
+ * A field that depends on another one. Without JavaScript every field is shown, so its control
+ * must not carry the browser's own `required` - the browser would refuse a post where the field
+ * does not apply - and a sentence says when it is needed. The script sets `aria-required` while
+ * the field counts; the relay checks it then, and drops what was posted for it otherwise.
+ */
+function conditional(
+  el: Element,
+  conditions: Condition[],
+  form: ResolvedForm,
+  ctx: RenderContext,
+): Element {
+  const strip = (node: Element): void => {
+    delete node.properties.required;
+    delete node.properties.ariaRequired;
+    for (const c of node.children) if (c.type === "element") strip(c);
+  };
+  strip(el);
+  const t = ctx.t;
+  const sentences = conditions.map((c) => {
+    const controller = form.fields.find((f) => f.name === c.field);
+    const label =
+      controller && "label" in controller
+        ? (resolveText(controller.label, ctx.lang) ?? c.field)
+        : c.field;
+    if (controller?.type === "checkbox") return interpolate(t.onlyWhenTicked, { field: label });
+    const labelOf = (value: string): string => {
+      if (controller && "options" in controller && Array.isArray(controller.options)) {
+        const option = controller.options.find((o) => o.value === value);
+        if (option) return resolveText(option.label, ctx.lang) ?? value;
+      }
+      return value;
+    };
+    const values = c.equals.map((v) => interpolate(t.quoted, { text: labelOf(v) })).join(t.orWord);
+    return interpolate(t.onlyWhen, { field: label, values });
+  });
+  el.children.push(
+    h("noscript", [
+      h("p", { className: ["quartz-form__note", "quartz-form__note--when"] }, sentences.join(" ")),
+    ]),
+  );
+  return el;
 }
 
 function fieldWrapper(field: FormField, children: Child[]): Element {
@@ -382,6 +427,8 @@ export function renderField(field: FormField, form: ResolvedForm, ctx: RenderCon
 
 /** What the browser script needs; written into the form as JSON. */
 export interface ClientFieldRule {
+  /** The conditions that must all hold for the field to count (src/conditions.ts). */
+  when?: Condition[];
   name: string;
   type: FormField["type"];
   label: string;
@@ -429,8 +476,10 @@ export interface ClientConfig {
 
 export function clientConfig(form: ResolvedForm, ctx: RenderContext): ClientConfig {
   const t = ctx.t;
+  const conditions = conditionsOf(form.fields);
   const fields: ClientFieldRule[] = form.fields.map((f) => {
     const rule: ClientFieldRule = {
+      ...(conditions.has(f.name) ? { when: conditions.get(f.name) } : {}),
       name: f.name,
       type: f.type,
       label:
@@ -556,6 +605,7 @@ export function scriptJson(value: unknown): string {
 
 /** The whole form as a hast element. Transformer and component share this. */
 export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
+  const conditions = conditionsOf(form.fields);
   const t = ctx.t;
   const title = resolveText(form.title, ctx.lang);
   const description = resolveText(form.description, ctx.lang);
@@ -660,7 +710,11 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
       h(
         "div",
         { className: ["quartz-form__fields"] },
-        form.fields.map((f) => renderField(f, form, ctx)),
+        form.fields.map((f) => {
+          const el = renderField(f, form, ctx);
+          const own = conditions.get(f.name);
+          return own ? conditional(el, own, form, ctx) : el;
+        }),
       ),
       form.spam.honeypot
         ? h("div", { className: ["quartz-form__hp"], ariaHidden: "true" }, [

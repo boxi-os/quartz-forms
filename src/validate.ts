@@ -19,6 +19,7 @@ import {
   type MessageCode,
   type Params,
 } from "./messages";
+import { CONTROLLER_TYPES, conditionOf } from "./conditions";
 
 /**
  * Validation level 1 of three: the form definitions, at build time. The rules come from the
@@ -278,6 +279,66 @@ function checkField(field: FormField, at: string, out: Validation): void {
   for (const [key, text] of texts) checkText(text, `${at}.${key}`, out);
 }
 
+/**
+ * The conditions of a form's fields (`showIf`): well formed, naming an earlier field of a type
+ * with values to compare, with values that field can have. "Earlier" also rules out a field that
+ * names itself and any cycle, and lets browser and relay decide in one pass in form order.
+ */
+function checkConditions(fields: FormField[], at: string, out: Validation): void {
+  const seen = new Map<string, FormField>();
+  fields.forEach((field, i) => {
+    if (!isObject(field)) return;
+    const raw = (field as { showIf?: unknown }).showIf;
+    const here = `${at}.fields[${i}].showIf`;
+    if (raw !== undefined) {
+      if (field.type === "hidden" || field.type === "consent")
+        problem(out, here, "showIfNotAllowed", { type: field.type });
+      else {
+        const condition = conditionOf(field);
+        const name = isObject(raw) ? raw.field : undefined;
+        if (!condition) problem(out, here, "showIfShape");
+        else if (!fields.some((f) => isObject(f) && f.name === condition.field))
+          problem(out, here, "showIfUnknown", { field: String(name) });
+        else if (!seen.has(condition.field))
+          problem(out, here, "showIfLater", { field: condition.field });
+        else {
+          const controller = seen.get(condition.field)!;
+          if (!(CONTROLLER_TYPES as readonly string[]).includes(controller.type))
+            problem(out, here, "showIfController", {
+              field: condition.field,
+              type: controller.type,
+            });
+          else
+            for (const value of condition.equals)
+              if (!controllerHas(controller, value))
+                problem(out, here, "showIfValue", { field: condition.field, value });
+        }
+      }
+    }
+    if (typeof field.name === "string") seen.set(field.name, field);
+  });
+}
+
+/** Can the controlling field have this value? */
+function controllerHas(field: FormField, value: string): boolean {
+  switch (field.type) {
+    case "select":
+    case "radio":
+    case "checkboxes":
+      return (
+        Array.isArray(field.options) && field.options.some((o) => isObject(o) && o.value === value)
+      );
+    case "checkbox":
+      return value === "yes";
+    case "scale": {
+      const n = Number(value);
+      return /^-?\d+$/.test(value) && n >= field.min && n <= field.max;
+    }
+    default:
+      return false;
+  }
+}
+
 /** Does this field, as written, ask for something that identifies a person? */
 export function isPersonalField(field: FormField): boolean {
   switch (field.type) {
@@ -405,6 +466,7 @@ function checkForm(
       if (isObject(field) && field.type === "pgpKey") keyFields++;
     });
     if (keyFields > 1) problem(out, at, "onePgpKey");
+    checkConditions(form.fields, at, out);
   }
 
   // Transport

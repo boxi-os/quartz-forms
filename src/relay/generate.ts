@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import type { ResolvedOptions, Text } from "../types";
 import type { Message, MessageCode, Params } from "../messages";
+import { conditionsOf } from "../conditions";
 
 /**
  * What the relay is told about the site: its origin and, for every form that sends through the
@@ -82,6 +83,7 @@ export function relayData(opts: ResolvedOptions, baseUrl: unknown): RelayData {
   const { origin, basePath } = siteLocation(baseUrl);
   const forms: Record<string, RelayForm> = {};
   for (const form of Object.values(opts.forms)) {
+    const conditions = conditionsOf(form.fields);
     if (form.transport.kind !== "relay") continue;
     forms[form.id] = {
       recipient: form.recipient ?? null,
@@ -107,6 +109,7 @@ export function relayData(opts: ResolvedOptions, baseUrl: unknown): RelayData {
         maxBytes: form.spam.maxBytes,
       },
       fields: form.fields.map((f) => {
+        const when = conditions.get(f.name);
         const rule: Record<string, unknown> = {
           name: f.name,
           type: f.type,
@@ -147,6 +150,9 @@ export function relayData(opts: ResolvedOptions, baseUrl: unknown): RelayData {
             rule.value = f.value;
             break;
         }
+        // The conditions the field counts under (src/conditions.ts); the relay drops a field
+        // whose conditions do not hold before it checks anything.
+        if (when) rule.when = when;
         return rule;
       }),
     };

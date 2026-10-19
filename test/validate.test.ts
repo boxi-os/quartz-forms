@@ -25,6 +25,60 @@ const PRIVATE =
 const MESSAGE = "-----BEGIN PGP MESSAGE-----\n\nmsg\n-----END PGP MESSAGE-----";
 
 describe("validate: forms and fields", () => {
+  it("holds a condition to an earlier field of a kind with values, and to values it can have", () => {
+    const topic: FormField = {
+      type: "radio",
+      name: "topic",
+      label: "T",
+      options: [
+        { value: "a", label: "A" },
+        { value: "b", label: "B" },
+      ],
+    };
+    const dep = (showIf: unknown): FormField =>
+      ({ type: "text", name: "dep", label: "D", showIf }) as FormField;
+    const of = (...fields: FormField[]) => formProblems(contact({ fields }));
+    expect(of(topic, dep({ field: "topic", equals: "a" }))).toEqual([]);
+    expect(of(topic, dep({ field: "topic", equals: ["a", "b"] }))).toEqual([]);
+    expect(of(topic, dep({ field: "topic" }))).toEqual([
+      "forms.f.fields[1].showIf: { field, equals } with the name of a field and one value or a list of them",
+    ]);
+    expect(of(topic, dep({ field: "nope", equals: "a" }))).toEqual([
+      'forms.f.fields[1].showIf: no field "nope" in this form',
+    ]);
+    expect(of(dep({ field: "topic", equals: "a" }), topic)).toEqual([
+      'forms.f.fields[0].showIf: "topic" must come before the field that depends on it',
+    ]);
+    expect(of(dep({ field: "dep", equals: "a" }))).toEqual([
+      'forms.f.fields[0].showIf: "dep" must come before the field that depends on it',
+    ]);
+    const text: FormField = { type: "text", name: "free", label: "F" };
+    expect(of(text, dep({ field: "free", equals: "x" }))).toEqual([
+      'forms.f.fields[1].showIf: "free" is a text field; a condition needs a select, radio, checkboxes, checkbox or scale',
+    ]);
+    expect(of(topic, dep({ field: "topic", equals: ["a", "c"] }))).toEqual([
+      'forms.f.fields[1].showIf: "topic" cannot have the value "c"',
+    ]);
+    const box: FormField = { type: "checkbox", name: "box", label: "B" };
+    expect(of(box, dep({ field: "box", equals: "yes" }))).toEqual([]);
+    expect(of(box, dep({ field: "box", equals: "on" }))).toEqual([
+      'forms.f.fields[1].showIf: "box" cannot have the value "on"',
+    ]);
+    const scale: FormField = { type: "scale", name: "rate", label: "R", min: 1, max: 5 };
+    expect(of(scale, dep({ field: "rate", equals: ["1", "5"] }))).toEqual([]);
+    expect(of(scale, dep({ field: "rate", equals: "6" }))).toEqual([
+      'forms.f.fields[1].showIf: "rate" cannot have the value "6"',
+    ]);
+    expect(
+      of(topic, {
+        type: "hidden",
+        name: "h",
+        value: "v",
+        showIf: { field: "topic", equals: "a" },
+      } as never),
+    ).toEqual(["forms.f.fields[1].showIf: a hidden field cannot be conditional"]);
+  });
+
   it("holds width and layout to their values, and says layout does nothing on a select", () => {
     expect(fieldProblems({ type: "text", name: "t", label: "T", width: "wide" as never })).toEqual([
       "forms.f.fields[0].width: full, half or third",

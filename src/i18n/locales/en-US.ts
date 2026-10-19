@@ -52,4 +52,8 @@ export default {
   mailtoNote: "Your mail program opens with the message.",
   errorSummary: "Please check {count} field(s).",
   errorSummaryOne: "Please check one field.",
+  onlyWhen: "Only needed if “{field}” is {values}.",
+  onlyWhenTicked: "Only needed if “{field}” is ticked.",
+  quoted: "“{text}”",
+  orWord: " or ",
 };

@@ -190,3 +190,136 @@ export const parityCases: ParityCase[] = [
   { field: "consent", value: "", relay: "required" },
   { field: "consent", value: "no", relay: "invalid" },
 ];
+
+/**
+ * Conditional fields (`showIf`, 0.4.0): which fields count for a set of posted values. Browser
+ * (`qfActive` + `qfCheck`) and relay (`qf_active` + `qf_check_field`) read the same cases. A
+ * dependent field is required, so "counts" shows as `required` while it is empty and `ok` once
+ * filled; `dropped` means it does not count - not required, not checked, not mailed.
+ */
+export const conditionFields: FormField[] = [
+  {
+    type: "radio",
+    name: "topic",
+    label: "Topic",
+    options: [
+      { value: "a", label: "A" },
+      { value: "b", label: "B" },
+    ],
+  },
+  {
+    type: "text",
+    name: "ifA",
+    label: "If A",
+    required: true,
+    showIf: { field: "topic", equals: "a" },
+  },
+  {
+    type: "checkboxes",
+    name: "many",
+    label: "Many",
+    options: [
+      { value: "x", label: "X" },
+      { value: "y", label: "Y" },
+      { value: "z", label: "Z" },
+    ],
+  },
+  {
+    type: "text",
+    name: "ifXY",
+    label: "If X or Y",
+    required: true,
+    showIf: { field: "many", equals: ["x", "y"] },
+  },
+  { type: "checkbox", name: "box", label: "Box" },
+  {
+    type: "textarea",
+    name: "ifBox",
+    label: "If box",
+    required: true,
+    showIf: { field: "box", equals: "yes" },
+  },
+  { type: "scale", name: "rate", label: "Rate", min: 1, max: 5 },
+  {
+    type: "text",
+    name: "ifLow",
+    label: "If low",
+    required: true,
+    showIf: { field: "rate", equals: ["1", "2"] },
+  },
+  // A chain: `sel` counts under topic b, `ifS1` under sel s1.
+  {
+    type: "select",
+    name: "sel",
+    label: "Sel",
+    options: [
+      { value: "s1", label: "S1" },
+      { value: "s2", label: "S2" },
+    ],
+    showIf: { field: "topic", equals: "b" },
+  },
+  {
+    type: "text",
+    name: "ifS1",
+    label: "If S1",
+    required: true,
+    showIf: { field: "sel", equals: "s1" },
+  },
+];
+
+export type ConditionOutcome = "ok" | "required" | "dropped";
+
+export interface ConditionCase {
+  values: Record<string, string | string[]>;
+  expect: Record<string, ConditionOutcome>;
+  note?: string;
+}
+
+export const conditionCases: ConditionCase[] = [
+  {
+    values: {},
+    expect: {
+      ifA: "dropped",
+      ifXY: "dropped",
+      ifBox: "dropped",
+      ifLow: "dropped",
+      sel: "dropped",
+      ifS1: "dropped",
+    },
+  },
+  { values: { topic: "a" }, expect: { ifA: "required" } },
+  { values: { topic: "a", ifA: "hi" }, expect: { ifA: "ok" } },
+  {
+    values: { topic: "b", ifA: "posted anyway" },
+    expect: { ifA: "dropped" },
+    note: "a value for a field that does not count goes",
+  },
+  {
+    values: { topic: " a " },
+    expect: { ifA: "required" },
+    note: "the controller's value is trimmed, as the field check trims",
+  },
+  { values: { many: ["y"] }, expect: { ifXY: "required" } },
+  {
+    values: { many: ["z", "x"] },
+    expect: { ifXY: "required" },
+    note: "one of the values ticked is enough",
+  },
+  {
+    values: { many: "x" },
+    expect: { ifXY: "required" },
+    note: "a plain post with one box ticked sends a string",
+  },
+  { values: { many: ["z"], ifXY: "posted anyway" }, expect: { ifXY: "dropped" } },
+  { values: { box: "yes" }, expect: { ifBox: "required" } },
+  { values: { box: "yes", ifBox: "text" }, expect: { ifBox: "ok" } },
+  { values: { rate: "2" }, expect: { ifLow: "required" } },
+  { values: { rate: "3", ifLow: "posted anyway" }, expect: { ifLow: "dropped" } },
+  { values: { topic: "b", sel: "s1" }, expect: { sel: "ok", ifS1: "required" } },
+  { values: { topic: "b", sel: "s2", ifS1: "x" }, expect: { ifS1: "dropped" } },
+  {
+    values: { topic: "a", ifA: "hi", sel: "s1", ifS1: "x" },
+    expect: { sel: "dropped", ifS1: "dropped" },
+    note: "a field whose controller does not count does not count either",
+  },
+];

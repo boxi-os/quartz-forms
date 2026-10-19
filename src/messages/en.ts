@@ -44,6 +44,13 @@ const en = {
   widthValue: () => "full, half or third",
   layoutValue: () => "stacked or inline",
   layoutSelect: () => "has no effect on a select, whose options are a list to open",
+  showIfNotAllowed: (p: Params) => `a ${s(p, "type")} field cannot be conditional`,
+  showIfShape: () => "{ field, equals } with the name of a field and one value or a list of them",
+  showIfUnknown: (p: Params) => `no field "${s(p, "field")}" in this form`,
+  showIfLater: (p: Params) => `"${s(p, "field")}" must come before the field that depends on it`,
+  showIfController: (p: Params) =>
+    `"${s(p, "field")}" is a ${s(p, "type")} field; a condition needs a select, radio, checkboxes, checkbox or scale`,
+  showIfValue: (p: Params) => `"${s(p, "field")}" cannot have the value "${s(p, "value")}"`,
 
   // keys in the options
   keyShape: () => "a key is { file } or { armored }",

@@ -13,7 +13,7 @@ import YAML from "yaml";
 import { tmpDir } from "./keys";
 
 const root = path.resolve(__dirname, "..");
-import { parityCases, parityFields } from "./parity-cases";
+import { conditionCases, conditionFields, parityCases, parityFields } from "./parity-cases";
 
 const ORIGIN = "https://site.test";
 const ARMOR = "-----BEGIN PGP MESSAGE-----\n\nabc\n-----END PGP MESSAGE-----";
@@ -142,6 +142,7 @@ const siteOptions = {
       fields: [{ type: "text", name: "a", label: "A" }],
     },
     parity: { recipient: "owner", fields: parityFields },
+    cond: { recipient: "owner", spam: { rateLimitPerHour: 0 }, fields: conditionFields },
   },
 };
 
@@ -661,6 +662,54 @@ describe.skipIf(!php)("relay: refusals", () => {
         disagreements.push(
           `${c.field} ${JSON.stringify(c.value)}: expected ${c.relay}, got ${got}`,
         );
+    }
+    expect(disagreements).toEqual([]);
+  });
+  it("decides which conditional fields count as the shared catalog says, by JSON and by a plain post", async () => {
+    const disagreements: string[] = [];
+    for (const c of conditionCases) {
+      for (const way of ["json", "plain"] as const) {
+        const before = mails().length;
+        let r: Answer;
+        if (way === "json") r = await post(env("cond", c.values));
+        else {
+          const body = new URLSearchParams({ form: "cond", lang: "en-US" });
+          for (const [k, v] of Object.entries(c.values))
+            for (const x of Array.isArray(v) ? v : [v]) body.append(k, x);
+          r = await post(body.toString(), {
+            raw: true,
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+              Accept: "application/json",
+            },
+          });
+        }
+        const sent = mails().length > before;
+        const body = sent ? lastMail().body : "";
+        for (const [name, want] of Object.entries(c.expect)) {
+          const error = errorsOf(r).find((e) => e.field === name)?.code;
+          const label = conditionFields.find((f) => f.name === name)!;
+          const line = "label" in label ? `${String(label.label)}:` : name;
+          const got =
+            error === "required"
+              ? "required"
+              : error
+                ? `error ${error}`
+                : // without an error a field counts if it shows in the mail, or if nothing was
+                  // sent because another field was refused and this one was filled
+                  sent
+                  ? body.includes(line)
+                    ? "ok"
+                    : "dropped"
+                  : c.values[name] !== undefined && want === "ok"
+                    ? "ok"
+                    : "dropped";
+          if (got !== want)
+            disagreements.push(
+              `${way} ${JSON.stringify(c.values)} ${name}: expected ${want}, got ${got} (status ${r.status})`,
+            );
+        }
+      }
     }
     expect(disagreements).toEqual([]);
   });

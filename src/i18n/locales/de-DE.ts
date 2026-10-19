@@ -54,6 +54,10 @@ const deDE: Translation = {
   mailtoNote: "Ihr Mailprogramm öffnet sich mit der Nachricht.",
   errorSummary: "Bitte prüfen Sie {count} Felder.",
   errorSummaryOne: "Bitte prüfen Sie ein Feld.",
+  onlyWhen: "Nur nötig, wenn bei „{field}“ {values} gewählt ist.",
+  onlyWhenTicked: "Nur nötig, wenn „{field}“ angehakt ist.",
+  quoted: "„{text}“",
+  orWord: " oder ",
 };
 
 export default deDE;

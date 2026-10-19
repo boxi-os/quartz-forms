@@ -207,6 +207,12 @@ var en = {
   widthValue: () => "full, half or third",
   layoutValue: () => "stacked or inline",
   layoutSelect: () => "has no effect on a select, whose options are a list to open",
+  showIfNotAllowed: (p) => `a ${s(p, "type")} field cannot be conditional`,
+  showIfShape: () => "{ field, equals } with the name of a field and one value or a list of them",
+  showIfUnknown: (p) => `no field "${s(p, "field")}" in this form`,
+  showIfLater: (p) => `"${s(p, "field")}" must come before the field that depends on it`,
+  showIfController: (p) => `"${s(p, "field")}" is a ${s(p, "type")} field; a condition needs a select, radio, checkboxes, checkbox or scale`,
+  showIfValue: (p) => `"${s(p, "field")}" cannot have the value "${s(p, "value")}"`,
   // keys in the options
   keyShape: () => "a key is { file } or { armored }",
   keyExactlyOne: () => "exactly one of file or armored",
@@ -339,6 +345,12 @@ var de = {
   widthValue: () => "full, half oder third",
   layoutValue: () => "stacked oder inline",
   layoutSelect: () => "wirkt nicht bei select, dessen Optionen eine aufklappende Liste sind",
+  showIfNotAllowed: (p) => `ein Feld vom Typ ${s2(p, "type")} kann nicht bedingt sein`,
+  showIfShape: () => "{ field, equals } mit dem Namen eines Felds und einem Wert oder einer Liste davon",
+  showIfUnknown: (p) => `kein Feld \u201E${s2(p, "field")}\u201C in diesem Formular`,
+  showIfLater: (p) => `\u201E${s2(p, "field")}\u201C muss vor dem Feld stehen, das davon abh\xE4ngt`,
+  showIfController: (p) => `\u201E${s2(p, "field")}\u201C ist ein Feld vom Typ ${s2(p, "type")}; eine Bedingung braucht select, radio, checkboxes, checkbox oder scale`,
+  showIfValue: (p) => `\u201E${s2(p, "field")}\u201C kann den Wert \u201E${s2(p, "value")}\u201C nicht haben`,
   keyShape: () => "ein Schl\xFCssel ist { file } oder { armored }",
   keyExactlyOne: () => "genau eines von file oder armored",
   keyOutside: (p) => `${s2(p, "file")} liegt au\xDFerhalb der Website`,
@@ -520,7 +532,11 @@ var en_US_default = {
   anonymousNote: "This form is anonymous: nothing identifies you unless you write it.",
   mailtoNote: "Your mail program opens with the message.",
   errorSummary: "Please check {count} field(s).",
-  errorSummaryOne: "Please check one field."
+  errorSummaryOne: "Please check one field.",
+  onlyWhen: "Only needed if \u201C{field}\u201D is {values}.",
+  onlyWhenTicked: "Only needed if \u201C{field}\u201D is ticked.",
+  quoted: "\u201C{text}\u201D",
+  orWord: " or "
 };
 
 // src/i18n/locales/de-DE.ts
@@ -573,7 +589,11 @@ var deDE = {
   anonymousNote: "Dieses Formular ist anonym: Nichts identifiziert Sie, au\xDFer Sie schreiben es.",
   mailtoNote: "Ihr Mailprogramm \xF6ffnet sich mit der Nachricht.",
   errorSummary: "Bitte pr\xFCfen Sie {count} Felder.",
-  errorSummaryOne: "Bitte pr\xFCfen Sie ein Feld."
+  errorSummaryOne: "Bitte pr\xFCfen Sie ein Feld.",
+  onlyWhen: "Nur n\xF6tig, wenn bei \u201E{field}\u201C {values} gew\xE4hlt ist.",
+  onlyWhenTicked: "Nur n\xF6tig, wenn \u201E{field}\u201C angehakt ist.",
+  quoted: "\u201E{text}\u201C",
+  orWord: " oder "
 };
 var de_DE_default = deDE;
 
@@ -609,6 +629,26 @@ function availableLocales() {
 }
 function textKeys() {
   return Object.keys(en_US_default);
+}
+
+// src/conditions.ts
+var CONTROLLER_TYPES = ["select", "radio", "checkboxes", "checkbox", "scale"];
+function conditionOf(field) {
+  const showIf = field.showIf;
+  if (!showIf || typeof showIf !== "object" || Array.isArray(showIf)) return void 0;
+  const { field: name, equals } = showIf;
+  if (typeof name !== "string" || !name) return void 0;
+  const list = typeof equals === "string" ? [equals] : Array.isArray(equals) ? equals : [];
+  const values = list.filter((v) => typeof v === "string" && v !== "");
+  return values.length ? { field: name, equals: values } : void 0;
+}
+function conditionsOf(fields) {
+  const out = /* @__PURE__ */ new Map();
+  for (const field of fields) {
+    const own = conditionOf(field);
+    if (own) out.set(field.name, [own]);
+  }
+  return out;
 }
 
 // src/validate.ts
@@ -817,6 +857,56 @@ function checkField(field, at, out) {
     problem(out, at, "labelNeeded", { type: field.type });
   for (const [key, text] of texts) checkText(text, `${at}.${key}`, out);
 }
+function checkConditions(fields, at, out) {
+  const seen = /* @__PURE__ */ new Map();
+  fields.forEach((field, i) => {
+    if (!isObject(field)) return;
+    const raw = field.showIf;
+    const here = `${at}.fields[${i}].showIf`;
+    if (raw !== void 0) {
+      if (field.type === "hidden" || field.type === "consent")
+        problem(out, here, "showIfNotAllowed", { type: field.type });
+      else {
+        const condition = conditionOf(field);
+        const name = isObject(raw) ? raw.field : void 0;
+        if (!condition) problem(out, here, "showIfShape");
+        else if (!fields.some((f) => isObject(f) && f.name === condition.field))
+          problem(out, here, "showIfUnknown", { field: String(name) });
+        else if (!seen.has(condition.field))
+          problem(out, here, "showIfLater", { field: condition.field });
+        else {
+          const controller = seen.get(condition.field);
+          if (!CONTROLLER_TYPES.includes(controller.type))
+            problem(out, here, "showIfController", {
+              field: condition.field,
+              type: controller.type
+            });
+          else
+            for (const value of condition.equals)
+              if (!controllerHas(controller, value))
+                problem(out, here, "showIfValue", { field: condition.field, value });
+        }
+      }
+    }
+    if (typeof field.name === "string") seen.set(field.name, field);
+  });
+}
+function controllerHas(field, value) {
+  switch (field.type) {
+    case "select":
+    case "radio":
+    case "checkboxes":
+      return Array.isArray(field.options) && field.options.some((o) => isObject(o) && o.value === value);
+    case "checkbox":
+      return value === "yes";
+    case "scale": {
+      const n = Number(value);
+      return /^-?\d+$/.test(value) && n >= field.min && n <= field.max;
+    }
+    default:
+      return false;
+  }
+}
 function isPersonalField(field) {
   switch (field.type) {
     case "email":
@@ -924,6 +1014,7 @@ function checkForm(form, raw, rawSpam, keyNames, out) {
       if (isObject(field) && field.type === "pgpKey") keyFields++;
     });
     if (keyFields > 1) problem(out, at, "onePgpKey");
+    checkConditions(form.fields, at, out);
   }
   const tr = form.transport;
   switch (tr.kind) {
@@ -1173,6 +1264,6 @@ function logHints(opts) {
   for (const hint2 of opts.hints) warnOnce(hint2, hint2);
 }
 
-export { __commonJS, __export, __require, __toESM, defaultOptions, formatMessage, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-YJNLJZEX.js.map
-//# sourceMappingURL=chunk-YJNLJZEX.js.map
+export { __commonJS, __export, __require, __toESM, conditionsOf, defaultOptions, formatMessage, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, templateNames, templateOf, warnOnce, wording };
+//# sourceMappingURL=chunk-XBGAYCNU.js.map
+//# sourceMappingURL=chunk-XBGAYCNU.js.map

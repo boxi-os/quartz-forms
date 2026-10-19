@@ -8,8 +8,15 @@ import { resolveOrThrow } from "../src/options";
 import { makeContext } from "../src/render/context";
 import { renderForm } from "../src/render/form";
 import type { FormDefinition, QuartzFormsOptions } from "../src/types";
+import type { FormField } from "../src/types";
 import { contact, options } from "./helpers";
-import { parityCases, parityFields, type ParityOutcome } from "./parity-cases";
+import {
+  conditionCases,
+  conditionFields,
+  parityCases,
+  parityFields,
+  type ParityOutcome,
+} from "./parity-cases";
 
 /**
  * Runs the browser script the way Quartz does: compiled to plain JS, evaluated once, driven by
@@ -80,7 +87,7 @@ beforeAll(() => {
   });
   // The field check alone, for the parity catalog (the script keeps nothing on window itself).
   new Function(
-    `${outputText};window.__qfTest = { qfCheck, QF_POW_WORKER, qfSolveHere, qfNoncePrefix };`,
+    `${outputText};window.__qfTest = { qfCheck, qfActive, QF_POW_WORKER, qfSolveHere, qfNoncePrefix };`,
   )();
 });
 
@@ -1148,6 +1155,66 @@ describe("the message as the recipient reads it", () => {
   });
 });
 
+describe("conditional fields", () => {
+  const fields: FormField[] = [
+    {
+      type: "radio",
+      name: "topic",
+      label: "Topic",
+      options: [
+        { value: "a", label: "Event" },
+        { value: "b", label: "Other" },
+      ],
+    },
+    {
+      type: "text",
+      name: "guests",
+      label: "Guests",
+      required: true,
+      showIf: { field: "topic", equals: "a" },
+    },
+    { type: "textarea", name: "msg", label: "Message" },
+  ];
+
+  it("shows a field while its condition holds, and requires it only then", async () => {
+    const form = mount(contact({ ...quick, fields }));
+    await nav();
+    const wrapper = form.querySelector('[data-field="guests"]') as HTMLElement;
+    const input = form.elements.namedItem("guests") as HTMLInputElement;
+    expect(wrapper.hidden).toBe(true);
+    expect(input.hasAttribute("required")).toBe(false);
+    const a = form.querySelector('input[name="topic"][value="a"]') as HTMLInputElement;
+    a.checked = true;
+    a.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(wrapper.hidden).toBe(false);
+    expect(input.getAttribute("aria-required")).toBe("true");
+    await submit(form);
+    expect(errorOf(form, "guests")).toBe("This field is required.");
+    expect(fetchMock).not.toHaveBeenCalled();
+    const b = form.querySelector('input[name="topic"][value="b"]') as HTMLInputElement;
+    b.checked = true;
+    b.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(wrapper.hidden).toBe(true);
+    expect(errorOf(form, "guests")).toBeNull();
+  });
+
+  it("sends only what counts: a value left in a hidden field stays behind", async () => {
+    const form = mount(contact({ ...quick, fields }));
+    await nav();
+    fill(form, "guests", "12");
+    const b = form.querySelector('input[name="topic"][value="b"]') as HTMLInputElement;
+    b.checked = true;
+    b.dispatchEvent(new Event("change", { bubbles: true }));
+    fill(form, "msg", "hello");
+    fetchMock.mockResolvedValueOnce(ok());
+    await submit(form);
+    const sent = JSON.parse(String(fetchMock.mock.calls[0]![1]!.body)) as {
+      fields: Record<string, unknown>;
+    };
+    expect(sent.fields).toEqual({ topic: "b", msg: "hello" });
+  });
+});
+
 describe("parity with the relay", () => {
   it("judges every case of the shared catalog as the relay does (test/parity-cases.ts)", async () => {
     const form = mount({ recipient: "owner", fields: parityFields, ...quick });
@@ -1178,6 +1245,39 @@ describe("parity with the relay", () => {
         disagreements.push(
           `${c.field} ${JSON.stringify(c.value)}: relay ${c.relay}, script ${got}`,
         );
+    }
+    expect(disagreements).toEqual([]);
+  });
+
+  it("decides which conditional fields count as the relay does (test/parity-cases.ts, conditionCases)", async () => {
+    const form = mount({ recipient: "owner", fields: conditionFields, ...quick });
+    await nav();
+    const cfg = JSON.parse(form.querySelector(".quartz-form-config")!.textContent!) as {
+      fields: { name: string; required: boolean }[];
+      texts: Record<string, string>;
+    };
+    const { qfCheck, qfActive } = (
+      window as unknown as Record<
+        string,
+        {
+          qfCheck: (...a: unknown[]) => string | null;
+          qfActive: (cfg: unknown, values: Record<string, unknown>) => Set<string>;
+        }
+      >
+    ).__qfTest!;
+    const disagreements: string[] = [];
+    for (const c of conditionCases) {
+      const active = qfActive(cfg, c.values);
+      for (const [name, want] of Object.entries(c.expect)) {
+        const rule = cfg.fields.find((f) => f.name === name)!;
+        const got = !active.has(name)
+          ? "dropped"
+          : qfCheck(cfg, rule, c.values[name] ?? "") === cfg.texts.required
+            ? "required"
+            : "ok";
+        if (got !== want)
+          disagreements.push(`${JSON.stringify(c.values)} ${name}: relay ${want}, script ${got}`);
+      }
     }
     expect(disagreements).toEqual([]);
   });

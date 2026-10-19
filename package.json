@@ -463,6 +463,44 @@
             "inline"
           ]
         },
+        "showIf": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "field": {
+              "type": "string",
+              "description": "The name of an earlier select, radio, checkboxes, checkbox or scale field.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "Der Name eines früheren Felds vom Typ select, radio, checkboxes, checkbox oder scale."
+                }
+              }
+            },
+            "equals": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ],
+              "description": "The value or values that show the field: an option value, \"yes\" for a ticked checkbox, a scale's number.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "Der Wert oder die Werte, bei denen das Feld erscheint: ein Optionswert, \"yes\" für ein angehaktes Häkchen, die Zahl einer Skala."
+                }
+              }
+            }
+          },
+          "required": [
+            "field",
+            "equals"
+          ]
+        },
         "field": {
           "description": "One field; its type decides the other keys.",
           "x-quartz-l10n": {
@@ -637,6 +675,15 @@
                   }
                 }
               }
+            },
+            "showIf": {
+              "$ref": "#/$defs/showIf",
+              "description": "Show the field only while an earlier field has one of the given values; otherwise it is not required, not sent and not mailed.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "Das Feld nur zeigen, solange ein früheres Feld einen der Werte hat; sonst ist es weder Pflicht noch wird es gesendet oder gemailt."
+                }
+              }
             }
           },
           "required": [
@@ -771,6 +818,15 @@
                   }
                 }
               }
+            },
+            "showIf": {
+              "$ref": "#/$defs/showIf",
+              "description": "Show the field only while an earlier field has one of the given values; otherwise it is not required, not sent and not mailed.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "Das Feld nur zeigen, solange ein früheres Feld einen der Werte hat; sonst ist es weder Pflicht noch wird es gesendet oder gemailt."
+                }
+              }
             }
           },
           "required": [
@@ -843,6 +899,15 @@
                     "half": "halbe Breite",
                     "third": "ein Drittel"
                   }
+                }
+              }
+            },
+            "showIf": {
+              "$ref": "#/$defs/showIf",
+              "description": "Show the field only while an earlier field has one of the given values; otherwise it is not required, not sent and not mailed.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "Das Feld nur zeigen, solange ein früheres Feld einen der Werte hat; sonst ist es weder Pflicht noch wird es gesendet oder gemailt."
                 }
               }
             }
@@ -952,6 +1017,15 @@
                     "half": "halbe Breite",
                     "third": "ein Drittel"
                   }
+                }
+              }
+            },
+            "showIf": {
+              "$ref": "#/$defs/showIf",
+              "description": "Show the field only while an earlier field has one of the given values; otherwise it is not required, not sent and not mailed.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "Das Feld nur zeigen, solange ein früheres Feld einen der Werte hat; sonst ist es weder Pflicht noch wird es gesendet oder gemailt."
                 }
               }
             }
@@ -1100,6 +1174,15 @@
                     "half": "halbe Breite",
                     "third": "ein Drittel"
                   }
+                }
+              }
+            },
+            "showIf": {
+              "$ref": "#/$defs/showIf",
+              "description": "Show the field only while an earlier field has one of the given values; otherwise it is not required, not sent and not mailed.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "Das Feld nur zeigen, solange ein früheres Feld einen der Werte hat; sonst ist es weder Pflicht noch wird es gesendet oder gemailt."
                 }
               }
             }
