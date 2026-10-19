@@ -221,6 +221,11 @@ relay:config -- /pfad/zur/site` schreibt seine erzeugte Konfiguration aus der `q
 der Website; Empfängeradressen kommen von Hand in `config.php` und gelangen nie auf die Website.
 Siehe [relay/php/README.md](relay/php/README.md) (englisch).
 
+Das Relay antwortet nur Anfragen vom Origin der Website. Eine Website mit `Referrer-Policy:
+no-referrer` verbirgt diesen Origin bei einem einfachen Formular-Post ohne JavaScript (der
+Browser sendet `Origin: null`); das Relay weist solche Posts ab und sagt, warum. Die Anfragen des
+Skripts tragen den Origin unter jeder Policy.
+
 ## Entwicklung
 
 ```bash

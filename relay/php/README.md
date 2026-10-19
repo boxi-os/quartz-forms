@@ -27,7 +27,12 @@ hosting with PHP ≥ 8.1; no dependencies.
 
 ## What it checks
 
-- Origin against `allowedOrigins`; the form id against the generated list.
+- Origin against `allowedOrigins`; the form id against the generated list. The origin is the
+  request's `Origin` header, or the origin of its `Referer`. A site with `Referrer-Policy:
+no-referrer` hides both from a plain form post without JavaScript (the browser sends
+  `Origin: null`; so does `same-origin` when the relay is on another host than the site): such a
+  post is refused with 403 and a message that says so, since nothing tells it from any other
+  page's. The browser script's requests carry the origin under any policy.
 - Honeypot (a filled form is told "sent" and nothing is sent), time trap on a stamp the relay
   signed for the form when the page opened (`GET ?challenge=<id>` hands it out, good for that
   form for a day; measured with the relay's clock), proof of work when the form enables it (one per message: used proofs are kept under

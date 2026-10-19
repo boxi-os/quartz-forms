@@ -263,6 +263,12 @@ describe("sending", () => {
     expect(String(fetchMock.mock.calls[0]![0])).toBe(
       "https://example.org/forms/send.php?challenge=f",
     );
+    // A GET to the site's own host carries no Origin, and under the site's `Referrer-Policy:
+    // no-referrer` no Referer either; the relay then knows no origin (second review, aside 1,
+    // measured in Chrome 2026-10-19). The request asks for an origin-only Referer itself.
+    expect((fetchMock.mock.calls[0] as [string, RequestInit])[1]).toMatchObject({
+      referrerPolicy: "strict-origin",
+    });
     fill(form, "message", "quick");
     await submit(form);
     expect(fetchMock).toHaveBeenCalledTimes(1);

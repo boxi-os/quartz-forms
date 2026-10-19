@@ -214,6 +214,11 @@ replaced per locale: `texts: { de: { submit: "Abschicken" } }`. Keys are those o
 addresses go into `config.php` by hand and never reach the site. See
 [relay/php/README.md](relay/php/README.md).
 
+The relay answers only requests from the site's origin. A site with `Referrer-Policy:
+no-referrer` hides that origin from a plain form post without JavaScript (the browser sends
+`Origin: null`), so the relay refuses such posts and says why; the script's requests carry the
+origin under any policy.
+
 ## Development
 
 ```bash

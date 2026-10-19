@@ -504,6 +504,29 @@ describe.skipIf(!php)("relay: challenge and CORS", () => {
 });
 
 describe.skipIf(!php)("relay: refusals", () => {
+  it("says when a request names no origin at all: Origin: null, or neither Origin nor Referer", async () => {
+    // Second review, aside 1 (2026-10-19), measured in Chrome: a site with `Referrer-Policy:
+    // no-referrer` sends a plain form post with `Origin: null` (so does `same-origin` when the
+    // relay is on another host), and a GET to a relay on the site's own host with neither header.
+    // Nothing tells such a request from any other page's, so it stays refused, but the refusal
+    // names the cause instead of "origin not allowed" for an origin that is the site's own.
+    const fields = new URLSearchParams({ form: "feedback", lang: "en-US", rating: "4" }).toString();
+    const plainNull = await post(fields, {
+      raw: true,
+      origin: "null",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "text/html" },
+    });
+    expect(plainNull.status).toBe(403);
+    expect(plainNull.text).toContain("Referrer-Policy");
+    const jsonNull = await post(env("feedback", { rating: "4" }), { origin: "null" });
+    expect([jsonNull.status, jsonNull.json?.error]).toEqual([403, "origin"]);
+    expect(String(jsonNull.json?.message)).toContain("Referrer-Policy");
+    const none = await get("challenge=contact", null);
+    expect([none.status, none.json?.error]).toEqual([403, "origin"]);
+    expect(String(none.json?.message)).toContain("Referrer-Policy");
+    const foreign = await get("challenge=contact", "https://evil.test");
+    expect([foreign.status, foreign.json?.message]).toEqual([403, "origin not allowed"]);
+  });
   it("refuses what is not JSON, an unknown form and a foreign origin; a Referer of the site counts", async () => {
     expect((await post("not json", { raw: true })).json).toMatchObject({ error: "bad_json" });
     expect((await post(env("nope", {}))).status).toBe(404);

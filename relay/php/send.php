@@ -153,6 +153,25 @@ function qf_origin_allowed(array $config): bool
     return false;
 }
 
+/**
+ * Why a request's origin is not allowed: a foreign one, or none at all. A site with
+ * `Referrer-Policy: no-referrer` makes the browser send a plain form post with `Origin: null`
+ * (so does `same-origin` when the relay is on another host) and a GET to a relay on the site's
+ * own host with neither Origin nor Referer; the browser script's requests carry the origin
+ * regardless (second review, aside 1, measured in Chrome 2026-10-19). Nothing tells such a
+ * request from any other page's, so it stays refused, but the owner reads the cause.
+ */
+function qf_origin_message(): string
+{
+    $origin = qf_request_origin();
+    if ($origin === '' || $origin === 'null') {
+        return 'the request names no origin (Origin: null or missing, no Referer): '
+            . 'a Referrer-Policy of no-referrer on the site hides it from a plain post without '
+            . 'JavaScript; see the relay README';
+    }
+    return 'origin not allowed';
+}
+
 function qf_cors(array $config): void
 {
     $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
@@ -965,7 +984,7 @@ if ($method === 'GET') {
         qf_json(404, ['ok' => false, 'error' => 'unknown_form', 'message' => 'no such form']);
     }
     if (!qf_origin_allowed($config)) {
-        qf_json(403, ['ok' => false, 'error' => 'origin', 'message' => 'origin not allowed']);
+        qf_json(403, ['ok' => false, 'error' => 'origin', 'message' => qf_origin_message()]);
     }
     $spam = $forms[$form]['spam'];
     $ticket = ['ok' => true, 'stamp' => qf_stamp($config, $form, qf_now())];
@@ -1044,7 +1063,7 @@ if ($size > (int) ($spam['maxBytes'] ?? 65536)) {
 }
 
 if (!qf_origin_allowed($config)) {
-    qf_fail(403, 'origin', 'origin not allowed');
+    qf_fail(403, 'origin', qf_origin_message());
 }
 
 // A plain form post comes from a browser without JavaScript (the script posts JSON). The form

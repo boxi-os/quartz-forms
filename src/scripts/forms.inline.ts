@@ -573,7 +573,15 @@ async function qfFetchTicket(cfg: QfConfig): Promise<QfTicketAt> {
   try {
     const url = new URL(cfg.transport.url, window.location.toString());
     url.searchParams.set("challenge", cfg.id);
-    const res = await fetch(url.toString(), { headers: { Accept: "application/json" } });
+    // The relay checks the request's origin, on a GET from the Referer (a GET to the site's own
+    // host carries no Origin header). A site with `Referrer-Policy: no-referrer` sends no Referer
+    // either, and a relay on the site's host refused the ticket as "origin not allowed" (second
+    // review, aside 1, measured in Chrome 2026-10-19). An origin-only Referer, no more than the
+    // browser's default policy sends a cross-origin relay; nothing on a downgrade to http.
+    const res = await fetch(url.toString(), {
+      headers: { Accept: "application/json" },
+      referrerPolicy: "strict-origin",
+    });
     return { data: (await res.json()) as QfTicket, at };
   } catch {
     return { data: null, at };
