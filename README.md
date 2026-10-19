@@ -4,9 +4,9 @@ A [Quartz v5](https://quartz.jzhao.xyz) plugin for web forms on a static site: c
 sign-up and survey forms, rendered at build time, validated in the browser, encrypted with OpenPGP
 before they leave the page, and sent through a configurable transport.
 
-**Status: 0.4.1, private.** Measured in a built site and in Chrome; the PHP relay is measured
+**Status: 0.5.0, private.** Measured in a built site and in Chrome; the PHP relay is measured
 under `php -S` by the test suite (`test/relay.test.ts`). Reviewed independently three times, the
-third time 0.4.0 as a whole (see the CHANGELOG).
+third time 0.4.0 as a whole (see the CHANGELOG); what 0.4.1 and 0.5.0 changed is not reviewed yet.
 
 - Forms are defined once in `quartz.config.yaml` (`options.forms`), by id
 - A page embeds a form with a ` ```quartz-form ` code block, a `{{form:id}}` placeholder or

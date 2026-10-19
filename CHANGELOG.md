@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-19
+
 - The German texts and templates address the visitor with du instead of Sie, in the browser, on
   the relay's page for a post without JavaScript and in the four templates. Sie stays possible
   through `texts` and own `fields`; the relay's page then still says du.
