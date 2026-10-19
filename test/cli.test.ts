@@ -279,4 +279,11 @@ describe("versions", () => {
     const sendPhp = fs.readFileSync(path.join(root, "relay", "php", "send.php"), "utf8");
     expect(sendPhp).toContain(`const QF_VERSION = '${pkg.version}';`);
   });
+  it("names the package's version in the status line of both READMEs", () => {
+    // Third review, N8 (2026-10-19): both said 0.1.2 when the package was 0.4.0.
+    const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+    const readme = (file: string) => fs.readFileSync(path.join(root, file), "utf8");
+    expect(readme("README.md")).toContain(`**Status: ${pkg.version}, `);
+    expect(readme("README.de.md")).toContain(`**Stand: ${pkg.version}, `);
+  });
 });

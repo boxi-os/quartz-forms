@@ -5,7 +5,9 @@ Website: Kontakt, Feedback, Anmeldung und Umfrage, zur Build-Zeit gerendert, im 
 mit OpenPGP verschlüsselt, bevor sie die Seite verlassen, und über einen konfigurierbaren Versandweg
 verschickt.
 
-**Stand: 0.1.2, privat.** Gemessen in einer gebauten Site und in Chrome; das PHP-Relay misst die Testsuite unter `php -S` (`test/relay.test.ts`), dazu kamen zwei unabhängige Reviews (siehe CHANGELOG).
+**Stand: 0.4.0, privat.** Gemessen in einer gebauten Site und in Chrome; das PHP-Relay misst die
+Testsuite unter `php -S` (`test/relay.test.ts`). Drei unabhängige Reviews, das dritte über 0.4.0
+als Ganzes (siehe CHANGELOG).
 
 - Formulare werden einmal in `quartz.config.yaml` definiert (`options.forms`), nach Kennung
 - Eine Seite bindet ein Formular mit einem ` ```quartz-form `-Codeblock, einem
