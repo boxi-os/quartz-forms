@@ -842,10 +842,10 @@ async function qfSend(
   }
   let response: Response;
   if (tr.kind === "relay") {
-    const post = (ts: string): Promise<Response> | null => {
+    const post = (ts: string, pow = common.pow): Promise<Response> | null => {
       const payload = ciphertext
-        ? { ...common, ts, encrypted: true, ciphertext }
-        : { ...common, ts, encrypted: false, fields: values };
+        ? { ...common, ts, pow, encrypted: true, ciphertext }
+        : { ...common, ts, pow, encrypted: false, fields: values };
       const body = JSON.stringify(payload);
       // The relay refuses a body above the form's maxBytes with 413; said here first, in the
       // page's language, and the ciphertext never leaves the browser for nothing.
@@ -873,8 +873,16 @@ async function qfSend(
       const stamp = renewed.data?.stamp;
       if (stamp) {
         renew?.(renewed);
+        // A stamp the relay no longer takes is mostly one signed with a secret it no longer has,
+        // and the challenge of the proof was signed with the same: the proof is worked out again
+        // on the new ticket's challenge (fiftieth review, N2: "the check before sending did not
+        // pass" after a changed secret).
+        const pow =
+          renewed.data?.challenge && renewed.data.challenge !== fresh?.data?.challenge
+            ? await qfProofOfWork(cfg, renewed.data)
+            : common.pow;
         await qfWaitTrap(cfg, renewed);
-        response = (await post(stamp)) ?? response;
+        response = (await post(stamp, pow)) ?? response;
       }
     }
   } else {

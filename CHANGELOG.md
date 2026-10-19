@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the hint `demoCaptcha` now says the widget is not loaded.
 - Fixed: a demo form with its own `success.text` showed that thank-you after "sending"; it now
   always says that nothing was sent, and the build hints that `success.text` has no effect.
+- Fixed: after the relay refused a stamp (its secret had changed while the page was open), a form
+  with `pow` sent the new stamp with the proof of the old challenge and read "the check before
+  sending did not pass"; the proof is now worked out again on the new ticket.
 
 ## [0.5.4] - 2026-10-19
 

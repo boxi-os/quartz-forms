@@ -1047,6 +1047,36 @@ describe("proof of work", () => {
     expect(status(form).state).toBe("success");
   }, 30_000);
 
+  it("works the proof out again when the stamp is refused and the new ticket has another challenge", async () => {
+    // Fiftieth review, N2: after a changed secret the retry of 0ef9f41 sent the new stamp with the
+    // old proof, and the relay answered "pow"; only a second click sent.
+    const form = mount(contact({ spam: { minSeconds: 1, pow: true, powDifficulty: 8 } }));
+    fetchMock.mockResolvedValueOnce(
+      ok({ ok: true, pow: true, challenge: "old", difficulty: 8, stamp: "1.old" }),
+    );
+    await nav();
+    vi.setSystemTime(Date.now() + 5000);
+    fill(form, "message", "x");
+    const posts: [string, string][] = [];
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (String(url).includes("?challenge="))
+        return ok({ ok: true, pow: true, challenge: "new", difficulty: 8, stamp: "2.new" });
+      const body = JSON.parse(String(init!.body));
+      posts.push([body.ts, body.pow?.challenge]);
+      if (body.ts !== "2.new") return ok({ ok: false, error: "stamp" }, { status: 400 });
+      return body.pow?.challenge === "new"
+        ? ok()
+        : ok({ ok: false, error: "pow" }, { status: 400 });
+    });
+    await submit(form);
+    await until(() => status(form).state === "success" || status(form).state === "error");
+    expect(status(form).state).toBe("success");
+    expect(posts).toEqual([
+      ["1.old", "old"],
+      ["2.new", "new"],
+    ]);
+  }, 30_000);
+
   it("hashes in a Worker made from a Blob, sends its nonce and terminates it", async () => {
     // Review finding 18 (2026-10-19): on the main thread, yielding after every 64 hashes, 16 bits
     // took 3 to 35 s in Chrome; the same loop in a Worker takes 0.1 to 0.9 s.
