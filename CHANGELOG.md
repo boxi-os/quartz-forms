@@ -84,6 +84,12 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   the example could forge a stamp. A missing, placeholder or short secret (under 32 characters)
   now answers `500 secret_config` wherever a signature is needed, with the reason in the
   message; a form without time trap and proof of work still works without one.
+- The captcha token was verified with `file_get_contents`, which needs `allow_url_fopen`;
+  hosters switch it off, and every captcha form then failed as `400 captcha` "not solved", as
+  did a provider that could not be reached. The relay now asks through cURL when
+  `allow_url_fopen` is off, answers `500 captcha_config` with the reason when it has neither,
+  and `502 captcha_verify` when the provider did not answer (measured under `php -S` with
+  `allow_url_fopen=0`, with and without `curl_init`).
 
 ## [0.1.1] - 2026-10-19
 

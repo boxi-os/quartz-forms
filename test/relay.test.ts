@@ -124,11 +124,12 @@ let base = "";
 const relaySecret = `test-secret-${crypto.randomBytes(16).toString("hex")}`;
 /** The hand-written config.php; PHP reads it per request, so a test may rewrite it. */
 function writeConfig(
-  options: { extra?: string; origins?: string[]; secret?: string | null } = {},
+  options: { extra?: string; origins?: string[]; secret?: string | null; verifyUrl?: string } = {},
 ): void {
   const extra = options.extra ?? `'captchaSecret' => 'cap-secret',`;
   const origins = options.origins ?? [ORIGIN];
   const secret = options.secret === undefined ? relaySecret : options.secret;
+  const verifyUrl = options.verifyUrl ?? `${base}/verify.php`;
   fs.writeFileSync(
     path.join(dir, "config.php"),
     `<?php
@@ -142,13 +143,48 @@ return $generated + [
     'mailer' => ['file' => __DIR__ . '/outbox.txt'],
     'recipients' => ['owner' => 'owner@relay.test'],
     'counterDir' => __DIR__ . '/counters',
-    'captchaVerifyUrls' => ['turnstile' => '${base}/verify.php'],
+    'captchaVerifyUrls' => ['turnstile' => '${verifyUrl}'],
     ${extra}
 ];
 `,
   );
 }
 let server: ChildProcess | undefined;
+/**
+ * A relay on this suite's directory. More than one worker: the captcha check calls verify.php
+ * on this same server. No opcache: the captcha test rewrites config.php three times within
+ * milliseconds, and opcache rechecks a cached file's time stamp only every revalidate_freq
+ * seconds (2 by default), so the relay read the previous config (CI run 39215450865 and one
+ * local run, 2026-10-19). Measured with an include aged past file_update_protection: stale with
+ * opcache on, fresh with it off. `ini` adds `-d` settings, e.g. a hoster's allow_url_fopen=0.
+ */
+function spawnRelay(port: number, ini: string[] = []): ChildProcess {
+  const log = fs.openSync(path.join(dir, "php.log"), "a");
+  return spawn(
+    "php",
+    [
+      "-S",
+      `127.0.0.1:${port}`,
+      "-t",
+      dir,
+      "-d",
+      "opcache.enable=0",
+      ...ini.flatMap((i) => ["-d", i]),
+    ],
+    { stdio: ["ignore", log, log], env: { ...process.env, PHP_CLI_SERVER_WORKERS: "4" } },
+  );
+}
+async function untilUp(at: string): Promise<Response> {
+  const until = Date.now() + 10_000;
+  for (;;) {
+    try {
+      return await fetch(`${at}/send.php?challenge=contact`, { headers: { Origin: ORIGIN } });
+    } catch {
+      if (Date.now() > until) throw new Error(`php -S did not answer on ${at}`);
+      await new Promise((r) => setTimeout(r, 100));
+    }
+  }
+}
 let challenge = "";
 /** The relay's signed stamp from the start of the suite: old enough for every form's minSeconds. */
 let stamp = "";
@@ -182,29 +218,9 @@ echo json_encode(['success' => ($_POST['secret'] ?? '') === 'cap-secret' && ($_P
   const port = await freePort();
   base = `http://127.0.0.1:${port}`;
   writeConfig();
-  const log = fs.openSync(path.join(dir, "php.log"), "w");
-  // More than one worker: the captcha check calls verify.php on this same server. No opcache:
-  // the captcha test rewrites config.php three times within milliseconds, and opcache rechecks a
-  // cached file's time stamp only every revalidate_freq seconds (2 by default), so the relay
-  // read the previous config (CI run 39215450865 and one local run, 2026-10-19). Measured with
-  // an include aged past file_update_protection: stale with opcache on, fresh with it off.
-  server = spawn("php", ["-S", `127.0.0.1:${port}`, "-t", dir, "-d", "opcache.enable=0"], {
-    stdio: ["ignore", log, log],
-    env: { ...process.env, PHP_CLI_SERVER_WORKERS: "4" },
-  });
-  const until = Date.now() + 10_000;
-  for (;;) {
-    try {
-      const res = await fetch(`${base}/send.php?challenge=contact`, {
-        headers: { Origin: ORIGIN },
-      });
-      stamp = ((await res.json()) as { stamp?: string }).stamp ?? "";
-      break;
-    } catch {
-      if (Date.now() > until) throw new Error(`php -S did not answer on ${base}`);
-      await new Promise((r) => setTimeout(r, 100));
-    }
-  }
+  fs.writeFileSync(path.join(dir, "php.log"), "");
+  server = spawnRelay(port);
+  stamp = ((await (await untilUp(base)).json()) as { stamp?: string }).stamp ?? "";
   // The stamp has to be minSeconds (one second) old before the relay accepts a submission.
   await new Promise((r) => setTimeout(r, 1100));
 }, 30_000);
@@ -223,7 +239,12 @@ const errorsOf = (r: Answer) => (r.json?.errors ?? []) as { field: string; code:
 
 async function post(
   body: unknown,
-  opts: { origin?: string | null; headers?: Record<string, string>; raw?: boolean } = {},
+  opts: {
+    origin?: string | null;
+    headers?: Record<string, string>;
+    raw?: boolean;
+    at?: string;
+  } = {},
 ): Promise<Answer> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -231,7 +252,7 @@ async function post(
     ...opts.headers,
   };
   if (opts.origin !== null) headers.Origin = opts.origin ?? ORIGIN;
-  const res = await fetch(`${base}/send.php`, {
+  const res = await fetch(`${opts.at ?? base}/send.php`, {
     method: "POST",
     headers,
     body: opts.raw ? (body as string) : JSON.stringify(body),
@@ -664,6 +685,48 @@ describe.skipIf(!php)("relay: a browser without JavaScript (plain form post)", (
     const honest = await plain({ form: "opt", lang: "de-DE", a: "klartext" });
     expect(honest.status).toBe(200);
     expect(lastMail().body).toContain("A: klartext");
+  });
+});
+
+describe.skipIf(!php)("relay: captcha verification on a host without allow_url_fopen", () => {
+  // Review finding 24 (2026-10-19): the provider was asked with file_get_contents, which needs
+  // allow_url_fopen; hosters switch it off, and every captcha form then failed as "not solved".
+  // Two more relays on this suite's directory, verify.php stays on the first one.
+  let noFopen = "";
+  let noFopenNoCurl = "";
+  const procs: ChildProcess[] = [];
+  beforeAll(async () => {
+    for (const [ini, set] of [
+      [["allow_url_fopen=0"], (b: string) => (noFopen = b)],
+      [["allow_url_fopen=0", "disable_functions=curl_init"], (b: string) => (noFopenNoCurl = b)],
+    ] as const) {
+      const port = await freePort();
+      procs.push(spawnRelay(port, [...ini]));
+      set(`http://127.0.0.1:${port}`);
+      await untilUp(`http://127.0.0.1:${port}`);
+    }
+  }, 30_000);
+  afterAll(() => procs.forEach((p) => p.kill()));
+
+  it("asks the provider through cURL when allow_url_fopen is off", async () => {
+    const good = await post(env("captcha", { a: "x" }, { captcha: "good" }), { at: noFopen });
+    expect(good.json).toEqual({ ok: true });
+    const bad = await post(env("captcha", { a: "x" }, { captcha: "bad" }), { at: noFopen });
+    expect([bad.status, bad.json?.error]).toEqual([400, "captcha"]);
+  });
+  it("tells the owner when neither allow_url_fopen nor cURL is there, instead of blaming the visitor", async () => {
+    const r = await post(env("captcha", { a: "x" }, { captcha: "good" }), { at: noFopenNoCurl });
+    expect([r.status, r.json?.error]).toEqual([500, "captcha_config"]);
+    expect(String(r.json?.message)).toContain("allow_url_fopen");
+  });
+  it("a provider that cannot be reached is 502 captcha_verify, not 'not solved'", async () => {
+    writeConfig({ verifyUrl: "http://127.0.0.1:9/verify.php" });
+    try {
+      const r = await post(env("captcha", { a: "x" }, { captcha: "good" }));
+      expect([r.status, r.json?.error]).toEqual([502, "captcha_verify"]);
+    } finally {
+      writeConfig();
+    }
   });
 });
 

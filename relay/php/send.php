@@ -398,25 +398,70 @@ function qf_captcha_verify_url(array $config, string $provider): string
     return is_string($url) && $url !== '' ? $url : $default;
 }
 
-function qf_captcha_valid(array $config, string $formId, string $provider, mixed $token): bool
+/** Whether this PHP can make an HTTP request at all: '' when it can, else the reason for the owner. */
+function qf_http_unavailable(): string
+{
+    if (filter_var(ini_get('allow_url_fopen'), FILTER_VALIDATE_BOOL) || function_exists('curl_init')) {
+        return '';
+    }
+    return 'allow_url_fopen is off and the curl extension is missing: the captcha cannot be verified';
+}
+
+/**
+ * POSTs a form body and returns the answer, or null when the request could not be made.
+ * `file_get_contents` on a URL needs allow_url_fopen, which hosters switch off; every captcha
+ * form then failed as "not solved" (review finding 24, 2026-10-19). cURL when it is off.
+ */
+function qf_http_post(string $url, array $fields): ?string
+{
+    $body = http_build_query($fields);
+    if (filter_var(ini_get('allow_url_fopen'), FILTER_VALIDATE_BOOL)) {
+        $ctx = stream_context_create(['http' => [
+            'method' => 'POST',
+            'header' => "Content-Type: application/x-www-form-urlencoded\r\n",
+            'content' => $body,
+            'timeout' => 8,
+        ]]);
+        $res = @file_get_contents($url, false, $ctx);
+        return $res === false ? null : $res;
+    }
+    if (function_exists('curl_init')) {
+        $ch = curl_init($url);
+        if ($ch === false) {
+            return null;
+        }
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $body,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 8,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/x-www-form-urlencoded'],
+        ]);
+        $res = curl_exec($ch);
+        return is_string($res) ? $res : null;
+    }
+    return null;
+}
+
+/**
+ * What the provider says about the token; null when it could not be asked, or did not answer
+ * JSON. "Could not check" is not "wrong": the caller tells those two apart.
+ */
+function qf_captcha_valid(array $config, string $formId, string $provider, mixed $token): ?bool
 {
     $secret = qf_captcha_secret($config, $formId);
     if (!is_string($token) || $token === '' || $secret === '') {
         return false;
     }
-    $url = qf_captcha_verify_url($config, $provider);
-    $ctx = stream_context_create(['http' => [
-        'method' => 'POST',
-        'header' => "Content-Type: application/x-www-form-urlencoded\r\n",
-        'content' => http_build_query(['secret' => $secret, 'response' => $token]),
-        'timeout' => 8,
-    ]]);
-    $res = @file_get_contents($url, false, $ctx);
-    if ($res === false) {
-        return false;
+    $res = qf_http_post(qf_captcha_verify_url($config, $provider), ['secret' => $secret, 'response' => $token]);
+    if ($res === null) {
+        return null;
     }
     $data = json_decode($res, true);
-    return is_array($data) && ($data['success'] ?? false) === true;
+    if (!is_array($data)) {
+        return null;
+    }
+    return ($data['success'] ?? false) === true;
 }
 
 /** One field against its rule; null when it passes. Same rules as the browser script. */
@@ -815,7 +860,15 @@ if ($captchaProvider !== 'none' && empty($formCfg['anonymous'])) {
         // The owner's mistake, not the visitor's: said as such, and never a silent 400.
         qf_fail(500, 'captcha_config', 'captchaSecret is not set in config.php');
     }
-    if (!qf_captcha_valid($config, $formId, $captchaProvider, $envelope['captcha'] ?? null)) {
+    $why = qf_http_unavailable();
+    if ($why !== '') {
+        qf_fail(500, 'captcha_config', $why);
+    }
+    $valid = qf_captcha_valid($config, $formId, $captchaProvider, $envelope['captcha'] ?? null);
+    if ($valid === null) {
+        qf_fail(502, 'captcha_verify', 'the captcha provider could not be reached');
+    }
+    if (!$valid) {
         qf_fail(400, 'captcha', 'the captcha was not solved');
     }
 }
