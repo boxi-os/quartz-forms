@@ -45,6 +45,8 @@ From the same review's list of side findings:
 - `Reply-To` comes from an `email` field with `autocomplete: email` when the form has one, so
   "a friend's e-mail" before "your e-mail" no longer sends the reply to the friend. Without one it
   is the first `email` field filled in, as before.
+- A form whose other steps are all skipped no longer shows "Step 1 of 1"; the count comes back
+  with a second step.
 
 ## [0.4.0] - 2026-10-19
 

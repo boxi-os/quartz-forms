@@ -1055,12 +1055,17 @@ function qfStepper(
     });
     if (progress) {
       const title = steps[current]?.title;
-      const text = qfText(cfg, title ? "stepOfTitled" : "stepOf", {
-        current: list.indexOf(current) + 1,
-        total: list.length,
-        title: title ?? "",
-      });
-      progress.hidden = false;
+      // With the other steps skipped there is nothing to count ("Step 1 of 1", third review,
+      // aside, 2026-10-19); emptied, so the count is said again when a step comes back.
+      const text =
+        list.length < 2
+          ? ""
+          : qfText(cfg, title ? "stepOfTitled" : "stepOf", {
+              current: list.indexOf(current) + 1,
+              total: list.length,
+              title: title ?? "",
+            });
+      progress.hidden = text === "";
       // The count is a live region: said when it changes, not on every keystroke.
       if (progress.textContent !== text) progress.textContent = text;
     }

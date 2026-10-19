@@ -1372,6 +1372,20 @@ describe("steps", () => {
     for (let i = 0; i < 3; i++) await tick();
   };
 
+  it("shows no count while only one step counts", async () => {
+    // Third review, aside (2026-10-19): with the only other step skipped, "Step 1 of 1" stood
+    // above the form.
+    const form = mount(contact({ ...quick, fields: fields.slice(0, 4) }));
+    await nav();
+    const line = form.querySelector<HTMLElement>(".quartz-form__progress")!;
+    expect([line.hidden, line.textContent]).toEqual([true, ""]);
+    expect(form.dataset.qfStep).toBe("last");
+    choose(form, "event");
+    expect([line.hidden, line.textContent]).toEqual([false, "Step 1 of 2"]);
+    choose(form, "survey");
+    expect([line.hidden, line.textContent]).toEqual([true, ""]);
+  });
+
   it("opens one step at a time, checks only the open one and counts the steps that count", async () => {
     const form = mount(contact({ ...quick, fields }));
     await nav();
