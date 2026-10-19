@@ -230,10 +230,10 @@ Posts ab und rendert das Formular ohne Ziel, bis das Skript läuft, mit einem `<
 sagt, dass das Formular unverschlüsselt sendet; einen einfachen Post, der das Häkchen trotzdem
 trägt, weist das Relay ab.
 
-Die Ratenbegrenzung schützt Ihr Postfach, nicht Ihr Formular. Sie zählt die Mails eines Formulars
+Die Ratenbegrenzung schützt dein Postfach, nicht dein Formular. Sie zählt die Mails eines Formulars
 je Stunde, ohne Adressen, ist also ein Kontingent für alle: Ein einzelner Client, der die Mails
 der Stunde selbst sendet (60 einfache Posts dauern keine Sekunde), sperrt das Formular für alle
-anderen Besucher bis zum Ende der Stunde, und Sie bekommen diese 60. Nur ein Captcha macht jeden
+anderen Besucher bis zum Ende der Stunde, und du bekommst diese 60. Nur ein Captcha macht jeden
 solchen Post teuer, oder ein Proof of Work mit `noScript: false`, das ein einfacher Post nicht
 überspringen kann; ein anonymes Formular lädt kein Captcha. Ohne beides sagt der Bau es bei
 jedem Relay-Formular.
@@ -258,19 +258,19 @@ Seiten, die es brauchen. Die Nachricht (`Bezeichnung: Wert` je Feld, die Seite, 
 Besuchers) wird für die konfigurierten öffentlichen Schlüssel verschlüsselt; nur das armierte
 Chiffrat verlässt die Seite, als Inhalt der Mail. Lesbar mit `gpg`, Thunderbird, Mailvelope oder
 GPG Suite. Der Fingerabdruck des Empfängerschlüssels steht unter dem Formular, damit ein Besucher
-ihn mit dem vergleichen kann, den Sie veröffentlichen.
+ihn mit dem vergleichen kann, den du veröffentlichst.
 
 Der Bau prüft jeden benutzten Schlüssel: lesbar, öffentlich, nicht widerrufen, nicht abgelaufen,
 verschlüsselungsfähig; er schreibt den Fingerabdruck ins Protokoll und bricht bei einem Problem ab.
 
-Die Verschlüsselung schützt die Nachricht unterwegs und in Ihrem Postfach, nicht auf der Seite.
+Die Verschlüsselung schützt die Nachricht unterwegs und in deinem Postfach, nicht auf der Seite.
 Jedes Skript auf der Seite, auf der der Besucher tippt, kann die Felder lesen, bevor sie
 verschlüsselt werden: das Widget des Captcha-Anbieters (der Bau sagt es bei einem verschlüsselnden
 Formular mit `captcha`), Quartz' `analytics`, das Skript eines anderen Plugins. Offen reisen die
 Kennung des Formulars, die Sprache der Seite, der Stempel (die Sekunde, in der die Seite geöffnet
 wurde), dass die Nachricht verschlüsselt ist, und die Größe des Chiffrats; die Mail trägt den
-Betreff des Formulars und kein `Reply-To`, Sie antworten also, wenn Sie die Adresse des Besuchers
-entschlüsselt haben.
+Betreff des Formulars und kein `Reply-To`, du antwortest also, wenn du die Adresse des Besuchers
+entschlüsselt hast.
 
 Kann OpenPGP.js im Browser eines Besuchers nicht geladen werden (Netz, Content-Blocker, eine
 strenge CSP), sagt ein verschlüsselndes Formular das und sendet nichts. Ein Formular, das nicht
@@ -325,7 +325,7 @@ Umgebungsvariable `QF_RELAY_OPERATOR` (Secret, Origins, Absender, Mailer, Empfä
 Captcha-Secrets, Zählerordner) schreibt es `config.php` bei jedem Lauf daraus; Geheimnisse gehen nie
 über argv. Mit `--json` steht auf stdout ein Objekt, darin unter anderem ein `hash` der erzeugten
 Regeln, der gleich bleibt, solange sie es tun. Das ruft QuartzControl auf. `config.php` wird mit
-den Rechten 0600 geschrieben; ein Hochladen über SFTP oder FTP behält sie nicht, prüfen Sie die
+den Rechten 0600 geschrieben; ein Hochladen über SFTP oder FTP behält sie nicht, prüfe die
 Rechte also auf dem Host (siehe `relay/php/README.md`, Schritt 3).
 
 Das Relay antwortet nur Anfragen vom Origin der Website. Eine Website mit `Referrer-Policy:
