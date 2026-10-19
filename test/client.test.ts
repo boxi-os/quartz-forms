@@ -278,6 +278,26 @@ describe("sending", () => {
     expect(button.disabled).toBe(false);
   });
 
+  it("refuses a submission above maxBytes before sending, and says the relay's 413 the same way", async () => {
+    const small = mount(contact({ spam: { minSeconds: 0, maxBytes: 500 } }));
+    await nav();
+    fill(small, "message", "ü".repeat(300)); // 300 characters, 600 bytes in UTF-8
+    await submit(small);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(status(small).text).toBe("The message is too large to send. Please shorten it.");
+    const form = mount(contact(quick));
+    await nav();
+    fill(form, "message", "x");
+    fetchMock.mockResolvedValueOnce(
+      ok(
+        { ok: false, error: "too_large", message: "the submission is too large" },
+        { status: 413 },
+      ),
+    );
+    await submit(form);
+    expect(status(form).text).toBe("The message is too large to send. Please shorten it.");
+  });
+
   it("redirects to the site's page after a successful send", async () => {
     const form = mount(contact({ ...quick, success: { mode: "redirect", slug: "thanks" } }));
     document.body.dataset.basepath = "/repo";

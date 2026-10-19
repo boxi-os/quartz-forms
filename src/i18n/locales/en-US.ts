@@ -42,6 +42,7 @@ export default {
   sendFailed: "The message could not be sent. Please try again later.",
   rejected: "The message was not accepted: {reason}",
   rateLimited: "Too many messages at the moment. Please try again later.",
+  tooLarge: "The message is too large to send. Please shorten it.",
   pageContextNote: "Refers to the page “{title}”.",
   anonymousNote: "This form is anonymous: nothing identifies you unless you write it.",
   mailtoNote: "Your mail program opens with the message.",

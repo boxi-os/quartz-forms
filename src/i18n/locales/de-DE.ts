@@ -42,6 +42,7 @@ const deDE: Translation = {
     "Die Nachricht konnte nicht gesendet werden. Bitte versuchen Sie es später noch einmal.",
   rejected: "Die Nachricht wurde nicht angenommen: {reason}",
   rateLimited: "Im Moment kommen zu viele Nachrichten. Bitte versuchen Sie es später noch einmal.",
+  tooLarge: "Die Nachricht ist zu groß zum Senden. Bitte kürzen Sie sie.",
   pageContextNote: "Bezieht sich auf die Seite „{title}“.",
   anonymousNote: "Dieses Formular ist anonym: Nichts identifiziert Sie, außer Sie schreiben es.",
   mailtoNote: "Ihr Mailprogramm öffnet sich mit der Nachricht.",

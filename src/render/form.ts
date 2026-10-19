@@ -513,6 +513,7 @@ export function clientConfig(form: ResolvedForm, ctx: RenderContext): ClientConf
       sendFailed: t.sendFailed,
       rejected: t.rejected,
       rateLimited: t.rateLimited,
+      tooLarge: t.tooLarge,
       errorSummary: t.errorSummary,
       errorSummaryOne: t.errorSummaryOne,
     },

@@ -510,10 +510,15 @@ async function qfSend(
     const payload = ciphertext
       ? { ...common, encrypted: true, ciphertext }
       : { ...common, encrypted: false, fields: values };
+    const body = JSON.stringify(payload);
+    // The relay refuses a body above the form's maxBytes with 413; said here first, in the
+    // page's language, and the ciphertext never leaves the browser for nothing.
+    if (new TextEncoder().encode(body).length > cfg.spam.maxBytes)
+      return { ok: false, error: "too_large" };
     response = await fetch(tr.url, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify(payload),
+      body,
     });
   } else {
     // endpoint and the service presets: flat fields the way these services expect them.
@@ -714,6 +719,7 @@ function qfBind(form: HTMLFormElement): void {
         return;
       }
       if (result.error === "rate_limited") qfStatus(form, "error", qfText(cfg, "rateLimited"));
+      else if (result.error === "too_large") qfStatus(form, "error", qfText(cfg, "tooLarge"));
       else if (result.message)
         qfStatus(form, "error", qfText(cfg, "rejected", { reason: result.message }));
       else qfStatus(form, "error", qfText(cfg, "sendFailed"));

@@ -98,6 +98,11 @@ const siteOptions = {
       spam: { rateLimitPerHour: 3 },
       fields: [{ type: "text", name: "x", label: "X" }],
     },
+    small: {
+      recipient: "owner",
+      spam: { maxBytes: 300 },
+      fields: [{ type: "text", name: "s", label: "S" }],
+    },
   },
 };
 
@@ -425,14 +430,20 @@ describe.skipIf(!php)("relay: refusals", () => {
       writeConfig();
     }
   });
-  it("size: a submission above maxBytes is 413", async () => {
+  it("size: a submission above maxBytes is 413, measured against the form's own limit", async () => {
     const r = await post(
-      JSON.stringify(env("feedback", { rating: "4", comment: "x".repeat(70_000) })),
+      JSON.stringify(env("feedback", { rating: "4", comment: "x".repeat(140_000) })),
       {
         raw: true,
       },
     );
     expect([r.status, r.json?.error]).toEqual([413, "too_large"]);
+    // Below the largest limit of any form, above this form's 300 bytes: refused all the same
+    // (review finding 9, 2026-10-19: only the largest limit was applied).
+    const small = await post(env("small", { s: "x".repeat(1000) }));
+    expect([small.status, small.json?.error]).toEqual([413, "too_large"]);
+    const fits = await post(env("small", { s: "ok" }));
+    expect(fits.status).toBe(200);
   });
 });
 

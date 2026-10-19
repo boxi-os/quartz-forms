@@ -583,6 +583,7 @@ if ($method !== 'POST') {
     qf_json(405, ['ok' => false, 'error' => 'method', 'message' => 'POST only']);
 }
 
+// Read no more than the largest limit of any form; the addressed form's limit is applied below.
 $maxBytes = 0;
 foreach ($forms as $f) {
     $maxBytes = max($maxBytes, (int) ($f['spam']['maxBytes'] ?? 65536));
@@ -626,6 +627,12 @@ if ($formId === '' || !isset($forms[$formId])) {
 $formCfg = $forms[$formId];
 $spam = $formCfg['spam'];
 $redirect = $formCfg['redirect'] ?? null;
+
+// The body was read up to the largest limit of any form; this form's own limit applies now
+// (review finding, 2026-10-19: a form with maxBytes 300 took a thousand bytes).
+if (strlen($raw) > (int) ($spam['maxBytes'] ?? 65536)) {
+    qf_fail(413, 'too_large', 'the submission is too large');
+}
 
 if (!qf_origin_allowed($config)) {
     qf_fail(403, 'origin', 'origin not allowed');

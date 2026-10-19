@@ -26,7 +26,7 @@ export const defaultSpam: SpamConfig = {
   maxFieldLength: 2000,
   maxTextareaLength: 20000,
   maxKeyLength: 16384,
-  maxBytes: 65536,
+  maxBytes: 131072,
 };
 
 export const defaultOptions: QuartzFormsOptions = {

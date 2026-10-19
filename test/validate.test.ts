@@ -232,6 +232,20 @@ describe("validate: transport, encryption, spam, success", () => {
     expect(problemsOf({ spam: { maxBytes: 0 } as never })).toEqual([
       "forms.contact.spam.maxBytes: a positive integer",
     ]);
+    // The defaults fit together (no hint); a limit below the fields' capacity is said, and an
+    // encrypting form counts the armor (review finding 9, 2026-10-19).
+    expect(resolveOptions(options({})).hints).toEqual([]);
+    const tight = resolveOptions(options({ spam: { maxBytes: 1000 } as never }));
+    expect(tight.hints).toEqual([
+      "forms.contact.spam.maxBytes: 1000 is below what the fields may hold (about 67024 bytes); a long message would be refused as too large",
+    ]);
+    const tightEnc = resolveOptions(
+      options({
+        spam: { maxBytes: 1000 } as never,
+        forms: { contact: contact({ encryption: { mode: "required", keys: ["owner"] } }) },
+      }),
+    );
+    expect(tightEnc.hints[0]).toMatch(/about 90390 bytes once encrypted/);
     const noRelay = resolveOptions(
       options({
         transport: { kind: "endpoint", url: "https://e.example/x" },

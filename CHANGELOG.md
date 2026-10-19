@@ -44,6 +44,13 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
 - Refused posts used up the hourly quota: the rate limit counted before the fields were checked,
   so invalid posts could block a form for an hour without a single mail. The relay now counts
   directly before handing the mail over, after every check.
+- `spam.maxBytes` of a form had no effect: the relay compared the body with the largest limit of
+  any form (a form with `maxBytes: 300` took a thousand bytes), and the script never looked at
+  the size. The relay now applies the addressed form's limit, the script refuses a body above it
+  before sending, in the page's language (`tooLarge`), and says the relay's 413 the same way.
+  The defaults did not fit together either: a textarea of 20 000 CJK characters is about 60 kB,
+  armored about 81 kB, above the former 65 536. The default is now 131 072 and the build says
+  when a form's fields may hold more than its `maxBytes`.
 
 ## [0.1.1] - 2026-10-19
 

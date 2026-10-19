@@ -224,6 +224,38 @@ function checkKeySource(name: string, src: PgpKeySource, out: Validation): void 
   if (block.problem) out.problems.push(`${at}.file: ${src.file}: ${block.problem}`);
 }
 
+/**
+ * Rough upper bound of a submission's size in bytes: every field filled to its length limit with
+ * three-byte characters (CJK), the envelope on top, and for an encrypting form the armor's
+ * four-thirds. The review of 0.1.1 found the defaults did not fit together (a 20 000-character
+ * textarea in CJK is about 60 kB, armored about 81 kB, the limit was 65 536).
+ */
+export function submissionCapacity(form: ResolvedForm): number {
+  let chars = 0;
+  for (const f of form.fields) {
+    switch (f.type) {
+      case "textarea":
+        chars += f.maxLength ?? form.spam.maxTextareaLength;
+        break;
+      case "text":
+      case "email":
+      case "tel":
+      case "url":
+      case "number":
+      case "date":
+        chars += f.maxLength ?? form.spam.maxFieldLength;
+        break;
+      case "pgpKey":
+        chars += form.spam.maxKeyLength;
+        break;
+      default:
+        chars += 64; // options, scales, boxes, hidden values: short by construction
+    }
+  }
+  const bytes = chars * 3 + 1024;
+  return form.encryption.mode === "off" ? bytes : Math.ceil((bytes * 4) / 3) + 1024;
+}
+
 function checkForm(form: ResolvedForm, raw: FormDefinition, keyNames: string[], out: Validation) {
   const at = `forms.${form.id}`;
   if (!FORM_ID.test(form.id))
@@ -332,6 +364,14 @@ function checkForm(form: ResolvedForm, raw: FormDefinition, keyNames: string[], 
   for (const key of ["maxFieldLength", "maxTextareaLength", "maxKeyLength", "maxBytes"] as const)
     if (!Number.isInteger(sp[key]) || sp[key] < 1)
       out.problems.push(`${at}.spam.${key}: a positive integer`);
+  if (Number.isInteger(sp.maxBytes) && sp.maxBytes >= 1) {
+    const capacity = submissionCapacity(form);
+    if (capacity > sp.maxBytes)
+      out.hints.push(
+        `${at}.spam.maxBytes: ${sp.maxBytes} is below what the fields may hold (about ${capacity} bytes` +
+          `${enc.mode === "off" ? "" : " once encrypted"}); a long message would be refused as too large`,
+      );
+  }
 
   // Anonymous: judged on the fields as written (template + definition), because resolveForm
   // has already made the personal ones optional.

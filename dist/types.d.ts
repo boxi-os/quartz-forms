@@ -231,7 +231,11 @@ interface SpamConfig {
     maxTextareaLength: number;
     /** Maximum length of a pasted public key, in characters. */
     maxKeyLength: number;
-    /** Maximum size of a whole submission, in bytes. */
+    /**
+     * Maximum size of a whole submission, in bytes, checked by the script before sending and by the
+     * relay. The build says when the fields may hold more than this (a textarea of 20 000 CJK
+     * characters is about 60 kB, armored ciphertext a third more).
+     */
     maxBytes: number;
 }
 interface SuccessConfig {
