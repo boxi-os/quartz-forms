@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.5] - 2026-10-20
+
+The fixes of the fourth independent review (0.4.1 to 0.5.4).
+
 - Fixed: pressing "Send" or "Next" right after correcting a field could do nothing. The press took
   the focus from the field, its error line went, the form got shorter and the button slid from
   under the pointer before it was released. While a pointer is down in the form, the check of the
