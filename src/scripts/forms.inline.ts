@@ -449,17 +449,32 @@ function qfLeadingZeroBits(bytes: Uint8Array): number {
 }
 
 /**
- * Fetches the hour's challenge from the relay and finds a nonce whose SHA-256 over
- * `challenge:nonce` has the required leading zero bits. Hashes in batches and yields between
- * them so the page stays responsive. Returns nothing when the form does not ask for it.
+ * What the relay hands out on `GET ?challenge=<form>`: a stamp of the moment, signed by the
+ * relay, and the hour's proof-of-work challenge when the form asks for one.
  */
-async function qfProofOfWork(cfg: QfConfig): Promise<QfPow | undefined> {
+type QfTicket = { pow?: boolean; challenge?: string; difficulty?: number; stamp?: string };
+type QfTicketAt = { data: QfTicket | null; at: number };
+
+async function qfFetchTicket(cfg: QfConfig): Promise<QfTicketAt> {
+  const at = Date.now();
+  try {
+    const url = new URL(cfg.transport.url, window.location.toString());
+    url.searchParams.set("challenge", cfg.id);
+    const res = await fetch(url.toString(), { headers: { Accept: "application/json" } });
+    return { data: (await res.json()) as QfTicket, at };
+  } catch {
+    return { data: null, at };
+  }
+}
+
+/**
+ * Finds a nonce whose SHA-256 over `challenge:nonce` has the required leading zero bits. Hashes
+ * in batches and yields between them so the page stays responsive. Returns nothing when the
+ * form does not ask for it.
+ */
+async function qfProofOfWork(cfg: QfConfig, data: QfTicket | null): Promise<QfPow | undefined> {
   if (!cfg.spam.pow || cfg.transport.kind !== "relay") return undefined;
-  const url = new URL(cfg.transport.url, window.location.toString());
-  url.searchParams.set("challenge", cfg.id);
-  const res = await fetch(url.toString(), { headers: { Accept: "application/json" } });
-  const data = (await res.json()) as { pow?: boolean; challenge?: string; difficulty?: number };
-  if (!data.pow || !data.challenge) return undefined;
+  if (!data?.pow || !data.challenge) return undefined;
   const difficulty = data.difficulty ?? cfg.spam.powDifficulty;
   const encoder = new TextEncoder();
   let nonce = 0;
@@ -481,19 +496,25 @@ function qfInternalUrl(slug: string): string {
 }
 
 async function qfSend(
-  form: HTMLFormElement,
   cfg: QfConfig,
   values: Record<string, QfValue>,
   ciphertext: string | undefined,
-  captchaToken = "",
+  captchaToken: string,
+  ticket: Promise<QfTicketAt> | null,
 ): Promise<QfRelayResponse> {
   const tr = cfg.transport;
+  // The stamp is the one from when the page was opened: that is the time the relay measures.
+  // The challenge changes hourly, so an old ticket is fetched again for the proof of work only.
+  const opened = ticket ? await ticket : null;
+  let fresh = opened;
+  if (cfg.spam.pow && tr.kind === "relay" && (!fresh?.data || Date.now() - fresh.at > 30 * 60_000))
+    fresh = await qfFetchTicket(cfg);
   const common = {
     form: cfg.id,
     lang: cfg.lang,
-    ts: (form.elements.namedItem("ts") as HTMLInputElement | null)?.value ?? "",
+    ts: opened?.data?.stamp ?? fresh?.data?.stamp ?? "",
     page: cfg.page?.slug,
-    pow: await qfProofOfWork(cfg),
+    pow: await qfProofOfWork(cfg, fresh?.data ?? null),
     captcha: captchaToken || undefined,
   };
   if (tr.kind === "mailto") {
@@ -604,6 +625,13 @@ function qfBind(form: HTMLFormElement): void {
   const ts = form.elements.namedItem("ts") as HTMLInputElement | null;
   const openedAt = Date.now();
   if (ts) ts.value = String(openedAt);
+  // The relay's ticket, fetched once per page view where the relay will check it: the signed
+  // stamp of this moment for the time trap, and the proof-of-work challenge. The visitor's clock
+  // is not involved; the relay measures with its own (review finding, 2026-10-19).
+  const ticket =
+    cfg.transport.kind === "relay" && (cfg.spam.minSeconds > 0 || cfg.spam.pow)
+      ? qfFetchTicket(cfg)
+      : null;
 
   const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
   if (button?.dataset.enableWithJs === "true") button.disabled = false;
@@ -690,7 +718,7 @@ function qfBind(form: HTMLFormElement): void {
           return;
         }
       }
-      const result = await qfSend(form, cfg, values, ciphertext, captchaToken);
+      const result = await qfSend(cfg, values, ciphertext, captchaToken, ticket);
       if (!result.ok && cfg.spam.captcha !== "none") qfResetCaptcha(cfg.spam.captcha);
       if (result.ok) {
         qfFinish(form, cfg, encrypt);

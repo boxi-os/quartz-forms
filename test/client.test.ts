@@ -204,7 +204,8 @@ describe("sending", () => {
     expect(JSON.parse(String(init.body))).toEqual({
       form: "f",
       lang: "en",
-      ts: (form.elements.namedItem("ts") as HTMLInputElement).value,
+      // Neither time trap nor proof of work: no ticket was fetched, the stamp stays empty.
+      ts: "",
       encrypted: false,
       fields: { name: "Ada", message: "Hello there" },
     });
@@ -237,17 +238,40 @@ describe("sending", () => {
     expect(status(form).state).toBe("success");
   });
 
-  it("refuses a submission faster than minSeconds, and accepts it later", async () => {
+  it("refuses a submission faster than minSeconds, and later sends the relay's stamp from when the page opened", async () => {
     const form = mount(contact({ spam: { minSeconds: 3 } }));
+    // The ticket is fetched when the page opens: the relay's signed stamp of this moment.
+    fetchMock.mockResolvedValueOnce(ok({ ok: true, pow: false, stamp: "1700000000.abc" }));
     await nav();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(String(fetchMock.mock.calls[0]![0])).toBe(
+      "https://example.org/forms/send.php?challenge=f",
+    );
     fill(form, "message", "quick");
     await submit(form);
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(status(form)).toEqual({ state: "error", text: "Please wait a moment before sending." });
     vi.setSystemTime(Date.now() + 4000);
     fetchMock.mockResolvedValueOnce(ok());
     await submit(form);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const body = JSON.parse(String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body));
+    expect(body.ts).toBe("1700000000.abc");
+  });
+
+  it("fetches the ticket again at send time when the one from page open failed", async () => {
+    const form = mount(contact({ spam: { minSeconds: 0, pow: true } }));
+    fetchMock.mockRejectedValueOnce(new TypeError("network"));
+    await nav();
+    fetchMock.mockImplementation(async (url: string) =>
+      String(url).includes("?challenge=") ? ok({ ok: true, pow: false, stamp: "5.sig" }) : ok(),
+    );
+    fill(form, "message", "x");
+    await submit(form);
+    for (let i = 0; i < 10; i++) await tick();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    const body = JSON.parse(String((fetchMock.mock.calls[2] as [string, RequestInit])[1].body));
+    expect(body.ts).toBe("5.sig");
   });
 
   it("shows the relay's field errors at the fields and its rate limit as a sentence", async () => {
@@ -531,7 +555,6 @@ describe("proof of work", () => {
   it("fetches the challenge, finds a nonce with the required leading zero bits and sends both", async () => {
     const { createHash } = await import("node:crypto");
     const form = mount(contact({ ...quick, spam: { minSeconds: 0, pow: true, powDifficulty: 8 } }));
-    await nav();
     fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
       if (String(url).includes("?challenge=f")) {
         expect(init?.method ?? "GET").toBe("GET");
@@ -539,6 +562,7 @@ describe("proof of work", () => {
       }
       return ok();
     });
+    await nav(); // the ticket with the challenge comes with the page, not at send time
     fill(form, "message", "work");
     await submit(form);
     for (let i = 0; i < 50; i++) await tick();
@@ -555,10 +579,10 @@ describe("proof of work", () => {
 
   it("sends no proof when the relay says the form does not need one", async () => {
     const form = mount(contact({ ...quick, spam: { minSeconds: 0, pow: true } }));
-    await nav();
     fetchMock.mockImplementation(async (url: string) =>
       String(url).includes("?challenge=") ? ok({ ok: true, pow: false }) : ok(),
     );
+    await nav();
     fill(form, "message", "x");
     await submit(form);
     for (let i = 0; i < 10; i++) await tick();

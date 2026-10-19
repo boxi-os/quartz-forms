@@ -30,6 +30,8 @@ if (!php) console.warn("relay tests not run: no `php` on the PATH (the relay is 
 const siteOptions = {
   transport: { kind: "relay", url: "http://localhost:8080/send.php" },
   keys: { owner: { file: "public.asc" } },
+  // One second, so the suite waits once for the stamp it fetched to come of age.
+  spam: { minSeconds: 1 },
   forms: {
     contact: {
       recipient: "owner",
@@ -143,6 +145,8 @@ return $generated + [
 }
 let server: ChildProcess | undefined;
 let challenge = "";
+/** The relay's signed stamp from the start of the suite: old enough for every form's minSeconds. */
+let stamp = "";
 
 beforeAll(async () => {
   if (!php) return;
@@ -182,13 +186,18 @@ echo json_encode(['success' => ($_POST['secret'] ?? '') === 'cap-secret' && ($_P
   const until = Date.now() + 10_000;
   for (;;) {
     try {
-      await fetch(`${base}/send.php?challenge=contact`, { headers: { Origin: ORIGIN } });
+      const res = await fetch(`${base}/send.php?challenge=contact`, {
+        headers: { Origin: ORIGIN },
+      });
+      stamp = ((await res.json()) as { stamp?: string }).stamp ?? "";
       break;
     } catch {
       if (Date.now() > until) throw new Error(`php -S did not answer on ${base}`);
       await new Promise((r) => setTimeout(r, 100));
     }
   }
+  // The stamp has to be minSeconds (one second) old before the relay accepts a submission.
+  await new Promise((r) => setTimeout(r, 1100));
 }, 30_000);
 
 afterAll(() => {
@@ -248,7 +257,7 @@ async function get(query: string, origin: string | null = ORIGIN): Promise<Answe
   }
   return { status: res.status, json, text, headers: res.headers };
 }
-const ts = () => String(Date.now() - 5000);
+const ts = () => stamp;
 const env = (
   form: string,
   fields: Record<string, unknown>,
@@ -288,7 +297,7 @@ function solve(ch: string, difficulty: number): { challenge: string; nonce: stri
     }
     return n;
   };
-  for (let i = 0; ; i++) {
+  for (let i = Math.floor(Math.random() * 2 ** 40); ; i++) {
     const nonce = i.toString(36);
     if (bits(crypto.createHash("sha256").update(`${ch}:${nonce}`).digest()) >= difficulty)
       return { challenge: ch, nonce };
@@ -308,12 +317,16 @@ describe.skipIf(!php)("relay: challenge and CORS", () => {
     expect(r.status).toBe(200);
     expect(r.json).toMatchObject({ pow: true, difficulty: 8 });
     expect(r.json?.challenge).toMatch(/^[0-9a-f]{64}$/);
+    // The stamp of the time the page was opened, signed by the relay: `issued.signature`.
+    expect(r.json?.stamp).toMatch(/^\d+\.[0-9a-f]{64}$/);
     expect(r.headers.get("access-control-allow-origin")).toBe(ORIGIN);
     expect(r.headers.has("x-powered-by")).toBe(false);
     challenge = r.json?.challenge as string;
   });
   it("says pow: false for a form without, 404 for an unknown form, 403 for a foreign origin", async () => {
-    expect((await get("challenge=feedback")).json).toMatchObject({ pow: false });
+    const feedback = await get("challenge=feedback");
+    expect(feedback.json).toMatchObject({ pow: false });
+    expect(feedback.json?.stamp).toMatch(/^\d+\.[0-9a-f]{64}$/);
     const unknown = await get("challenge=nope");
     expect([unknown.status, unknown.json?.error]).toEqual([404, "unknown_form"]);
     const foreign = await get("challenge=contact", "https://evil.test");
@@ -341,12 +354,23 @@ describe.skipIf(!php)("relay: refusals", () => {
     });
     expect(referer.status).toBe(200);
   });
-  it("time trap: a stamp of just now or 0 is too fast", async () => {
-    const now = await post({ ...env("feedback", { rating: "4" }), ts: String(Date.now()) });
+  it("time trap: a stamp the relay issued just now is too fast; the page's clock, ts=1 and a tampered stamp are not the relay's", async () => {
+    // The relay measures with its own clock on a stamp it signed when the page was opened. The
+    // page's clock (Date.now()) locked out visitors whose clock ran ahead, and a made-up number
+    // such as ts=1 passed (review findings 5b and 6, 2026-10-19).
+    const fresh = (await get("challenge=feedback")).json?.stamp as string;
+    const now = await post({ ...env("feedback", { rating: "4" }), ts: fresh });
     expect([now.status, now.json?.error]).toEqual([400, "too_fast"]);
-    expect((await post({ ...env("feedback", { rating: "4" }), ts: "0" })).json?.error).toBe(
-      "too_fast",
-    );
+    for (const bad of ["0", "1", String(Date.now() - 60_000), String(Date.now() + 120_000)]) {
+      const r = await post({ ...env("feedback", { rating: "4" }), ts: bad });
+      expect([bad, r.status, r.json?.error]).toEqual([bad, 400, "stamp"]);
+    }
+    const [issued, sig] = fresh.split(".");
+    const tampered = await post({
+      ...env("feedback", { rating: "4" }),
+      ts: `${Number(issued) - 600}.${sig}`,
+    });
+    expect(tampered.json?.error).toBe("stamp");
   });
   it("honeypot: a filled field is told ok, and nothing is mailed", async () => {
     const before = mails().length;
@@ -379,6 +403,17 @@ describe.skipIf(!php)("relay: refusals", () => {
       env("contact", bad, { pow: { challenge: "0".repeat(64), nonce: "abc" } }),
     );
     expect(forged.json?.error).toBe("pow");
+    // A solved proof sends once: the second message with the same nonce is refused (review
+    // finding 5a, 2026-10-19: the same nonce sent three times).
+    const pow = solve(challenge, 8);
+    const first = await post(env("contact", contactFields, { pow }));
+    expect(first.json).toEqual({ ok: true });
+    const again = await post(env("contact", contactFields, { pow }));
+    expect([again.status, again.json?.error]).toEqual([400, "pow"]);
+    expect(mails().filter((m) => m.includes("Name: Ada Lovelace")).length).toBe(1);
+    const spent = fs.readdirSync(path.join(dir, "counters")).filter((f) => f.endsWith(".spent"));
+    expect(spent.length).toBeGreaterThan(0);
+    expect(spent[0]).toMatch(/^pow-\d+-[0-9a-f]{32}\.spent$/);
   });
   it("encryption: plaintext to a required form, ciphertext to an off form, ciphertext without armor", async () => {
     const plainToEnc = await post(env("enc", { a: "x" }));

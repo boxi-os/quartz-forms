@@ -360,6 +360,11 @@ function checkForm(form: ResolvedForm, raw: FormDefinition, keyNames: string[], 
     if (sp.pow) out.hints.push(`${at}.spam.pow: has no effect without the relay`);
     if (sp.rateLimitPerHour > 0 && raw.spam?.rateLimitPerHour !== undefined)
       out.hints.push(`${at}.spam.rateLimitPerHour: has no effect without the relay`);
+  } else if (sp.pow && sp.noScript) {
+    // Only the script supplies a proof, so a plain post walks past it (review finding 5c).
+    out.hints.push(
+      `${at}.spam.pow: a plain post without JavaScript (noScript: true) skips it; noScript: false requires the script`,
+    );
   }
   for (const key of ["maxFieldLength", "maxTextareaLength", "maxKeyLength", "maxBytes"] as const)
     if (!Number.isInteger(sp[key]) || sp[key] < 1)

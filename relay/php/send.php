@@ -151,6 +151,31 @@ function qf_challenge(array $config, string $form, int $window): string
     return hash_hmac('sha256', $form . '|' . $window, (string) $config['secret']);
 }
 
+/**
+ * The relay's own word on when a page was opened: `issued.signature`, handed out with the
+ * challenge and sent back as `ts`. The time trap is measured against it with the relay's clock.
+ * The page's clock was used before, which locked out a visitor whose clock ran ahead, and a
+ * made-up number such as `ts=1` passed (review findings, 2026-10-19).
+ */
+function qf_stamp(array $config, int $issued): string
+{
+    return $issued . '.' . hash_hmac('sha256', 'stamp|' . $issued, (string) $config['secret']);
+}
+
+/** Seconds since the relay issued the stamp; null when it is not the relay's, or older than a day. */
+function qf_stamp_age(array $config, mixed $stamp): ?int
+{
+    if (!is_string($stamp) || !preg_match('/^(\d{1,12})\.[0-9a-f]{64}$/', $stamp, $m)) {
+        return null;
+    }
+    $issued = (int) $m[1];
+    if (!hash_equals(qf_stamp($config, $issued), $stamp)) {
+        return null;
+    }
+    $age = time() - $issued;
+    return ($age < -60 || $age > 86400) ? null : $age;
+}
+
 function qf_leading_zero_bits(string $hex): int
 {
     $bits = 0;
@@ -188,6 +213,39 @@ function qf_pow_valid(array $config, string $form, int $difficulty, mixed $pow):
         return false;
     }
     return qf_leading_zero_bits(hash('sha256', $challenge . ':' . $nonce)) >= $difficulty;
+}
+
+/**
+ * Marks a proof of work as used, or says that it was. The proof is bound to the form and the
+ * hour, not to the message, so one solved nonce would otherwise send any number of messages for
+ * up to two hours (review finding, 2026-10-19: the same nonce three times, three mails). One
+ * file per used proof beside the counters; files older than the challenge's two windows go.
+ */
+function qf_pow_spent(array $config, string $challenge, string $nonce): bool
+{
+    $dir = $config['counterDir'] ?? (__DIR__ . '/counters');
+    if (!is_dir($dir) && !@mkdir($dir, 0700, true)) {
+        error_log('quartz-forms relay: cannot create ' . $dir . '; a proof of work may be reused');
+        return false;
+    }
+    $window = (int) floor(time() / 3600);
+    foreach (glob($dir . '/pow-*.spent') ?: [] as $old) {
+        if (preg_match('/^pow-(\d+)-/', basename($old), $m) && (int) $m[1] < $window - 1) {
+            @unlink($old);
+        }
+    }
+    $key = substr(hash('sha256', $challenge . ':' . $nonce), 0, 32);
+    $file = sprintf('%s/pow-%d-%s.spent', $dir, $window, $key);
+    $fh = @fopen($file, 'x'); // atomic: fails when the file is already there
+    if ($fh === false) {
+        if (file_exists($file)) {
+            return true;
+        }
+        error_log('quartz-forms relay: cannot write to ' . $dir . '; a proof of work may be reused');
+        return false;
+    }
+    fclose($fh);
+    return false;
 }
 
 /** Counts a mail for this form in this hour; no address, no time beyond the hour. */
@@ -568,11 +626,11 @@ if ($method === 'GET') {
         qf_json(403, ['ok' => false, 'error' => 'origin', 'message' => 'origin not allowed']);
     }
     $spam = $forms[$form]['spam'];
+    $ticket = ['ok' => true, 'stamp' => qf_stamp($config, time())];
     if (empty($spam['pow'])) {
-        qf_json(200, ['ok' => true, 'pow' => false]);
+        qf_json(200, $ticket + ['pow' => false]);
     }
-    qf_json(200, [
-        'ok' => true,
+    qf_json(200, $ticket + [
         'pow' => true,
         'challenge' => qf_challenge($config, $form, (int) floor(time() / 3600)),
         'difficulty' => (int) ($spam['powDifficulty'] ?? 16),
@@ -662,18 +720,26 @@ if (!empty($spam['honeypot'])) {
     unset($envelope['fields'][QF_HONEYPOT]);
 }
 
-// Time trap: the page writes the time it was opened (ms); a bot posts within a second.
+// Time trap: the script fetched a signed stamp when the page was opened and sends it as `ts`;
+// a bot posts within a second of fetching one, or without one.
 $minSeconds = (int) ($spam['minSeconds'] ?? 0);
 if ($minSeconds > 0 && !$isForm) {
-    $ts = (float) ($envelope['ts'] ?? 0);
-    if ($ts <= 0 || (microtime(true) * 1000 - $ts) < $minSeconds * 1000) {
+    $age = qf_stamp_age($config, $envelope['ts'] ?? null);
+    if ($age === null) {
+        qf_fail(400, 'stamp', 'the time stamp is missing or not this relay\'s; please reload the page');
+    }
+    if ($age < $minSeconds) {
         qf_fail(400, 'too_fast', 'please wait a moment before sending');
     }
 }
 
 if (!empty($spam['pow']) && !$isForm) {
-    if (!qf_pow_valid($config, $formId, (int) ($spam['powDifficulty'] ?? 16), $envelope['pow'] ?? null)) {
+    $pow = $envelope['pow'] ?? null;
+    if (!qf_pow_valid($config, $formId, (int) ($spam['powDifficulty'] ?? 16), $pow)) {
         qf_fail(400, 'pow', 'the proof of work is missing or wrong');
+    }
+    if (qf_pow_spent($config, (string) $pow['challenge'], (string) $pow['nonce'])) {
+        qf_fail(400, 'pow', 'this proof of work was already used');
     }
 }
 

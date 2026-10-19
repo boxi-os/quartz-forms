@@ -136,9 +136,9 @@ Wert dieses Feldes ab und nennt das Muster im Fehlerprotokoll des Servers.
 | Schlüssel           | Vorgabe  | Beschreibung                                                                                        |
 | ------------------- | -------- | --------------------------------------------------------------------------------------------------- |
 | `honeypot`          | `true`   | Ein unsichtbares Feld, das leer bleiben muss.                                                       |
-| `minSeconds`        | `3`      | Sekunden zwischen Öffnen der Seite und Senden; `0` schaltet es ab.                                  |
+| `minSeconds`        | `3`      | Sekunden zwischen Öffnen der Seite und Senden, gemessen vom Relay; `0` schaltet es ab.              |
 | `noScript`          | `true`   | Einfache Formular-Posts aus Browsern ohne JavaScript annehmen; siehe unten.                         |
-| `pow`               | `false`  | Proof-of-Work, das das Relay prüft (nur `relay`).                                                   |
+| `pow`               | `false`  | Proof-of-Work, das das Relay prüft, eines je Nachricht (nur `relay`).                               |
 | `powDifficulty`     | `16`     | Führende Nullbits; 16 dauert einen Sekundenbruchteil.                                               |
 | `captcha`           | `none`   | `turnstile` oder `hcaptcha`; lädt das Skript des Anbieters. Bei anonym ignoriert.                   |
 | `captchaSiteKey`    | `""`     | Der Site-Schlüssel des Anbieters; der geheime Schlüssel steht in der `config.php` des Relays.       |
@@ -148,11 +148,18 @@ Wert dieses Feldes ab und nennt das Muster im Fehlerprotokoll des Servers.
 | `maxKeyLength`      | `16384`  | Höchstlänge eines eingefügten öffentlichen Schlüssels.                                              |
 | `maxBytes`          | `131072` | Höchstgröße einer ganzen Sendung in Bytes; der Bau warnt, wenn die Felder mehr fassen können.       |
 
+Mit dem Relay holt das Skript beim Öffnen der Seite ein Ticket (`GET send.php?challenge=<id>`):
+einen vom Relay signierten Stempel dieses Moments und, wenn das Formular es verlangt, die
+Proof-of-Work-Aufgabe der Stunde. Die Zeitfalle misst das Relay an diesem Stempel mit seiner
+eigenen Uhr; eine vorgehende Uhr des Besuchers sperrt niemanden aus, ein erfundener Stempel wird
+abgewiesen. Ein gelöstes Proof-of-Work sendet eine Nachricht; verbrauchte merkt sich das Relay
+neben seinen Zählern.
+
 Ohne JavaScript schickt ein Formular mit `encryption: off` oder `optional` einen einfachen
 Formular-Post ans Relay, das mit der Weiterleitung oder einer kurzen Seite antwortet. Ein solcher
-Post trägt weder Zeitstempel noch Proof of Work; das Relay prüft daran nur Honeypot,
-Ratenbegrenzung und Felder. `noScript: false` weist diese Posts ab und rendert das Formular ohne
-Ziel, bis das Skript läuft, mit einem `<noscript>`-Hinweis. Bei `optional` bleibt das Häkchen
+Post trägt weder Stempel noch Proof of Work; das Relay prüft daran nur Honeypot,
+Ratenbegrenzung und Felder, und bei `pow: true` sagt der Bau das. `noScript: false` weist diese
+Posts ab und rendert das Formular ohne Ziel, bis das Skript läuft, mit einem `<noscript>`-Hinweis. Bei `optional` bleibt das Häkchen
 „Verschlüsselt senden“ leer und deaktiviert, bis das Skript es setzt, und ein `<noscript>`-Hinweis
 sagt, dass das Formular unverschlüsselt sendet; einen einfachen Post, der das Häkchen trotzdem
 trägt, weist das Relay ab.

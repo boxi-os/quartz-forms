@@ -258,6 +258,13 @@ describe("validate: transport, encryption, spam, success", () => {
       "forms.contact.spam.pow: has no effect without the relay",
       "forms.contact.spam.rateLimitPerHour: has no effect without the relay",
     ]);
+    // With the relay, a plain post (noScript: true, the default) carries no proof: said.
+    expect(resolveOptions(options({ spam: { pow: true } as never })).hints).toEqual([
+      "forms.contact.spam.pow: a plain post without JavaScript (noScript: true) skips it; noScript: false requires the script",
+    ]);
+    expect(
+      resolveOptions(options({ spam: { pow: true, noScript: false } as never })).hints,
+    ).toEqual([]);
     const anonCaptcha = resolveOptions(
       options({
         spam: { captcha: "hcaptcha", captchaSiteKey: "k" } as never,

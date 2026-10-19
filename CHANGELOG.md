@@ -51,6 +51,15 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   The defaults did not fit together either: a textarea of 20 000 CJK characters is about 60 kB,
   armored about 81 kB, above the former 65 536. The default is now 131 072 and the build says
   when a form's fields may hold more than its `maxBytes`.
+- Proof of work and time trap stopped no bot. A solved proof was bound to the form and the hour,
+  not to the message, so one nonce sent any number of messages for up to two hours; the relay
+  now remembers used proofs (`pow-*.spent` beside the counters) and refuses the second use. The
+  time trap compared the page's `Date.now()` with the relay's clock, which locked out a visitor
+  whose clock ran ahead by more than the time on the page, while `ts=1` passed; the script now
+  fetches a ticket from the relay when the page opens (`GET ?challenge=<id>`, which also carries
+  the proof-of-work challenge) with a signed stamp of that moment, sends it as `ts`, and the
+  relay measures on it with its own clock. A stamp that is not the relay's is `400 stamp`. The
+  build says that `pow: true` with `noScript: true` is skipped by a plain post.
 
 ## [0.1.1] - 2026-10-19
 

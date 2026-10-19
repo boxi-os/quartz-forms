@@ -19,15 +19,18 @@ hosting with PHP ≥ 8.1; no dependencies.
 ## What it checks
 
 - Origin against `allowedOrigins`; the form id against the generated list.
-- Honeypot (a filled form is told "sent" and nothing is sent), time trap, proof of work (when
-  the form enables it), captcha token (Turnstile or hCaptcha, unless the form is anonymous),
-  rate limit per form and hour (a counter file, no addresses).
+- Honeypot (a filled form is told "sent" and nothing is sent), time trap on a stamp the relay
+  signed when the page opened (`GET ?challenge=<id>` hands it out; measured with the relay's
+  clock), proof of work when the form enables it (one per message: used proofs are kept as
+  `pow-*.spent` files in `counters/` for two hours), captcha token (Turnstile or hCaptcha, unless
+  the form is anonymous), rate limit per form and hour (a counter file, counting mails, no
+  addresses).
 - Plain text: every field against its rule (unknown field, required, length, options, e-mail,
   number range, pattern); errors go back as `{field, code}` and the browser shows them at the
   fields. Encrypted: the ciphertext must be an armored PGP message; nothing else is readable.
 - The recipient is a name the config maps to an address. An address still at `@example.` is
   treated as missing.
-- A plain form post (a browser without JavaScript) carries no time stamp and no proof of work;
+- A plain form post (a browser without JavaScript) carries no stamp and no proof of work;
   it gets honeypot, rate limit and field checks, and a form with `noScript: false` refuses it.
   One that asks for encryption (`_encrypt`) is refused too: only the script can encrypt.
   The answer is the form's redirect (made absolute with the request's origin and the site's base
@@ -53,7 +56,8 @@ curl -i -X POST https://example.org/forms/send.php \
   -d '{"form":"contact","lang":"en","ts":0,"encrypted":false,"fields":{"message":"hello"}}'
 ```
 
-With `minSeconds` above 0 the `ts: 0` is refused as too fast, which proves the time trap.
+With `minSeconds` above 0 the `ts: 0` is refused as `stamp` (not the relay's), which proves the
+time trap; a stamp from `GET send.php?challenge=contact` sent back at once is `too_fast`.
 
 The repository's `test/relay.test.ts` runs this file under `php -S` with every refusal, the
 accepted paths (mail in an outbox file), the plain-form path and the rate limit; `npm test` runs

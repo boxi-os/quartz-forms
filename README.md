@@ -132,9 +132,9 @@ and names the pattern in the server's error log.
 | Key                 | Default  | Description                                                                                |
 | ------------------- | -------- | ------------------------------------------------------------------------------------------ |
 | `honeypot`          | `true`   | An invisible field that must stay empty.                                                   |
-| `minSeconds`        | `3`      | Seconds between opening the page and sending; `0` turns it off.                            |
+| `minSeconds`        | `3`      | Seconds between opening the page and sending, measured by the relay; `0` turns it off.     |
 | `noScript`          | `true`   | Accept plain form posts from browsers without JavaScript; see below.                       |
-| `pow`               | `false`  | Proof of work the relay checks (`relay` only).                                             |
+| `pow`               | `false`  | Proof of work the relay checks, one per message (`relay` only).                            |
 | `powDifficulty`     | `16`     | Leading zero bits; 16 takes a fraction of a second.                                        |
 | `captcha`           | `none`   | `turnstile` or `hcaptcha`; loads that provider's script. Ignored when anonymous.           |
 | `captchaSiteKey`    | `""`     | The provider's site key; the secret key goes into the relay's `config.php`.                |
@@ -144,11 +144,17 @@ and names the pattern in the server's error log.
 | `maxKeyLength`      | `16384`  | Length limit of a pasted public key.                                                       |
 | `maxBytes`          | `131072` | Size limit of a whole submission, in bytes; the build warns when the fields may hold more. |
 
+With the relay, the script fetches a ticket when the page opens (`GET send.php?challenge=<id>`):
+a stamp of that moment signed by the relay, and the hour's proof-of-work challenge if the form
+asks for one. The time trap is measured on that stamp with the relay's clock, so a visitor's
+clock that runs ahead does not lock them out, and a made-up stamp is refused. A solved proof of
+work sends one message; the relay remembers used ones beside its counters.
+
 Without JavaScript a form with `encryption: off` or `optional` posts as a plain form to the relay,
-which answers with the redirect or a short page. Such a post carries neither the time stamp nor a
-proof of work, so the relay applies only honeypot, rate limit and field checks to it. `noScript:
-false` refuses these posts and renders the form without a target until the script runs, with a
-`<noscript>` note. With `optional` the "send encrypted" box stays unticked and disabled until the
+which answers with the redirect or a short page. Such a post carries neither the stamp nor a
+proof of work, so the relay applies only honeypot, rate limit and field checks to it; with
+`pow: true` the build says so. `noScript: false` refuses these posts and renders the form without
+a target until the script runs, with a `<noscript>` note. With `optional` the "send encrypted" box stays unticked and disabled until the
 script enables it, and a `<noscript>` note says the form sends unencrypted; a plain post that
 carries the box anyway is refused by the relay.
 

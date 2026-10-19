@@ -38,6 +38,6 @@ return $generated + [
         'owner' => 'you@example.org',
     ],
 
-    // Where the per-form hourly counters live (no addresses, just a number per form and hour).
+    // Where the per-form hourly counters and the used proofs of work live (no addresses).
     'counterDir' => __DIR__ . '/counters',
 ];
