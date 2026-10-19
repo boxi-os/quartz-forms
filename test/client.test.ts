@@ -79,7 +79,9 @@ beforeAll(() => {
     compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.None },
   });
   // The field check alone, for the parity catalog (the script keeps nothing on window itself).
-  new Function(`${outputText};window.__qfTest = { qfCheck };`)();
+  new Function(
+    `${outputText};window.__qfTest = { qfCheck, QF_POW_WORKER, qfSolveHere, qfNoncePrefix };`,
+  )();
 });
 
 beforeEach(() => {
@@ -725,7 +727,10 @@ describe("proof of work", () => {
       "https://example.org/forms/send.php?challenge=f",
     );
     const body = JSON.parse(String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body));
-    expect(body.pow).toEqual({ challenge: "abc123", nonce: expect.stringMatching(/^\d+$/) });
+    expect(body.pow).toEqual({
+      challenge: "abc123",
+      nonce: expect.stringMatching(/^[A-Za-z0-9_-]{12}-\d+$/),
+    });
     const digest = createHash("sha256").update(`abc123:${body.pow.nonce}`).digest();
     expect(digest[0]).toBe(0); // 8 leading zero bits
     expect(status(form).state).toBe("success");
@@ -743,8 +748,12 @@ describe("proof of work", () => {
       constructor(url: string) {
         expect(url).toBe("blob:fake");
       }
-      postMessage(data: { challenge: string; difficulty: number }) {
-        expect(data).toEqual({ challenge: "abc123", difficulty: 8 });
+      postMessage(data: { challenge: string; difficulty: number; prefix: string }) {
+        expect(data).toEqual({
+          challenge: "abc123",
+          difficulty: 8,
+          prefix: expect.stringMatching(/^[A-Za-z0-9_-]{12}-$/),
+        });
         void Promise.resolve().then(() => this.onmessage?.({ data: "424242" } as MessageEvent));
       }
       terminate = terminate;
@@ -838,6 +847,42 @@ describe("proof of work", () => {
       delete u.createObjectURL;
       delete u.revokeObjectURL;
     }
+  }, 30_000);
+
+  it("starts the nonce at a random prefix, so visitors sharing the hour's challenge never spend the same proof", async () => {
+    // Second review, finding 1 (2026-10-19): the challenge is HMAC(form|hour), the same for every
+    // visitor of the hour, and both solvers counted from 0, so every browser found the same nonce
+    // (193903 for "abc123" at 16 bits, in Chrome and WebKit alike). The first post spent it and
+    // every later one in that hour got "400 pow: already used". The relay suite never saw it
+    // because its solver started at a random number. This runs the Worker's source itself.
+    const { createHash } = await import("node:crypto");
+    const { QF_POW_WORKER, qfSolveHere, qfNoncePrefix } = (
+      window as unknown as Record<
+        string,
+        {
+          QF_POW_WORKER: string;
+          qfSolveHere: (c: string, d: number, p: string) => Promise<string>;
+          qfNoncePrefix: () => string;
+        }
+      >
+    ).__qfTest!;
+    const posted = vi.fn();
+    const onmessage = new Function(
+      "postMessage",
+      `let onmessage; ${QF_POW_WORKER}; return onmessage;`,
+    )(posted) as (e: { data: unknown }) => Promise<void>;
+    const nonces: string[] = [];
+    for (let i = 0; i < 2; i++) {
+      posted.mockClear();
+      await onmessage({ data: { challenge: "abc123", difficulty: 8, prefix: qfNoncePrefix() } });
+      nonces.push(String(posted.mock.calls[0]![0]));
+    }
+    nonces.push(await qfSolveHere("abc123", 8, qfNoncePrefix()));
+    for (const nonce of nonces) {
+      expect(nonce).toMatch(/^[A-Za-z0-9_-]{12}-\d+$/); // what the relay accepts, 64 at most
+      expect(createHash("sha256").update(`abc123:${nonce}`).digest()[0]).toBe(0);
+    }
+    expect(new Set(nonces.map((n) => n.slice(0, 13))).size).toBe(3);
   }, 30_000);
 
   it("sends no proof when the relay says the form does not need one", async () => {

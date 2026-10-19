@@ -171,6 +171,19 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   `maxlength` does, read numbers in decimal notation only, ask for a calendar day, take digits
   only on a scale, and know a tick as "yes".
 
+Fixes from a second review of the changes above (another model, fresh context, 2026-10-19):
+
+- With `pow: true`, only the first visitor of an hour got through. The challenge is the relay's
+  HMAC over form and hour, the same for everyone in that hour, and the script counted the nonce
+  from 0, so every browser found the same one (193903 for "abc123" at 16 bits, in Chrome and
+  WebKit); the first post spent it and every later post was refused as "already used". The relay
+  also spent the proof before it looked at captcha and fields, so a visitor whose post was
+  refused could not send the corrected one until the hour changed, while the page said "please
+  try again". The nonce now starts at twelve random characters, and the relay marks a proof as
+  used only right before the mail, after every check the visitor can fail. The relay suite's
+  solver now counts from 0 like the browser; it used to start at a random number, which hid the
+  collision.
+
 ## [0.1.1] - 2026-10-19
 
 Measured the PHP relay against PHP 8.5.11 (`php -S`): 46 requests covering every refusal

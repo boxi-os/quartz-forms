@@ -296,6 +296,11 @@ function qf_counter_dir(array $config): ?string
  * hour, not to the message, so one solved nonce would otherwise send any number of messages for
  * up to two hours (review finding, 2026-10-19: the same nonce three times, three mails). One
  * file per used proof beside the counters; files older than the challenge's two windows go.
+ *
+ * Called after every check the visitor can fail, right before the mail: the proof used to be
+ * spent before the captcha and the fields were looked at, so a refused post burnt it, and the
+ * corrected message was refused as "already used" until the hour changed (second review,
+ * finding 1, 2026-10-19). A proof is spent by the message it buys.
  */
 function qf_pow_spent(array $config, string $challenge, string $nonce): bool
 {
@@ -916,13 +921,13 @@ if ($minSeconds > 0 && !$isForm) {
     }
 }
 
+// The proof is checked here, so no captcha call and no field check is spent on a bot without
+// one, but it is marked as used only after every check the visitor can fail (see qf_pow_spent).
+$pow = null;
 if (!empty($spam['pow']) && !$isForm) {
     $pow = $envelope['pow'] ?? null;
     if (!qf_pow_valid($config, $formId, (int) ($spam['powDifficulty'] ?? 16), $pow)) {
         qf_fail(400, 'pow', 'the proof of work is missing or wrong');
-    }
-    if (qf_pow_spent($config, $pow['challenge'], $pow['nonce'])) {
-        qf_fail(400, 'pow', 'this proof of work was already used');
     }
 }
 
@@ -1044,6 +1049,9 @@ if (!empty($config['subjectPrefix'])) {
 
 // The hour's quota counts mails, not posts: counted here, after every check, so refused posts
 // cannot use it up (review finding, 2026-10-19: two invalid posts spent two of three).
+if ($pow !== null && qf_pow_spent($config, $pow['challenge'], $pow['nonce'])) {
+    qf_fail(400, 'pow', 'this proof of work was already used');
+}
 if (qf_rate_limited($config, $formId, (int) ($spam['rateLimitPerHour'] ?? 0))) {
     qf_fail(429, 'rate_limited', 'too many messages at the moment');
 }

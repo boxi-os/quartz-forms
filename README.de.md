@@ -153,7 +153,9 @@ einen vom Relay signierten Stempel dieses Moments und, wenn das Formular es verl
 Proof-of-Work-Aufgabe der Stunde. Die Zeitfalle misst das Relay an diesem Stempel mit seiner
 eigenen Uhr; eine vorgehende Uhr des Besuchers sperrt niemanden aus, ein erfundener Stempel wird
 abgewiesen. Ein gelöstes Proof-of-Work sendet eine Nachricht; verbrauchte merkt sich das Relay
-neben seinen Zählern.
+neben seinen Zählern und markiert eines erst, wenn die Nachricht angenommen ist, damit ein
+abgewiesener Post den Besucher kein neues kostet. Die Nonce beginnt mit einem zufälligen Präfix,
+weil die Aufgabe für alle Besucher der Stunde dieselbe ist.
 
 Ohne JavaScript schickt ein Formular mit `encryption: off` oder `optional` einen einfachen
 Formular-Post ans Relay, das mit der Weiterleitung oder einer kurzen Seite antwortet. Ein solcher

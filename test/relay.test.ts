@@ -354,7 +354,16 @@ function lastMail(): { headers: string; body: string; raw: string } {
   const body = /Content-Transfer-Encoding: quoted-printable/i.test(headers) ? qpDecode(raw) : raw;
   return { headers, body, raw };
 }
-function solve(ch: string, difficulty: number): { challenge: string; nonce: string } {
+/**
+ * Solves like the browser: a random prefix, then counting from 0. The suite used to start at a
+ * random number while the browser counted from 0, so it never saw that every visitor of an hour
+ * found the same nonce (second review, finding 1, 2026-10-19).
+ */
+function solve(
+  ch: string,
+  difficulty: number,
+  prefix = crypto.randomBytes(9).toString("base64url") + "-",
+): { challenge: string; nonce: string } {
   const bits = (buf: Buffer) => {
     let n = 0;
     for (const b of buf) {
@@ -367,8 +376,8 @@ function solve(ch: string, difficulty: number): { challenge: string; nonce: stri
     }
     return n;
   };
-  for (let i = Math.floor(Math.random() * 2 ** 40); ; i++) {
-    const nonce = i.toString(36);
+  for (let i = 0; ; i++) {
+    const nonce = prefix + i;
     if (bits(crypto.createHash("sha256").update(`${ch}:${nonce}`).digest()) >= difficulty)
       return { challenge: ch, nonce };
   }
@@ -655,6 +664,31 @@ describe.skipIf(!php)("relay: refusals", () => {
     const spent = fs.readdirSync(path.join(dir, "counters")).filter((f) => f.endsWith(".spent"));
     expect(spent.length).toBeGreaterThan(0);
     expect(spent[0]).toMatch(/^pow-\d+-[0-9a-f]{32}\.spent$/);
+  });
+  it("a proof is spent by the message it buys, not by a post the relay refuses", async () => {
+    // Second review, finding 1 (2026-10-19): the proof was marked used before the captcha and
+    // the fields were checked, so after a refusal (a field only the relay rejects, an expired
+    // captcha token) the corrected message got "400 pow: already used", and the page's "please
+    // try again" could not be followed until the hour changed. Two visitors who count from the
+    // same start (the browsers did) find the same nonce; the relay must at least not burn it on
+    // a refusal.
+    const spentFiles = () =>
+      fs.readdirSync(path.join(dir, "counters")).filter((f) => f.endsWith(".spent")).length;
+    const adaMails = () => mails().filter((m) => m.includes("Name: Ada Lovelace")).length;
+    const pow = solve(challenge, 8, "same-start-");
+    const before = spentFiles();
+    const sent = adaMails();
+    const refused = await post(
+      env("contact", { ...contactFields, email: "not-an-address" }, { pow }),
+    );
+    expect([refused.status, refused.json?.error]).toEqual([400, "invalid"]);
+    expect(spentFiles()).toBe(before);
+    const fixed = await post(env("contact", contactFields, { pow }));
+    expect(fixed.json).toEqual({ ok: true });
+    expect(spentFiles()).toBe(before + 1);
+    const again = await post(env("contact", contactFields, { pow }));
+    expect([again.status, again.json?.error]).toEqual([400, "pow"]);
+    expect(adaMails()).toBe(sent + 1);
   });
   it("encryption: plaintext to a required form, ciphertext to an off form, ciphertext without armor", async () => {
     const plainToEnc = await post(env("enc", { a: "x" }));

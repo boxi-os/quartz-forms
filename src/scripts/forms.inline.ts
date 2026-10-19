@@ -571,6 +571,12 @@ async function qfFetchTicket(cfg: QfConfig): Promise<QfTicketAt> {
 // desktop, 2026-10-19; a phone is several times slower). Where no Worker can run (no `Worker`, a
 // CSP without `blob:`), the main thread hashes and yields after 10 ms of work, not after 64
 // hashes: 0.1 to 1.1 s for 16 bits, the page still at 60 fps.
+//
+// The nonce starts at a random prefix. The challenge is the relay's HMAC over form and hour, the
+// same for every visitor of that hour, and a solver counting from 0 finds the same nonce for all
+// of them (193903 for "abc123" at 16 bits, in Chrome and WebKit alike): the first visitor's post
+// spent it, and every later post of the hour was refused as "already used" (second review,
+// finding 1, 2026-10-19). 72 random bits per solve keep two visitors apart.
 const QF_POW_WORKER = `
 function bits(bytes) {
   let n = 0;
@@ -583,13 +589,14 @@ function bits(bytes) {
 }
 onmessage = async (e) => {
   try {
-    const { challenge, difficulty } = e.data;
+    const { challenge, difficulty, prefix } = e.data;
     const encoder = new TextEncoder();
-    for (let nonce = 0; ; nonce++) {
+    for (let n = 0; ; n++) {
+      const nonce = prefix + n;
       const digest = new Uint8Array(
         await crypto.subtle.digest("SHA-256", encoder.encode(challenge + ":" + nonce)),
       );
-      if (bits(digest) >= difficulty) { postMessage(String(nonce)); return; }
+      if (bits(digest) >= difficulty) { postMessage(nonce); return; }
     }
   } catch {
     postMessage(null);
@@ -597,8 +604,22 @@ onmessage = async (e) => {
 };
 `;
 
+/** Twelve random characters of the relay's nonce alphabet and a dash: the start of a nonce. */
+function qfNoncePrefix(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(9));
+  return (
+    btoa(String.fromCharCode(...bytes))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_") + "-"
+  );
+}
+
 /** The nonce from a Worker, or null when none can run here or it failed. */
-function qfSolveInWorker(challenge: string, difficulty: number): Promise<string | null> {
+function qfSolveInWorker(
+  challenge: string,
+  difficulty: number,
+  prefix: string,
+): Promise<string | null> {
   try {
     if (typeof Worker === "undefined") return Promise.resolve(null);
     const url = URL.createObjectURL(new Blob([QF_POW_WORKER], { type: "text/javascript" }));
@@ -611,7 +632,7 @@ function qfSolveInWorker(challenge: string, difficulty: number): Promise<string 
       };
       worker.onmessage = (e: MessageEvent) => done(typeof e.data === "string" ? e.data : null);
       worker.onerror = () => done(null);
-      worker.postMessage({ challenge, difficulty });
+      worker.postMessage({ challenge, difficulty, prefix });
     });
   } catch {
     return Promise.resolve(null);
@@ -619,14 +640,15 @@ function qfSolveInWorker(challenge: string, difficulty: number): Promise<string 
 }
 
 /** The nonce found on the main thread, yielding after every 10 ms of hashing. */
-async function qfSolveHere(challenge: string, difficulty: number): Promise<string> {
+async function qfSolveHere(challenge: string, difficulty: number, prefix: string): Promise<string> {
   const encoder = new TextEncoder();
   let since = performance.now();
-  for (let nonce = 0; ; nonce++) {
+  for (let n = 0; ; n++) {
+    const nonce = prefix + n;
     const digest = new Uint8Array(
       await crypto.subtle.digest("SHA-256", encoder.encode(`${challenge}:${nonce}`)),
     );
-    if (qfLeadingZeroBits(digest) >= difficulty) return String(nonce);
+    if (qfLeadingZeroBits(digest) >= difficulty) return nonce;
     if (performance.now() - since > 10) {
       await new Promise((r) => setTimeout(r, 0));
       since = performance.now();
@@ -642,9 +664,10 @@ async function qfProofOfWork(cfg: QfConfig, data: QfTicket | null): Promise<QfPo
   if (!cfg.spam.pow || cfg.transport.kind !== "relay") return undefined;
   if (!data?.pow || !data.challenge) return undefined;
   const difficulty = data.difficulty ?? cfg.spam.powDifficulty;
+  const prefix = qfNoncePrefix();
   const nonce =
-    (await qfSolveInWorker(data.challenge, difficulty)) ??
-    (await qfSolveHere(data.challenge, difficulty));
+    (await qfSolveInWorker(data.challenge, difficulty, prefix)) ??
+    (await qfSolveHere(data.challenge, difficulty, prefix));
   return { challenge: data.challenge, nonce };
 }
 
