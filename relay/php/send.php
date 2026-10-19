@@ -18,6 +18,9 @@ declare(strict_types=1);
 
 const QF_HONEYPOT = '_hp_website';
 const QF_VERSION = '0.1.1';
+/** What config.example.php ships as `secret`; relay:config replaces it, a hand copy may not. */
+const QF_SECRET_PLACEHOLDER = 'REPLACE-WITH-A-LONG-RANDOM-STRING';
+const QF_SECRET_MIN_LENGTH = 32;
 
 $config = require __DIR__ . '/config.php';
 header_remove('X-Powered-By');
@@ -166,10 +169,29 @@ function qf_cors(array $config): void
     }
 }
 
+/**
+ * The key that signs challenges and stamps. A copied config.example.php signed with the
+ * placeholder, a missing key with '' (review finding 21, 2026-10-19): anyone who reads the
+ * example could forge a stamp. The owner's mistake, said as 500 like a missing address; only
+ * asked for where a signature is needed, so a form without time trap and proof of work works
+ * without a secret.
+ */
+function qf_secret(array $config): string
+{
+    $secret = $config['secret'] ?? '';
+    if (!is_string($secret) || strlen($secret) < QF_SECRET_MIN_LENGTH || $secret === QF_SECRET_PLACEHOLDER) {
+        qf_fail(500, 'secret_config', sprintf(
+            'the secret in config.php is missing, shorter than %d characters or still the placeholder',
+            QF_SECRET_MIN_LENGTH
+        ));
+    }
+    return $secret;
+}
+
 /** Challenge for the proof of work: stateless, bound to the form and the hour. */
 function qf_challenge(array $config, string $form, int $window): string
 {
-    return hash_hmac('sha256', $form . '|' . $window, (string) $config['secret']);
+    return hash_hmac('sha256', $form . '|' . $window, qf_secret($config));
 }
 
 /**
@@ -180,7 +202,7 @@ function qf_challenge(array $config, string $form, int $window): string
  */
 function qf_stamp(array $config, int $issued): string
 {
-    return $issued . '.' . hash_hmac('sha256', 'stamp|' . $issued, (string) $config['secret']);
+    return $issued . '.' . hash_hmac('sha256', 'stamp|' . $issued, qf_secret($config));
 }
 
 /** Seconds since the relay issued the stamp; null when it is not the relay's, or older than a day. */

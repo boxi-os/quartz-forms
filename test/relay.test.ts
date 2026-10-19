@@ -124,16 +124,18 @@ let base = "";
 const relaySecret = `test-secret-${crypto.randomBytes(16).toString("hex")}`;
 /** The hand-written config.php; PHP reads it per request, so a test may rewrite it. */
 function writeConfig(
-  extra = `'captchaSecret' => 'cap-secret',`,
-  origins: string[] = [ORIGIN],
+  options: { extra?: string; origins?: string[]; secret?: string | null } = {},
 ): void {
+  const extra = options.extra ?? `'captchaSecret' => 'cap-secret',`;
+  const origins = options.origins ?? [ORIGIN];
+  const secret = options.secret === undefined ? relaySecret : options.secret;
   fs.writeFileSync(
     path.join(dir, "config.php"),
     `<?php
 declare(strict_types=1);
 $generated = require __DIR__ . '/config.generated.php';
 return $generated + [
-    'secret' => '${relaySecret}',
+    ${secret === null ? "" : `'secret' => '${secret}',`}
     'allowedOrigins' => ${JSON.stringify(origins).replace(/"/g, "'")},
     'from' => 'forms@relay.test',
     'subjectPrefix' => '',
@@ -339,6 +341,37 @@ describe.skipIf(!php)("relay: challenge and CORS", () => {
     const foreign = await get("challenge=contact", "https://evil.test");
     expect([foreign.status, foreign.json?.error]).toEqual([403, "origin"]);
   });
+  it("refuses to sign with the placeholder, a short or a missing secret, and tells the owner", async () => {
+    // Review finding 21 (2026-10-19): a config.example.php copied by hand signed challenges and
+    // stamps with 'REPLACE-WITH-A-LONG-RANDOM-STRING', a missing key with ''. Anyone who reads
+    // the example can then forge a stamp. The owner's mistake, said as 500 like a missing address.
+    const want = [500, "secret_config"];
+    for (const secret of ["REPLACE-WITH-A-LONG-RANDOM-STRING", "short-secret", null]) {
+      writeConfig({ secret });
+      try {
+        const ticket = await get("challenge=feedback");
+        expect([String(secret), ticket.status, ticket.json?.error]).toEqual([
+          String(secret),
+          ...want,
+        ]);
+        expect(String(ticket.json?.message)).toContain("config.php");
+        // A post that needs the secret (the time trap) is refused the same way, nothing is mailed.
+        const before = mails().length;
+        const r = await post(env("feedback", { rating: "4" }));
+        expect([r.status, r.json?.error]).toEqual(want);
+        expect(mails().length).toBe(before);
+      } finally {
+        writeConfig();
+      }
+    }
+    // A form that needs no signature (no time trap, no proof of work) still works without one.
+    writeConfig({ secret: null });
+    try {
+      expect((await plain({ form: "feedback", lang: "en-US", rating: "5" })).status).toBe(200);
+    } finally {
+      writeConfig();
+    }
+  });
   it("answers a preflight", async () => {
     const res = await fetch(`${base}/send.php`, {
       method: "OPTIONS",
@@ -456,14 +489,14 @@ describe.skipIf(!php)("relay: refusals", () => {
     expect([bad.status, bad.json?.error]).toEqual([400, "captcha"]);
     const none = await post(env("captcha", { a: "x" }));
     expect([none.status, none.json?.error]).toEqual([400, "captcha"]);
-    writeConfig("");
+    writeConfig({ extra: "" });
     try {
       const unset = await post(env("captcha", { a: "x" }, { captcha: "good" }));
       expect([unset.status, unset.json?.error]).toEqual([500, "captcha_config"]);
     } finally {
       writeConfig();
     }
-    writeConfig(`'captchaSecrets' => ['captcha' => 'cap-secret'],`);
+    writeConfig({ extra: `'captchaSecrets' => ['captcha' => 'cap-secret'],` });
     try {
       expect((await post(env("captcha", { a: "x" }, { captcha: "good" }))).json).toEqual({
         ok: true,
@@ -546,7 +579,7 @@ describe.skipIf(!php)("relay: a browser without JavaScript (plain form post)", (
   it("with an empty allowedOrigins the redirect goes to the site's address from baseUrl, never to the request's Origin", async () => {
     // Review finding 11 (2026-10-19): the redirect base came from the Origin header, which an
     // empty list accepted from anyone: an open redirect, on the honeypot path too.
-    writeConfig(undefined, []);
+    writeConfig({ origins: [] });
     try {
       const evil = { origin: "https://evil.test" };
       const r = await post(

@@ -79,6 +79,11 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   `.htaccess` that denies the web (Apache 2.4 and 2.2 syntax), the relay writes it again when it
   is missing, the example outbox path is outside the web root, and the README says to put
   `counterDir` outside the web root or to deny it in nginx.
+- A `config.php` copied by hand from the example signed stamps and challenges with
+  `REPLACE-WITH-A-LONG-RANDOM-STRING`, a missing `secret` with an empty key, so anyone who read
+  the example could forge a stamp. A missing, placeholder or short secret (under 32 characters)
+  now answers `500 secret_config` wherever a signature is needed, with the reason in the
+  message; a form without time trap and proof of work still works without one.
 
 ## [0.1.1] - 2026-10-19
 

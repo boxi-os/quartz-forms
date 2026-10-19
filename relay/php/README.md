@@ -9,7 +9,9 @@ hosting with PHP ≥ 8.1; no dependencies.
    `relay/php/config.generated.php` (forms, fields, spam settings from the site's
    `quartz.config.yaml`) and, once, `relay/php/config.php` with a fresh secret.
 2. Edit `config.php`: your origin(s), the `from` address, the recipient addresses, and the
-   captcha provider's secret key (`captchaSecret`) when a form uses `spam.captcha`.
+   captcha provider's secret key (`captchaSecret`) when a form uses `spam.captcha`. If you
+   copied `config.example.php` by hand instead, set `secret` to a random value of at least 32
+   characters (`openssl rand -base64 32`); the relay refuses to sign with the placeholder.
 3. Upload `send.php`, `config.php`, `config.generated.php` and the writable `counters/`
    directory with its `.htaccess` to your web space, e.g. `https://example.org/forms/`. The
    counter files say how many messages a form got; the `.htaccess` keeps Apache from serving

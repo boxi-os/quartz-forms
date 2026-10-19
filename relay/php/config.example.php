@@ -12,7 +12,9 @@ declare(strict_types=1);
 $generated = require __DIR__ . '/config.generated.php';
 
 return $generated + [
-    // Random, long, never on the site. Signs the proof-of-work challenges.
+    // Random, at least 32 characters (e.g. `openssl rand -base64 32`), never on the site. Signs
+    // the time stamps and the proof-of-work challenges; the relay refuses to sign with this
+    // placeholder or a shorter value.
     'secret' => 'REPLACE-WITH-A-LONG-RANDOM-STRING',
 
     // Where the site lives; the relay answers only to these origins. Empty list: any origin
