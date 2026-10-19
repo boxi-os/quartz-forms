@@ -506,7 +506,7 @@ function qfResetCaptcha(form: HTMLFormElement, provider: string): void {
   }
 }
 
-/* ---- Proof of work for the relay: a few hundred milliseconds of hashing, no third party ---- */
+/* ---- Proof of work for the relay: hashing in a Worker, no third party ---- */
 
 interface QfPow {
   challenge: string;
@@ -545,27 +545,88 @@ async function qfFetchTicket(cfg: QfConfig): Promise<QfTicketAt> {
   }
 }
 
+// The hashing runs in a Worker made from a Blob. The same loop on the main thread, yielding with
+// setTimeout(0) after every 64 hashes, took 3 to 35 s for 16 bits in Chrome: a hash costs 2 µs,
+// each pause about 5 ms, so the pauses were 40 times the work. The Worker takes 0.1 to 0.9 s
+// for 16 bits and 0.1 to 1 s for 18 (review finding 18, measured in headless Chrome on a
+// desktop, 2026-10-19; a phone is several times slower). Where no Worker can run (no `Worker`, a
+// CSP without `blob:`), the main thread hashes and yields after 10 ms of work, not after 64
+// hashes: 0.1 to 1.1 s for 16 bits, the page still at 60 fps.
+const QF_POW_WORKER = `
+function bits(bytes) {
+  let n = 0;
+  for (const b of bytes) {
+    if (b === 0) { n += 8; continue; }
+    n += Math.clz32(b) - 24;
+    break;
+  }
+  return n;
+}
+onmessage = async (e) => {
+  try {
+    const { challenge, difficulty } = e.data;
+    const encoder = new TextEncoder();
+    for (let nonce = 0; ; nonce++) {
+      const digest = new Uint8Array(
+        await crypto.subtle.digest("SHA-256", encoder.encode(challenge + ":" + nonce)),
+      );
+      if (bits(digest) >= difficulty) { postMessage(String(nonce)); return; }
+    }
+  } catch {
+    postMessage(null);
+  }
+};
+`;
+
+/** The nonce from a Worker, or null when none can run here or it failed. */
+function qfSolveInWorker(challenge: string, difficulty: number): Promise<string | null> {
+  try {
+    if (typeof Worker === "undefined") return Promise.resolve(null);
+    const url = URL.createObjectURL(new Blob([QF_POW_WORKER], { type: "text/javascript" }));
+    const worker = new Worker(url);
+    return new Promise((resolve) => {
+      const done = (nonce: string | null) => {
+        worker.terminate();
+        URL.revokeObjectURL(url);
+        resolve(nonce);
+      };
+      worker.onmessage = (e: MessageEvent) => done(typeof e.data === "string" ? e.data : null);
+      worker.onerror = () => done(null);
+      worker.postMessage({ challenge, difficulty });
+    });
+  } catch {
+    return Promise.resolve(null);
+  }
+}
+
+/** The nonce found on the main thread, yielding after every 10 ms of hashing. */
+async function qfSolveHere(challenge: string, difficulty: number): Promise<string> {
+  const encoder = new TextEncoder();
+  let since = performance.now();
+  for (let nonce = 0; ; nonce++) {
+    const digest = new Uint8Array(
+      await crypto.subtle.digest("SHA-256", encoder.encode(`${challenge}:${nonce}`)),
+    );
+    if (qfLeadingZeroBits(digest) >= difficulty) return String(nonce);
+    if (performance.now() - since > 10) {
+      await new Promise((r) => setTimeout(r, 0));
+      since = performance.now();
+    }
+  }
+}
+
 /**
- * Finds a nonce whose SHA-256 over `challenge:nonce` has the required leading zero bits. Hashes
- * in batches and yields between them so the page stays responsive. Returns nothing when the
- * form does not ask for it.
+ * Finds a nonce whose SHA-256 over `challenge:nonce` has the required leading zero bits, in a
+ * Worker where one can run. Returns nothing when the form does not ask for it.
  */
 async function qfProofOfWork(cfg: QfConfig, data: QfTicket | null): Promise<QfPow | undefined> {
   if (!cfg.spam.pow || cfg.transport.kind !== "relay") return undefined;
   if (!data?.pow || !data.challenge) return undefined;
   const difficulty = data.difficulty ?? cfg.spam.powDifficulty;
-  const encoder = new TextEncoder();
-  let nonce = 0;
-  for (;;) {
-    for (let i = 0; i < 64; i++, nonce++) {
-      const digest = new Uint8Array(
-        await crypto.subtle.digest("SHA-256", encoder.encode(`${data.challenge}:${nonce}`)),
-      );
-      if (qfLeadingZeroBits(digest) >= difficulty)
-        return { challenge: data.challenge, nonce: String(nonce) };
-    }
-    await new Promise((r) => setTimeout(r, 0));
-  }
+  const nonce =
+    (await qfSolveInWorker(data.challenge, difficulty)) ??
+    (await qfSolveHere(data.challenge, difficulty));
+  return { challenge: data.challenge, nonce };
 }
 
 function qfInternalUrl(slug: string): string {

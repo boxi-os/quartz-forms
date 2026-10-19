@@ -1216,11 +1216,11 @@
             "powDifficulty": {
               "type": "integer",
               "minimum": 8,
-              "maximum": 24,
-              "description": "Leading zero bits the proof must reach; 16 takes a fraction of a second.",
+              "maximum": 20,
+              "description": "Leading zero bits the proof must reach, 8 to 20; 16 takes up to a second on a desktop, 18 and more take seconds on a phone.",
               "x-quartz-l10n": {
                 "de": {
-                  "description": "Führende Nullbits, die der Nachweis erreichen muss; 16 dauert einen Sekundenbruchteil."
+                  "description": "Führende Nullbits, die der Nachweis erreichen muss, 8 bis 20; 16 dauert auf einem Desktop bis zu einer Sekunde, ab 18 auf einem Telefon Sekunden."
                 }
               },
               "x-quartz-order": 40,
@@ -1477,11 +1477,11 @@
             "powDifficulty": {
               "type": "integer",
               "minimum": 8,
-              "maximum": 24,
-              "description": "Leading zero bits the proof must reach; 16 takes a fraction of a second.",
+              "maximum": 20,
+              "description": "Leading zero bits the proof must reach, 8 to 20; 16 takes up to a second on a desktop, 18 and more take seconds on a phone.",
               "x-quartz-l10n": {
                 "de": {
-                  "description": "Führende Nullbits, die der Nachweis erreichen muss; 16 dauert einen Sekundenbruchteil."
+                  "description": "Führende Nullbits, die der Nachweis erreichen muss, 8 bis 20; 16 dauert auf einem Desktop bis zu einer Sekunde, ab 18 auf einem Telefon Sekunden."
                 }
               },
               "x-quartz-order": 40,

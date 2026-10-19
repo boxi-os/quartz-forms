@@ -146,6 +146,15 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   (the default of `php -S`). Every value the relay reads from the envelope is now checked for
   its type and refused as JSON when it is not a string where a string belongs; a field value
   that is not a string is `invalid` (`true` used to pass as "1", a scale's first step).
+- The proof of work was hashed on the main thread, yielding after every 64 hashes, and
+  `powDifficulty` went up to 24. Measured in headless Chrome: a hash costs 2 µs, each yield about
+  5 ms, so 16 bits took 3 to 35 s while the page stayed at 60 fps, and the README's "fraction of
+  a second" was not true; 24 bits would have taken minutes. The script now hashes in a Worker
+  made from a Blob (0.1 to 0.9 s for 16 bits, 0.7 to 1.7 s for 20) and falls back to the main
+  thread where no Worker can run (no `Worker`, a CSP without `blob:`), yielding after 10 ms of
+  work, which takes 0.1 to 1.1 s for 16 bits at 60 fps. The build allows 8 to 20 and says from
+  18 on that a phone needs seconds before every message; the schema, the READMEs and the type
+  comment say the same.
 
 ## [0.1.1] - 2026-10-19
 

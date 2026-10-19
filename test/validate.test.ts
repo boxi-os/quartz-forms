@@ -224,8 +224,21 @@ describe("validate: transport, encryption, spam, success", () => {
 
   it("checks the spam settings and says what has no effect", () => {
     expect(problemsOf({ spam: { powDifficulty: 4 } as never })).toEqual([
-      "forms.contact.spam.powDifficulty: an integer from 8 to 24",
+      "forms.contact.spam.powDifficulty: an integer from 8 to 20",
     ]);
+    // 24 bits took minutes on a desktop (review finding 18, 2026-10-19); from 18 the build warns.
+    expect(problemsOf({ spam: { powDifficulty: 24 } as never })).toEqual([
+      "forms.contact.spam.powDifficulty: an integer from 8 to 20",
+    ]);
+    expect(
+      resolveOptions(options({ spam: { pow: true, powDifficulty: 18 } as never })).hints,
+    ).toEqual([
+      "forms.contact.spam.pow: a plain post without JavaScript (noScript: true) skips it; noScript: false requires the script",
+      "forms.contact.spam.powDifficulty: 18 bits take seconds on a phone before every message",
+    ]);
+    expect(
+      resolveOptions(options({ spam: { pow: false, powDifficulty: 20 } as never })).hints,
+    ).toEqual([]);
     expect(problemsOf({ spam: { captcha: "turnstile" } as never })).toEqual([
       "forms.contact.spam.captchaSiteKey: turnstile needs the site key",
     ]);

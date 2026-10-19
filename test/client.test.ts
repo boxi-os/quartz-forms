@@ -729,6 +729,115 @@ describe("proof of work", () => {
     expect(status(form).state).toBe("success");
   }, 30_000);
 
+  it("hashes in a Worker made from a Blob, sends its nonce and terminates it", async () => {
+    // Review finding 18 (2026-10-19): on the main thread, yielding after every 64 hashes, 16 bits
+    // took 3 to 35 s in Chrome; the same loop in a Worker takes 0.1 to 0.9 s.
+    const { createHash } = await import("node:crypto");
+    const blobs: Blob[] = [];
+    const terminate = vi.fn();
+    class FakeWorker {
+      onmessage: ((e: MessageEvent) => void) | null = null;
+      onerror: (() => void) | null = null;
+      constructor(url: string) {
+        expect(url).toBe("blob:fake");
+      }
+      postMessage(data: { challenge: string; difficulty: number }) {
+        expect(data).toEqual({ challenge: "abc123", difficulty: 8 });
+        void Promise.resolve().then(() => this.onmessage?.({ data: "424242" } as MessageEvent));
+      }
+      terminate = terminate;
+    }
+    const w = window as unknown as Record<string, unknown>;
+    const u = URL as unknown as Record<string, unknown>;
+    w.Worker = FakeWorker;
+    u.createObjectURL = vi.fn((blob: Blob) => {
+      blobs.push(blob);
+      return "blob:fake";
+    });
+    u.revokeObjectURL = vi.fn();
+    try {
+      const form = mount(
+        contact({ ...quick, spam: { minSeconds: 0, pow: true, powDifficulty: 8 } }),
+      );
+      fetchMock.mockImplementation(async (url: string) =>
+        String(url).includes("?challenge=f")
+          ? ok({ ok: true, pow: true, challenge: "abc123", difficulty: 8 })
+          : ok(),
+      );
+      await nav();
+      fill(form, "message", "work");
+      await submit(form);
+      for (let i = 0; i < 50; i++) await tick();
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      const body = JSON.parse(String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body));
+      expect(body.pow).toEqual({ challenge: "abc123", nonce: "424242" });
+      expect(terminate).toHaveBeenCalledTimes(1);
+      expect(u.revokeObjectURL).toHaveBeenCalledWith("blob:fake");
+      // The Worker's source is the same rule as the main thread's: SHA-256 over challenge:nonce.
+      expect(blobs.length).toBe(1);
+      const source = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.readAsText(blobs[0]!);
+      });
+      expect(source).toContain('crypto.subtle.digest("SHA-256"');
+      expect(source).toContain('challenge + ":" + nonce');
+      void createHash;
+    } finally {
+      delete w.Worker;
+      delete u.createObjectURL;
+      delete u.revokeObjectURL;
+    }
+  }, 30_000);
+
+  it("hashes on the main thread when no Worker can run (a CSP without blob:) or the Worker fails", async () => {
+    const { createHash } = await import("node:crypto");
+    const w = window as unknown as Record<string, unknown>;
+    const u = URL as unknown as Record<string, unknown>;
+    let answers = 0;
+    class FailingWorker {
+      onmessage: ((e: MessageEvent) => void) | null = null;
+      onerror: (() => void) | null = null;
+      constructor() {
+        if (answers++ === 0) throw new DOMException("blocked", "SecurityError");
+      }
+      postMessage() {
+        void Promise.resolve().then(() => this.onerror?.());
+      }
+      terminate() {}
+    }
+    w.Worker = FailingWorker;
+    u.createObjectURL = vi.fn(() => "blob:fake");
+    u.revokeObjectURL = vi.fn();
+    try {
+      for (const round of [1, 2]) {
+        fetchMock.mockReset();
+        const form = mount(
+          contact({ ...quick, spam: { minSeconds: 0, pow: true, powDifficulty: 8 } }),
+        );
+        fetchMock.mockImplementation(async (url: string) =>
+          String(url).includes("?challenge=f")
+            ? ok({ ok: true, pow: true, challenge: `round${round}`, difficulty: 8 })
+            : ok(),
+        );
+        await nav();
+        fill(form, "message", "work");
+        await submit(form);
+        for (let i = 0; i < 50; i++) await tick();
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        const body = JSON.parse(String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body));
+        expect(body.pow.challenge).toBe(`round${round}`);
+        const digest = createHash("sha256").update(`round${round}:${body.pow.nonce}`).digest();
+        expect([round, digest[0]]).toEqual([round, 0]);
+      }
+      expect(answers).toBe(2); // constructed twice: thrown once, failed once
+    } finally {
+      delete w.Worker;
+      delete u.createObjectURL;
+      delete u.revokeObjectURL;
+    }
+  }, 30_000);
+
   it("sends no proof when the relay says the form does not need one", async () => {
     const form = mount(contact({ ...quick, spam: { minSeconds: 0, pow: true } }));
     fetchMock.mockImplementation(async (url: string) =>

@@ -348,8 +348,10 @@ function checkForm(form: ResolvedForm, raw: FormDefinition, keyNames: string[], 
   // Spam
   const sp = form.spam;
   if (sp.minSeconds < 0) out.problems.push(`${at}.spam.minSeconds: not below 0`);
-  if (!Number.isInteger(sp.powDifficulty) || sp.powDifficulty < 8 || sp.powDifficulty > 24)
-    out.problems.push(`${at}.spam.powDifficulty: an integer from 8 to 24`);
+  // 20 bits take about 2 s in a Worker on a desktop and several times that on a phone; 24 bits
+  // took minutes (review finding 18, measured in Chrome, 2026-10-19).
+  if (!Number.isInteger(sp.powDifficulty) || sp.powDifficulty < 8 || sp.powDifficulty > 20)
+    out.problems.push(`${at}.spam.powDifficulty: an integer from 8 to 20`);
   if (!["none", "turnstile", "hcaptcha"].includes(sp.captcha))
     out.problems.push(`${at}.spam.captcha: none, turnstile or hcaptcha`);
   if (sp.captcha !== "none" && !sp.captchaSiteKey && !form.anonymous)
@@ -366,6 +368,10 @@ function checkForm(form: ResolvedForm, raw: FormDefinition, keyNames: string[], 
       `${at}.spam.pow: a plain post without JavaScript (noScript: true) skips it; noScript: false requires the script`,
     );
   }
+  if (sp.pow && tr.kind === "relay" && sp.powDifficulty >= 18 && sp.powDifficulty <= 20)
+    out.hints.push(
+      `${at}.spam.powDifficulty: ${sp.powDifficulty} bits take seconds on a phone before every message`,
+    );
   for (const key of ["maxFieldLength", "maxTextareaLength", "maxKeyLength", "maxBytes"] as const)
     if (!Number.isInteger(sp[key]) || sp[key] < 1)
       out.problems.push(`${at}.spam.${key}: a positive integer`);

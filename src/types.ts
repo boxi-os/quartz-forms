@@ -244,7 +244,10 @@ export interface SpamConfig {
   noScript: boolean;
   /** Proof of work checked by the relay (`transport.kind: relay` only). */
   pow: boolean;
-  /** Leading zero bits the proof must reach; 16 takes a fraction of a second. */
+  /**
+   * Leading zero bits the proof must reach, 8 to 20. Hashed in a Worker: 16 takes up to a second
+   * on a desktop, 18 and more take seconds on a phone (the build says so).
+   */
   powDifficulty: number;
   /** A third-party captcha. Loads that provider's script; ignored for anonymous forms. */
   captcha: "none" | "turnstile" | "hcaptcha";

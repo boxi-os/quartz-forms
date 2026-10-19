@@ -227,7 +227,7 @@ describe("quartz.configSchema", () => {
   });
 
   it("tells editors the bounds the build enforces (review finding 26, 2026-10-19)", () => {
-    // validate.ts refuses minSeconds below 0 and a powDifficulty outside 8..24; without these
+    // validate.ts refuses minSeconds below 0 and a powDifficulty outside 8..20; without these
     // bounds in the schema an editor offered any value and the build refused it afterwards.
     const spamBlocks: Schema[] = [];
     const find = (schema: unknown): void => {
@@ -243,7 +243,7 @@ describe("quartz.configSchema", () => {
     expect(spamBlocks.length).toBeGreaterThanOrEqual(2); // the global block and the per-form override
     for (const props of spamBlocks) {
       expect(resolve(props.minSeconds)).toMatchObject({ minimum: 0 });
-      expect(resolve(props.powDifficulty)).toMatchObject({ minimum: 8, maximum: 24 });
+      expect(resolve(props.powDifficulty)).toMatchObject({ minimum: 8, maximum: 20 });
     }
   });
 
