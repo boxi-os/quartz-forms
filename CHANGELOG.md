@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed: the stylesheet reached the page twice, once through the component (which Quartz puts in
+  `@layer quartz-base`) and once through the transformer, unlayered. The unlayered copy loaded
+  last and beat a site's `custom.scss` at the same specificity, so `.quartz-form {
+--quartz-forms-error: … }` there had no effect. Both copies are now in `quartz-base`, and an
+  unlayered rule of the site wins.
+
 ## [0.5.1] - 2026-10-19
 
 - Fixed: Quartz lays the site's options over the manifest's `defaultOptions` one level deep, so a

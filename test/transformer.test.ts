@@ -215,6 +215,8 @@ describe("unknown forms and redirects", () => {
     const res = Forms(options()).externalResources!(buildCtx())!;
     expect(res.css?.[0]).toMatchObject({ inline: true });
     expect(String(res.css?.[0]?.content)).toContain(".quartz-form");
+    // Layered like the component's copy: unlayered, it beat a site's custom.scss.
+    expect(String(res.css?.[0]?.content)).toMatch(/^@layer quartz-base \{\n[\s\S]*\n\}$/);
     expect(res.js?.[0]).toMatchObject({ loadTime: "afterDOMReady", contentType: "inline" });
   });
 });

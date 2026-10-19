@@ -2915,7 +2915,13 @@ var Forms = (userOpts) => {
     },
     externalResources() {
       return {
-        css: [{ content: forms_default, inline: true }],
+        // In the layer Quartz puts component CSS into (`FormBox.css` lands there by itself), so a
+        // site's unlayered custom.scss wins with a plain `.quartz-form { --quartz-forms-*: … }`.
+        // Unlayered, this copy loaded last and beat every such rule, the README's way of
+        // changing a colour included (measured in Chrome, 2026-10-19).
+        css: [{ content: `@layer quartz-base {
+${forms_default}
+}`, inline: true }],
         js: [{ loadTime: "afterDOMReady", contentType: "inline", script: forms_inline_default }]
       };
     }
@@ -3549,5 +3555,5 @@ var FormBox_default = ((userOpts) => {
 });
 
 export { FormBox_default, Forms, loadKeySources, resolveText };
-//# sourceMappingURL=chunk-T5OXGZAX.js.map
-//# sourceMappingURL=chunk-T5OXGZAX.js.map
+//# sourceMappingURL=chunk-DX2DQM7X.js.map
+//# sourceMappingURL=chunk-DX2DQM7X.js.map

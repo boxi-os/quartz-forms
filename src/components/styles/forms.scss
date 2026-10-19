@@ -1,5 +1,7 @@
 // The single stylesheet of quartz-forms. Colours and fonts come from Quartz's theme variables;
 // every tunable value is a `--quartz-forms-*` custom property a site overrides in custom.scss.
+// Both copies of this file reach the page inside `@layer quartz-base` (Quartz layers the
+// component's, the transformer layers its own), so an unlayered rule there always wins.
 .quartz-form {
   --quartz-forms-gap: 1rem;
   --quartz-forms-radius: 5px;

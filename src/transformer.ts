@@ -229,7 +229,11 @@ export const Forms: QuartzTransformerPlugin<Partial<QuartzFormsOptions>> = (user
 
     externalResources() {
       return {
-        css: [{ content: style, inline: true }],
+        // In the layer Quartz puts component CSS into (`FormBox.css` lands there by itself), so a
+        // site's unlayered custom.scss wins with a plain `.quartz-form { --quartz-forms-*: … }`.
+        // Unlayered, this copy loaded last and beat every such rule, the README's way of
+        // changing a colour included (measured in Chrome, 2026-10-19).
+        css: [{ content: `@layer quartz-base {\n${style}\n}`, inline: true }],
         js: [{ loadTime: "afterDOMReady", contentType: "inline", script }],
       };
     },
