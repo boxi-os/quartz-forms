@@ -106,24 +106,29 @@
     min-width: 0;
   }
 
-  &__fields > &__field--half {
-    grid-column: span 3;
-  }
-
-  &__fields > &__field--third {
-    grid-column: span 2;
-  }
-
-  @container (max-width: 32rem) {
-    &__fields > &__field--third {
+  // Only where the two queries below can take them back: a browser without container queries
+  // kept three thirds side by side at every width, 300px too (third review, N9, 2026-10-19), and
+  // shows every field across the row instead.
+  @supports (container-type: inline-size) {
+    &__fields > &__field--half {
       grid-column: span 3;
     }
-  }
 
-  @container (max-width: 22rem) {
-    &__fields > &__field--half,
     &__fields > &__field--third {
-      grid-column: span 6;
+      grid-column: span 2;
+    }
+
+    @container (max-width: 32rem) {
+      &__fields > &__field--third {
+        grid-column: span 3;
+      }
+    }
+
+    @container (max-width: 22rem) {
+      &__fields > &__field--half,
+      &__fields > &__field--third {
+        grid-column: span 6;
+      }
     }
   }
 

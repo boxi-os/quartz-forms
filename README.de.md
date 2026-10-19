@@ -138,8 +138,8 @@ ein Drittel zur Hälfte, unter 22rem nimmt jedes Feld die ganze Zeile. Die beide
 als Zahlen im Stylesheet, weil Container-Queries keine Custom Properties annehmen.
 `layout: inline` stellt die Optionen eines `radio`- oder `checkboxes`-Felds nebeneinander und
 bricht um, wo sie nicht passen; bei `select` wirkt es nicht, und der Bau sagt das.
-Container-Queries brauchen Chrome 105, Safari 16 oder Firefox 110; ein älterer Browser lässt
-halbe und Drittel-Felder bei jeder Breite nebeneinander.
+Container-Queries brauchen Chrome 105, Safari 16 oder Firefox 110; ein älterer Browser zeigt jedes Feld über
+die ganze Zeile.
 
 #### Bedingungen
 

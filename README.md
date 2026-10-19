@@ -133,8 +133,8 @@ wide screen too: below 32rem a third becomes a half, below 22rem every field tak
 These two widths are numbers in the stylesheet, since container queries take no custom
 properties. `layout: inline` sets the options of a `radio` or `checkboxes` field side by side,
 wrapping where they do not fit; on a `select` it has no effect, and the build says so. Container
-queries need Chrome 105, Safari 16 or Firefox 110; an older browser keeps half and third fields
-side by side at every width.
+queries need Chrome 105, Safari 16 or Firefox 110; an older browser shows every field across the
+whole row.
 
 #### Conditions
 

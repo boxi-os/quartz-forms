@@ -28,6 +28,8 @@ Fixes from a third review, of 0.4.0 as a whole (another model, fresh context, 20
   quota and kept its proof of work spent. Both are given back now.
 - The php that checks the patterns no longer inherits the `QF_` variables: the operator's
   secret, addresses and captcha secrets stay with the command line.
+- A browser without container queries shows every field across the whole row; it kept half and
+  third fields side by side at every width before.
 
 ## [0.4.0] - 2026-10-19
 
