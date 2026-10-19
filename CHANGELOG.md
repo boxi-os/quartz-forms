@@ -183,6 +183,12 @@ Fixes from a second review of the changes above (another model, fresh context, 2
   used only right before the mail, after every check the visitor can fail. The relay suite's
   solver now counts from 0 like the browser; it used to start at a random number, which hid the
   collision.
+- The relay's trim was quadratic without the PCRE JIT, which hosts switch off where executable
+  memory is denied: `\s+$` was retried at every position of a whitespace run, so a field with
+  40 000 spaces inside held the relay for 8 s and one with 130 000 for 87 s, before any limit
+  was checked (`qf_trim`). A lookbehind now lets only the first position of a run try: 2 ms for
+  40 000 spaces without the JIT, the same results on every case of the parity catalog. The relay
+  suite runs one more `php -S` with `pcre.jit=0`.
 
 ## [0.1.1] - 2026-10-19
 

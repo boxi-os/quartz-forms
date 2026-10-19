@@ -1028,6 +1028,45 @@ describe.skipIf(!php)("relay: captcha verification on a host without allow_url_f
   });
 });
 
+describe.skipIf(!php)("relay: a host without PCRE JIT", () => {
+  // Second review, finding 2 (2026-10-19): qf_trim was `^\s+|\s+$`, and without the JIT PCRE
+  // retries `\s+$` at every position of a whitespace run, each try walking to the run's end:
+  // quadratic. A value with 40 000 spaces inside took the relay 8.2 s (the reviewer, php -S with
+  // pcre.jit=0; 0.5 s at 10 000, 2.0 s at 20 000 in a direct call), before any limit was
+  // checked. Hosts switch the JIT off where executable memory is denied (SELinux, W^X).
+  let noJit = "";
+  let proc: ChildProcess | undefined;
+  beforeAll(async () => {
+    const port = await freePort();
+    proc = spawnRelay(port, ["pcre.jit=0"]);
+    noJit = `http://127.0.0.1:${port}`;
+    await untilUp(noJit);
+  }, 30_000);
+  afterAll(() => proc?.kill());
+
+  it("trims a value with a long run of whitespace in linear time, inside and at the end", async () => {
+    const sent = mails().length;
+    const t0 = performance.now();
+    const inner = await post(env("tagged", { note: "a" + " ".repeat(40_000) + "b" }), {
+      at: noJit,
+    });
+    const trailing = await post(env("tagged", { note: "x" + " \n".repeat(20_000) }), {
+      at: noJit,
+    });
+    const ms = performance.now() - t0;
+    // The inner run stays, and the value is longer than the field's limit: refused, but only
+    // after the trim, which is where the time went.
+    expect([inner.status, errorsOf(inner)]).toEqual([400, [{ field: "note", code: "too_long" }]]);
+    expect(trailing.json).toEqual({ ok: true });
+    expect(mails().length).toBe(sent + 1);
+    expect(lastMail().body).toContain("Note: x\r\n");
+    expect(lastMail().body).not.toContain("Note: x ");
+    // 7966 ms before the fix (this test against the old code); linear is a few milliseconds
+    // plus the transfer.
+    expect(ms).toBeLessThan(2000);
+  }, 30_000);
+});
+
 describe.skipIf(!php)("relay: rate limit", () => {
   it("counts only what is mailed: refused posts do not use up the hour, the fourth mail is 429", async () => {
     // Two refused posts first (an unknown field): before the fix they counted, and the hour's

@@ -508,10 +508,19 @@ const QF_URL = '~(*UCP)^https?://[^\s/?#]+(?:[/?#]\S*)?$~iu';
 // the script's Number() took "0x5", so both sides now read one rule).
 const QF_NUMBER = '/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i';
 
-/** Trimmed as JavaScript's trim() trims: Unicode whitespace too, not only ASCII. */
+/**
+ * Trimmed as JavaScript's trim() trims: Unicode whitespace too, not only ASCII.
+ *
+ * The lookbehind is not decoration. `\s+$` alone is tried at every position of a whitespace
+ * run, and each try walks to the run's end before `$` fails: quadratic without the PCRE JIT,
+ * which hosts switch off where executable memory is denied. A value with 40 000 spaces inside
+ * took 8 s, one with 130 000 took 87 s, before any limit was looked at (second review,
+ * finding 2, 2026-10-19). With `(?<!\s)` only the first position of a run is tried, so the
+ * work is the length of the value; measured without the JIT: 2 ms for 40 000 spaces.
+ */
 function qf_trim(string $value): string
 {
-    return preg_replace('/(*UCP)^\s+|\s+$/u', '', $value) ?? trim($value);
+    return preg_replace('/(*UCP)^\s+|(?<!\s)\s+$/u', '', $value) ?? trim($value);
 }
 
 /** Length as the browser's maxlength counts it: UTF-16 units, so an emoji counts two. */
