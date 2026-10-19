@@ -198,7 +198,10 @@ Mit dem Relay holt das Skript beim Öffnen der Seite ein Ticket (`GET send.php?c
 einen vom Relay signierten Stempel dieses Moments und, wenn das Formular es verlangt, die
 Proof-of-Work-Aufgabe der Stunde. Die Zeitfalle misst das Relay an diesem Stempel mit seiner
 eigenen Uhr; eine vorgehende Uhr des Besuchers sperrt niemanden aus, ein erfundener Stempel wird
-abgewiesen. Ein gelöstes Proof-of-Work sendet eine Nachricht; verbrauchte merkt sich das Relay
+abgewiesen. Nimmt das Relay den Stempel nicht an (beim Öffnen kam keiner, oder er ist älter als
+einen Tag), holt das Skript einen neuen, wartet `minSeconds` und sendet noch einmal; erst dann
+bittet es, die Seite neu zu laden. Ein gelöstes Proof-of-Work sendet eine Nachricht; verbrauchte
+merkt sich das Relay
 neben seinen Zählern und markiert eines erst, wenn die Nachricht angenommen ist, damit ein
 abgewiesener Post den Besucher kein neues kostet. Die Nonce beginnt mit einem zufälligen Präfix,
 weil die Aufgabe für alle Besucher der Stunde dieselbe ist.

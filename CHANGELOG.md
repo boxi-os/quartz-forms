@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The build says, for every relay form without a captcha and without a proof of work a plain post
   cannot skip, that one client can use up the hour's quota and close the form to everyone
   (`rateLimitLever`); the README says what the rate limit protects and what not.
+- Fixed: a stamp the relay refused (none, because the ticket did not come when the page opened,
+  or one older than a day) ended in "please reload the page", and the reload lost what was
+  typed. The script now fetches a new stamp, waits `minSeconds` and sends once more. With `pow`,
+  a stamp fetched at send time is waited out first instead of being refused as too fast.
 
 ## [0.4.0] - 2026-10-19
 

@@ -636,7 +636,7 @@ type QfTicket = { pow?: boolean; challenge?: string; difficulty?: number; stamp?
 type QfTicketAt = { data: QfTicket | null; at: number };
 
 async function qfFetchTicket(cfg: QfConfig): Promise<QfTicketAt> {
-  const at = Date.now();
+  let at = Date.now();
   try {
     const url = new URL(cfg.transport.url, window.location.toString());
     url.searchParams.set("challenge", cfg.id);
@@ -649,9 +649,28 @@ async function qfFetchTicket(cfg: QfConfig): Promise<QfTicketAt> {
       headers: { Accept: "application/json" },
       referrerPolicy: "strict-origin",
     });
-    return { data: (await res.json()) as QfTicket, at };
+    const data = (await res.json()) as QfTicket;
+    // From the answer, not the request: the relay issued the stamp in between, and a wait for the
+    // time trap is measured from here (qfWaitTrap).
+    at = Date.now();
+    return { data, at };
   } catch {
     return { data: null, at };
+  }
+}
+
+/** Waits until the time trap has passed for a stamp the script fetched just now. */
+async function qfWaitTrap(cfg: QfConfig, ticket: QfTicketAt): Promise<void> {
+  const left = ticket.at + cfg.spam.minSeconds * 1000 - Date.now();
+  if (left > 0) await new Promise((resolve) => setTimeout(resolve, left));
+}
+
+/** The relay's error code in a refusal, read from a copy so the caller can still read the body. */
+async function qfErrorCode(response: Response): Promise<string | undefined> {
+  try {
+    return ((await response.clone().json()) as QfRelayResponse).error;
+  } catch {
+    return undefined;
   }
 }
 
@@ -773,6 +792,7 @@ async function qfSend(
   ciphertext: string | undefined,
   captchaToken: string,
   ticket: Promise<QfTicketAt> | null,
+  renew?: (ticket: QfTicketAt) => void,
 ): Promise<QfRelayResponse> {
   const tr = cfg.transport;
   // The stamp is the one from when the page was opened: that is the time the relay measures.
@@ -781,6 +801,13 @@ async function qfSend(
   let fresh = opened;
   if (cfg.spam.pow && tr.kind === "relay" && (!fresh?.data || Date.now() - fresh.at > 30 * 60_000))
     fresh = await qfFetchTicket(cfg);
+  // When the ticket of the page's opening did not come (relay or network away), the one fetched
+  // for the proof serves for the stamp too, and the time trap is waited out on it here: sent at
+  // once, it was refused as too fast at every try. It replaces the page's ticket (`renew`).
+  if (!opened?.data?.stamp && fresh?.data?.stamp && fresh !== opened) {
+    renew?.(fresh);
+    await qfWaitTrap(cfg, fresh);
+  }
   // The page goes along in the clear only with a plaintext message; an encrypted one has it in
   // the serialized text, and the relay used to write the slug beside the armor a second time,
   // unencrypted (review finding 23, 2026-10-19).
@@ -805,19 +832,41 @@ async function qfSend(
   }
   let response: Response;
   if (tr.kind === "relay") {
-    const payload = ciphertext
-      ? { ...common, encrypted: true, ciphertext }
-      : { ...common, encrypted: false, fields: values };
-    const body = JSON.stringify(payload);
-    // The relay refuses a body above the form's maxBytes with 413; said here first, in the
-    // page's language, and the ciphertext never leaves the browser for nothing.
-    if (new TextEncoder().encode(body).length > cfg.spam.maxBytes)
-      return { ok: false, error: "too_large" };
-    response = await fetch(tr.url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body,
-    });
+    const post = (ts: string): Promise<Response> | null => {
+      const payload = ciphertext
+        ? { ...common, ts, encrypted: true, ciphertext }
+        : { ...common, ts, encrypted: false, fields: values };
+      const body = JSON.stringify(payload);
+      // The relay refuses a body above the form's maxBytes with 413; said here first, in the
+      // page's language, and the ciphertext never leaves the browser for nothing.
+      if (new TextEncoder().encode(body).length > cfg.spam.maxBytes) return null;
+      return fetch(tr.url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body,
+      });
+    };
+    const first = post(common.ts);
+    if (!first) return { ok: false, error: "too_large" };
+    response = await first;
+    // A stamp the relay does not take - none, because no ticket ever came, or one older than a
+    // day - used to end in "please reload the page", and the reload lost what was typed and the
+    // open step (third review, M2, 2026-10-19). The relay checks the stamp before proof and
+    // captcha, so neither is spent yet: the script fetches a new stamp, waits the time trap out on
+    // it and sends once more; only if that fails too does the visitor read the sentence.
+    if (
+      response.status === 400 &&
+      cfg.spam.minSeconds > 0 &&
+      (await qfErrorCode(response)) === "stamp"
+    ) {
+      const renewed = await qfFetchTicket(cfg);
+      const stamp = renewed.data?.stamp;
+      if (stamp) {
+        renew?.(renewed);
+        await qfWaitTrap(cfg, renewed);
+        response = (await post(stamp)) ?? response;
+      }
+    }
   } else {
     // endpoint and the service presets: flat fields the way these services expect them.
     const flat: Record<string, string> = { ...tr.extra };
@@ -1102,7 +1151,7 @@ function qfBind(form: HTMLFormElement): void {
   // The relay's ticket, fetched once per page view where the relay will check it: the signed
   // stamp of this moment for the time trap, and the proof-of-work challenge. The visitor's clock
   // is not involved; the relay measures with its own (review finding, 2026-10-19).
-  const ticket =
+  let ticket =
     cfg.transport.kind === "relay" && (cfg.spam.minSeconds > 0 || cfg.spam.pow)
       ? qfFetchTicket(cfg)
       : null;
@@ -1241,7 +1290,9 @@ function qfBind(form: HTMLFormElement): void {
           return;
         }
       }
-      const result = await qfSend(cfg, values, ciphertext, captchaToken, ticket);
+      const result = await qfSend(cfg, values, ciphertext, captchaToken, ticket, (renewed) => {
+        ticket = Promise.resolve(renewed);
+      });
       if (!result.ok && cfg.spam.captcha !== "none") qfResetCaptcha(form, cfg.spam.captcha);
       if (result.ok) {
         qfFinish(form, cfg, encrypt);

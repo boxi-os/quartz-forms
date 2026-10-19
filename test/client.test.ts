@@ -54,6 +54,12 @@ async function submit(form: HTMLFormElement) {
   for (let i = 0; i < 5; i++) await tick();
 }
 
+/** Waits, in real time, until `done` holds: for what waits out a time trap of a second. */
+async function until(done: () => boolean, ms = 4000) {
+  const end = performance.now() + ms;
+  while (!done() && performance.now() < end) await new Promise((r) => setTimeout(r, 20));
+}
+
 function fill(form: HTMLFormElement, name: string, value: string) {
   const el = form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement;
   el.value = value;
@@ -304,6 +310,113 @@ describe("sending", () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
     const body = JSON.parse(String((fetchMock.mock.calls[2] as [string, RequestInit])[1].body));
     expect(body.ts).toBe("5.sig");
+  });
+
+  // Third review, M2 (2026-10-19): a stamp the relay does not take - older than a day, or none
+  // because the ticket never came - ended in "please reload the page", and the reload lost what
+  // was typed. The relay checks the stamp before proof and captcha, so a new one costs neither.
+  const relayTaking = (good: string, posts: string[]) =>
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (String(url).includes("?challenge=")) return ok({ ok: true, pow: false, stamp: good });
+      const ts = String(JSON.parse(String(init!.body)).ts);
+      posts.push(ts);
+      return ts === good ? ok() : ok({ ok: false, error: "stamp" }, { status: 400 });
+    });
+
+  it("fetches a new stamp when the relay refuses the old one, waits the time trap out, sends once more", async () => {
+    const form = mount(contact({ spam: { minSeconds: 1 } }));
+    fetchMock.mockResolvedValueOnce(ok({ ok: true, pow: false, stamp: "1.old" }));
+    await nav();
+    vi.setSystemTime(Date.now() + 25 * 3600_000);
+    fill(form, "message", "the next day");
+    const posts: string[] = [];
+    relayTaking("2.new", posts);
+    const started = performance.now();
+    await submit(form);
+    await until(() => status(form).state === "success");
+    expect(status(form).state).toBe("success");
+    expect(posts).toEqual(["1.old", "2.new"]);
+    expect(performance.now() - started).toBeGreaterThanOrEqual(990);
+  });
+
+  it("sends without a reload when the ticket of the page's opening never came, and keeps the new one", async () => {
+    const form = mount(contact({ spam: { minSeconds: 1 } }));
+    fetchMock.mockRejectedValueOnce(new TypeError("network"));
+    await nav();
+    vi.setSystemTime(Date.now() + 5000);
+    fill(form, "message", "x");
+    const posts: string[] = [];
+    relayTaking("3.sig", posts);
+    // the relay takes the stamp but refuses the field: the next send needs no ticket and no wait
+    fetchMock.mockImplementationOnce(async () =>
+      ok({ ok: false, error: "stamp" }, { status: 400 }),
+    );
+    fetchMock.mockImplementationOnce(async () => ok({ ok: true, pow: false, stamp: "3.sig" }));
+    fetchMock.mockImplementationOnce(async () =>
+      ok({ ok: false, errors: [{ field: "message", code: "too_long" }] }, { status: 400 }),
+    );
+    await submit(form);
+    await until(() => errorOf(form, "message") !== null);
+    expect(errorOf(form, "message")).not.toBeNull();
+    const calls = fetchMock.mock.calls.length;
+    await submit(form);
+    await until(() => status(form).state === "success");
+    expect(status(form).state).toBe("success");
+    expect(fetchMock.mock.calls.length).toBe(calls + 1);
+    expect(posts).toEqual(["3.sig"]);
+  });
+
+  it("asks for a reload only when the new stamp is refused too, or none comes", async () => {
+    const form = mount(contact({ spam: { minSeconds: 1 } }));
+    fetchMock.mockResolvedValueOnce(ok({ ok: true, pow: false, stamp: "1.old" }));
+    await nav();
+    vi.setSystemTime(Date.now() + 5000);
+    fill(form, "message", "x");
+    // a new stamp comes, but the relay refuses it as well: one more try, not more
+    const posts: string[] = [];
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (String(url).includes("?challenge=")) return ok({ ok: true, pow: false, stamp: "2.new" });
+      posts.push(String(JSON.parse(String(init!.body)).ts));
+      return ok({ ok: false, error: "stamp" }, { status: 400 });
+    });
+    await submit(form);
+    await until(() => status(form).state === "error");
+    expect(status(form).text).toBe("Please reload the page and send again.");
+    expect(posts).toEqual(["1.old", "2.new"]);
+    // no new stamp comes at all
+    fetchMock.mockReset();
+    fetchMock.mockImplementation(async (url: string) =>
+      String(url).includes("?challenge=")
+        ? Promise.reject(new TypeError("network"))
+        : ok({ ok: false, error: "stamp" }, { status: 400 }),
+    );
+    await submit(form);
+    await until(() => fetchMock.mock.calls.length >= 2);
+    for (let i = 0; i < 5; i++) await tick();
+    expect(status(form).text).toBe("Please reload the page and send again.");
+  });
+
+  it("waits the time trap out on a stamp fetched at send time for the proof of work", async () => {
+    // With pow, a page whose opening ticket failed fetched one at send time and sent its stamp at
+    // once: the relay answered "too fast" at every try (noticed with M2 of the third review).
+    const form = mount(contact({ spam: { minSeconds: 1, pow: true } }));
+    fetchMock.mockRejectedValueOnce(new TypeError("network"));
+    await nav();
+    vi.setSystemTime(Date.now() + 5000);
+    fill(form, "message", "x");
+    let issued = 0;
+    fetchMock.mockImplementation(async (url: string) => {
+      if (String(url).includes("?challenge=")) {
+        issued = performance.now();
+        return ok({ ok: true, pow: false, stamp: "4.sig" });
+      }
+      return performance.now() - issued >= 990
+        ? ok()
+        : ok({ ok: false, error: "too_fast" }, { status: 400 });
+    });
+    await submit(form);
+    await until(() => status(form).state === "success" || status(form).state === "error");
+    expect(status(form).state).toBe("success");
   });
 
   it("shows the relay's field errors at the fields and its rate limit as a sentence", async () => {
