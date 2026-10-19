@@ -53,6 +53,8 @@ const en = {
   showIfValue: (p: Params) => `"${s(p, "field")}" cannot have the value "${s(p, "value")}"`,
   pageBreakEdge: () => "a page break stands between fields, not first or last",
   pageBreakTwice: () => "two page breaks in a row leave a step without fields",
+  consentInConditionalStep: () =>
+    "a consent field cannot stand in a step with a condition: when the step is skipped, the message would go without it",
   stepOnlyHidden: (p: Params) =>
     `step ${s(p, "step")} holds only hidden values and shows the visitor nothing`,
 

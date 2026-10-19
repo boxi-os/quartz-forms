@@ -327,13 +327,21 @@ function checkConditions(fields: FormField[], at: string, out: Validation): void
 
 /**
  * Where page breaks may stand: not first and not last (a step without fields would be a page with
- * nothing but "Next"), never two in a row. A step that holds nothing but hidden values shows the
- * visitor nothing either; that is said, not refused.
+ * nothing but "Next"), never two in a row. A consent field does not stand in a step with a
+ * condition: the step's condition reaches each of its fields (conditionsOf), so a skipped step
+ * would send the message without the consent, and drop one that was given (third review, H1,
+ * 2026-10-19). A step that holds nothing but hidden values shows the visitor nothing either; that
+ * is said, not refused.
  */
 function checkSteps(fields: FormField[], at: string, out: Validation): void {
   if (!fields.some((f) => isObject(f) && f.type === "pageBreak")) return;
+  let conditional = false;
   fields.forEach((field, i) => {
-    if (!isObject(field) || field.type !== "pageBreak") return;
+    if (!isObject(field)) return;
+    if (field.type === "consent" && conditional)
+      problem(out, `${at}.fields[${i}]`, "consentInConditionalStep");
+    if (field.type !== "pageBreak") return;
+    conditional = (field as { showIf?: unknown }).showIf !== undefined;
     if (i === 0 || i === fields.length - 1) problem(out, `${at}.fields[${i}]`, "pageBreakEdge");
     else if (isObject(fields[i - 1]) && fields[i - 1]!.type === "pageBreak")
       problem(out, `${at}.fields[${i}]`, "pageBreakTwice");

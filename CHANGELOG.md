@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed: a `consent` field in a step with a `showIf` took the step's condition, so a skipped step
+  sent the message without the consent and dropped one that was given. The build now refuses a
+  `consent` field in such a step (`consentInConditionalStep`).
+
 ## [0.4.0] - 2026-10-19
 
 Layout, conditions and steps, each defined once and applied by build, browser and relay alike:

@@ -120,6 +120,17 @@ describe("validate: forms and fields", () => {
     expect(of(text("a"), page({ showIf: { field: "box", equals: "yes" } }), box)).toEqual([
       'forms.f.fields[1].showIf: "box" must come before the field that depends on it',
     ]);
+    // a consent field never stands behind a step's condition, only in a step that always counts
+    const consent: FormField = { type: "consent", name: "ok", text: "I agree" };
+    expect(of(box, page({ showIf: { field: "box", equals: "yes" } }), text("b"), consent)).toEqual([
+      "forms.f.fields[3]: a consent field cannot stand in a step with a condition: when the step is skipped, the message would go without it",
+    ]);
+    expect(
+      of(box, page({ showIf: { field: "box", equals: "yes" } }), text("b"), page(), consent),
+    ).toEqual([]);
+    expect(of(box, consent, page({ showIf: { field: "box", equals: "yes" } }), text("b"))).toEqual(
+      [],
+    );
     const hiddenStep = resolveOptions(
       options({
         forms: {

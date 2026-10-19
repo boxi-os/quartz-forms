@@ -42,6 +42,7 @@ declare const en: {
     showIfValue: (p: Params) => string;
     pageBreakEdge: () => string;
     pageBreakTwice: () => string;
+    consentInConditionalStep: () => string;
     stepOnlyHidden: (p: Params) => string;
     keyShape: () => string;
     keyExactlyOne: () => string;

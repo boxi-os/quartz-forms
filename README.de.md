@@ -146,7 +146,8 @@ halbe und Drittel-Felder bei jeder Breite nebeneinander.
 `equals` ist ein Wert oder eine Liste: Optionswerte, `yes` bei einer `checkbox`, die Zahl als
 String bei einer `scale`. Ein `checkboxes`-Feld erfüllt sie, wenn einer der Werte angehakt ist.
 Bedingungen dürfen sich verketten, und ein Feld, dessen Steuerfeld nicht zählt, zählt auch nicht.
-`hidden`- und `consent`-Felder können nicht bedingt sein.
+`hidden`- und `consent`-Felder können nicht bedingt sein (ein `consent`-Feld auch nicht über
+seinen Schritt, siehe Schritte).
 
 Ein Feld, das nicht zählt, ist nicht Pflicht, wird nicht geprüft, nicht gesendet und steht nicht
 in der Mail; ein Wert, der dafür gepostet wird, wird verworfen, nicht abgewiesen. Ohne JavaScript
@@ -162,8 +163,10 @@ prüft nur den offenen Schritt, „Zurück“ geht ohne Prüfung zurück, und ei
 `showIf` nicht gilt oder in dem kein Feld zählt, wird in beide Richtungen übersprungen.
 Verschlüsselung, Captcha und der Senden-Button erscheinen mit dem letzten Schritt. Weist das
 Relay ein Feld ab, öffnet das Formular dessen Schritt. Die Bedingung eines Schritts gilt für
-jedes seiner Felder, das Relay verwirft sie also wie jedes bedingte Feld. Ohne JavaScript stehen
-alle Schritte untereinander, jeder unter seinem Titel.
+jedes seiner Felder, das Relay verwirft sie also wie jedes bedingte Feld; ein `consent`-Feld kann
+deshalb nicht in einem Schritt mit `showIf` stehen, der Build weist es dort ab, und keine
+Nachricht geht ohne die Einwilligung hinaus. Ohne JavaScript stehen alle Schritte untereinander,
+jeder unter seinem Titel.
 
 ### Transport
 

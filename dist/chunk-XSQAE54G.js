@@ -1,5 +1,5 @@
 import { createRequire } from 'module';
-import { messageText } from './chunk-OK2UPNPM.js';
+import { messageText } from './chunk-RAQPFFAG.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
@@ -84,5 +84,5 @@ async function checkKey(name, armored) {
 }
 
 export { BROWSER_FILES, checkKey, pluginRoot, vendorDir };
-//# sourceMappingURL=chunk-G4OQDHME.js.map
-//# sourceMappingURL=chunk-G4OQDHME.js.map
+//# sourceMappingURL=chunk-XSQAE54G.js.map
+//# sourceMappingURL=chunk-XSQAE54G.js.map

@@ -215,6 +215,7 @@ var en = {
   showIfValue: (p) => `"${s(p, "field")}" cannot have the value "${s(p, "value")}"`,
   pageBreakEdge: () => "a page break stands between fields, not first or last",
   pageBreakTwice: () => "two page breaks in a row leave a step without fields",
+  consentInConditionalStep: () => "a consent field cannot stand in a step with a condition: when the step is skipped, the message would go without it",
   stepOnlyHidden: (p) => `step ${s(p, "step")} holds only hidden values and shows the visitor nothing`,
   // keys in the options
   keyShape: () => "a key is { file } or { armored }",
@@ -356,6 +357,7 @@ var de = {
   showIfValue: (p) => `\u201E${s2(p, "field")}\u201C kann den Wert \u201E${s2(p, "value")}\u201C nicht haben`,
   pageBreakEdge: () => "ein Seitenumbruch steht zwischen Feldern, nicht am Anfang oder Ende",
   pageBreakTwice: () => "zwei Seitenumbr\xFCche hintereinander lassen einen Schritt ohne Felder",
+  consentInConditionalStep: () => "eine Einwilligung kann nicht in einem Schritt mit Bedingung stehen: Wird der Schritt \xFCbersprungen, ginge die Nachricht ohne sie hinaus",
   stepOnlyHidden: (p) => `Schritt ${s2(p, "step")} enth\xE4lt nur verborgene Werte und zeigt dem Besucher nichts`,
   keyShape: () => "ein Schl\xFCssel ist { file } oder { armored }",
   keyExactlyOne: () => "genau eines von file oder armored",
@@ -929,8 +931,13 @@ function checkConditions(fields, at, out) {
 }
 function checkSteps(fields, at, out) {
   if (!fields.some((f) => isObject(f) && f.type === "pageBreak")) return;
+  let conditional = false;
   fields.forEach((field, i) => {
-    if (!isObject(field) || field.type !== "pageBreak") return;
+    if (!isObject(field)) return;
+    if (field.type === "consent" && conditional)
+      problem(out, `${at}.fields[${i}]`, "consentInConditionalStep");
+    if (field.type !== "pageBreak") return;
+    conditional = field.showIf !== void 0;
     if (i === 0 || i === fields.length - 1) problem(out, `${at}.fields[${i}]`, "pageBreakEdge");
     else if (isObject(fields[i - 1]) && fields[i - 1].type === "pageBreak")
       problem(out, `${at}.fields[${i}]`, "pageBreakTwice");
@@ -1320,5 +1327,5 @@ function logHints(opts) {
 }
 
 export { __commonJS, __export, __require, __toESM, conditionOf, conditionsOf, defaultOptions, formatMessage, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-OK2UPNPM.js.map
-//# sourceMappingURL=chunk-OK2UPNPM.js.map
+//# sourceMappingURL=chunk-RAQPFFAG.js.map
+//# sourceMappingURL=chunk-RAQPFFAG.js.map

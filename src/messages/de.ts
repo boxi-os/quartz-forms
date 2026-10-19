@@ -47,6 +47,8 @@ const de: { [K in keyof typeof en]: (p: Params, t: Translate) => string } = {
   showIfValue: (p) => `„${s(p, "field")}“ kann den Wert „${s(p, "value")}“ nicht haben`,
   pageBreakEdge: () => "ein Seitenumbruch steht zwischen Feldern, nicht am Anfang oder Ende",
   pageBreakTwice: () => "zwei Seitenumbrüche hintereinander lassen einen Schritt ohne Felder",
+  consentInConditionalStep: () =>
+    "eine Einwilligung kann nicht in einem Schritt mit Bedingung stehen: Wird der Schritt übersprungen, ginge die Nachricht ohne sie hinaus",
   stepOnlyHidden: (p) =>
     `Schritt ${s(p, "step")} enthält nur verborgene Werte und zeigt dem Besucher nichts`,
 

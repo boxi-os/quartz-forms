@@ -141,7 +141,7 @@ side by side at every width.
 is one value or a list: option values, `yes` for a `checkbox`, the number as a string for a
 `scale`. A `checkboxes` field meets it with any one of the values ticked. Conditions may chain,
 and a field whose controlling field does not count does not count either. `hidden` and `consent`
-fields cannot be conditional.
+fields cannot be conditional (a `consent` field not through its step either, see Steps).
 
 A field that does not count is not required, not checked, not sent and not in the mail; a value
 posted for it is dropped, not refused. Without JavaScript every field shows: a conditional one
@@ -156,8 +156,9 @@ fields, never first, last or twice in a row. With JavaScript one step shows at a
 without checking, and a step whose `showIf` does not hold, or none of whose fields counts, is
 passed over both ways. Encryption, captcha and the submit button show with the last step. When
 the relay refuses a field, the form opens its step. A step's condition applies to each of its
-fields, so the relay drops them like any conditional field. Without JavaScript all steps show
-one after the other, each under its title.
+fields, so the relay drops them like any conditional field; a `consent` field therefore cannot
+stand in a step with a `showIf`, and the build refuses it there, so no message goes without the
+consent. Without JavaScript all steps show one after the other, each under its title.
 
 ### Transport
 
