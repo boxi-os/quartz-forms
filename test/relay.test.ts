@@ -88,8 +88,10 @@ const siteOptions = {
       recipient: "owner",
       fields: [
         { type: "text", name: "site", label: "Site", pattern: "https?:\\/\\/.+" },
-        // valid in JavaScript (the build and the browser), unreadable for PCRE
-        { type: "text", name: "lb", label: "LB", pattern: "(?<=a+)b" },
+        // Valid in JavaScript (the build and the browser), unreadable for PCRE: a property name
+        // only JavaScript knows. The build refuses the syntax no PCRE2 reads, such as the
+        // `(?<=a+)b` this field used to carry (second review, finding 3, 2026-10-19).
+        { type: "text", name: "lb", label: "LB", pattern: "\\p{Assigned}+" },
       ],
     },
     captcha: {
@@ -225,10 +227,14 @@ beforeAll(async () => {
     }),
   );
   dir = tmpDir("relay-php");
-  execFileSync("node", [path.join(root, "scripts", "relay-config.mjs"), site, "--out", dir], {
-    cwd: root,
-    stdio: "ignore",
-  });
+  // The generator compiles every pattern with this php and would stop at `patterns.lb`; the
+  // flag is what an owner passes whose host reads more than this machine, and the relay must
+  // refuse closed when the host's PCRE cannot read a pattern after all.
+  execFileSync(
+    "node",
+    [path.join(root, "scripts", "relay-config.mjs"), site, "--out", dir, "--skip-pattern-check"],
+    { cwd: root, stdio: "ignore" },
+  );
   fs.copyFileSync(path.join(root, "relay", "php", "send.php"), path.join(dir, "send.php"));
   fs.mkdirSync(path.join(dir, "counters"));
   // Stands in for the provider's siteverify endpoint: success for one secret and one token.

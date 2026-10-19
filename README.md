@@ -114,9 +114,12 @@ except `hidden` and `consent`, a `label` (Text). Optional on most: `required`, `
 | `hidden`                                                    | `value`                                                                                    |
 
 A `pattern` is a JavaScript regular expression (the build and the browser read it with `u`), and
-the relay applies it with PCRE: write only what both read the same way. Variable-length lookbehind
-and long Unicode property names are JavaScript only; the relay refuses every value of such a field
-and names the pattern in the server's error log.
+the relay applies it with PCRE: write only what both read the same way. The build refuses what no
+PCRE2 reads (`\u` escapes, `[^]`, a lookbehind of unlimited length), and `npm run relay:config`
+compiles every pattern with the `php` on your machine and stops at one PCRE cannot read, such as a
+property name only JavaScript knows (`--skip-pattern-check` writes the config anyway, for a host
+whose PCRE is newer than yours). What the host's PCRE still cannot read makes the relay refuse
+every value of that field, with the pattern named in the server's error log.
 
 ### Transport
 

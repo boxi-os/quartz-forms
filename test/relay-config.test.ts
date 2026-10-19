@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -26,6 +26,22 @@ function site(options: Record<string, unknown>): string {
 function run(siteDir: string, outDir: string): string {
   return execFileSync("node", [script, siteDir, "--out", outDir], { encoding: "utf8", cwd: root });
 }
+
+/** The script's exit status and both streams, with the given flags and environment. */
+function runWith(
+  siteDir: string,
+  outDir: string,
+  flags: string[] = [],
+  env: NodeJS.ProcessEnv = process.env,
+): { status: number | null; out: string } {
+  const r = spawnSync(process.execPath, [script, siteDir, "--out", outDir, ...flags], {
+    encoding: "utf8",
+    cwd: root,
+    env,
+  });
+  return { status: r.status, out: r.stdout + r.stderr };
+}
+const php = spawnSync("php", ["-v"], { stdio: "ignore" }).status === 0;
 
 const options = {
   transport: { kind: "relay", url: "https://example.org/forms/send.php" },
@@ -124,6 +140,77 @@ describe("relay-config", () => {
     const again = run(siteDir, out);
     expect(again).toContain("config.php kept");
     expect(fs.readFileSync(path.join(out, "config.php"), "utf8")).toBe("<?php // mine");
+  });
+
+  it.skipIf(!php)(
+    "compiles every pattern the way the relay does, with this machine's php, and refuses what PCRE cannot read",
+    () => {
+      // Second review, finding 3 (2026-10-19): the build reads a pattern as JavaScript, the relay
+      // with PCRE, and a pattern PCRE cannot compile makes the relay refuse every value of its
+      // field. The build refuses the syntax no PCRE2 reads (validate.test.ts); a property name
+      // only JavaScript knows passes it and is caught here.
+      const form = (pattern: string) => ({
+        transport: { kind: "relay", url: "https://example.org/forms/send.php" },
+        forms: {
+          f: {
+            recipient: "owner",
+            fields: [
+              { type: "text", name: "code", label: "Code", pattern: "[a-z]+" },
+              { type: "text", name: "any", label: "Any", pattern },
+            ],
+          },
+        },
+      });
+      const out = tmpDir("relay-pattern-out");
+      const refused = runWith(site(form("\\p{Assigned}+")), out);
+      expect(refused.status).toBe(1);
+      expect(refused.out).toContain(
+        'forms.f field "any": PCRE cannot read the pattern "\\p{Assigned}+" (Compilation failed: unknown property after \\P or \\p at offset 16); the relay would refuse every value of this field',
+      );
+      expect(refused.out).toContain("nothing written");
+      expect(fs.existsSync(path.join(out, "config.generated.php"))).toBe(false);
+
+      // An owner whose host runs a newer PCRE than this machine says so with the flag, and is
+      // reminded of what the relay does with the pattern as it stands.
+      const skipped = runWith(site(form("\\p{Assigned}+")), out, ["--skip-pattern-check"]);
+      expect(skipped.status).toBe(0);
+      expect(skipped.out).toContain('PCRE cannot read the pattern "\\p{Assigned}+"');
+      expect(skipped.out).toContain("written anyway (--skip-pattern-check)");
+      expect(fs.readFileSync(path.join(out, "config.generated.php"), "utf8")).toContain(
+        "'pattern' => '\\\\p{Assigned}+'",
+      );
+
+      const fine = runWith(site(form("[A-Z]{3}")), tmpDir("relay-pattern-fine"));
+      expect(fine.status).toBe(0);
+      expect(fine.out).toMatch(
+        /2 pattern\(s\) read by PCRE 10\.\d+ \(PHP \d+\.\d+\.\d+ on this machine; the host's may be older\)/,
+      );
+    },
+  );
+
+  it("says that the patterns were not checked when there is no php on the PATH", () => {
+    const bin = tmpDir("relay-no-php-bin");
+    fs.symlinkSync(process.execPath, path.join(bin, "node"));
+    const out = tmpDir("relay-no-php-out");
+    const r = runWith(
+      site({
+        transport: { kind: "relay", url: "https://example.org/forms/send.php" },
+        forms: {
+          f: {
+            recipient: "owner",
+            fields: [{ type: "text", name: "any", label: "Any", pattern: "\\p{Assigned}+" }],
+          },
+        },
+      }),
+      out,
+      [],
+      { ...process.env, PATH: bin },
+    );
+    expect(r.status).toBe(0);
+    expect(r.out).toContain(
+      "1 pattern(s) not checked against PCRE: no php on the PATH. The relay refuses every value of a field whose pattern its PCRE cannot read",
+    );
+    expect(fs.existsSync(path.join(out, "config.generated.php"))).toBe(true);
   });
 
   it("refuses a site without the plugin, and a definition with problems", () => {

@@ -569,6 +569,49 @@ function publicKeyBlock(text3) {
 var FORM_ID = /^[a-z0-9][a-z0-9-]*$/;
 var FIELD_NAME = /^[A-Za-z][A-Za-z0-9_-]*$/;
 var LANGUAGE_OPTION = /^[A-Za-z]{2,3}([-_][A-Za-z0-9]+)*$|^auto$/;
+function jsOnlyPattern(pattern) {
+  const lookbehinds = [];
+  let depth = 0;
+  let inClass = false;
+  for (let i = 0; i < pattern.length; i++) {
+    const c = pattern[i];
+    if (c === "\\") {
+      if (pattern[i + 1] === "u")
+        return "`\\u` escapes are JavaScript only, the relay's PCRE cannot read them: write the character itself, or `\\xHH` below U+0100";
+      i++;
+      continue;
+    }
+    if (inClass) {
+      if (c === "]") inClass = false;
+      continue;
+    }
+    switch (c) {
+      case "[":
+        if (pattern.startsWith("[^]", i))
+          return "`[^]` is JavaScript only, the relay's PCRE cannot read it: write `[\\s\\S]`";
+        if (pattern[i + 1] === "]")
+          return "`[]` is JavaScript only (it matches nothing), the relay's PCRE cannot read it";
+        inClass = true;
+        break;
+      case "(":
+        depth++;
+        if (pattern.startsWith("(?<=", i) || pattern.startsWith("(?<!", i)) lookbehinds.push(depth);
+        if (pattern[i + 1] === "?") i++;
+        break;
+      case ")":
+        if (lookbehinds[lookbehinds.length - 1] === depth) lookbehinds.pop();
+        depth--;
+        break;
+      case "*":
+      case "+":
+      case "{":
+        if (lookbehinds.length > 0 && (c !== "{" || /^\{\d+,\}/.test(pattern.slice(i))))
+          return "a lookbehind of unlimited length is JavaScript only, the relay's PCRE cannot read it";
+        break;
+    }
+  }
+  return void 0;
+}
 var RESERVED_NAMES = /* @__PURE__ */ new Set([
   "form",
   "lang",
@@ -639,6 +682,8 @@ function checkField(field, at, out) {
       if (field.pattern !== void 0) {
         try {
           new RegExp(field.pattern, "u");
+          const jsOnly = jsOnlyPattern(field.pattern);
+          if (jsOnly) out.problems.push(`${at}.pattern: ${jsOnly}`);
         } catch (e) {
           out.problems.push(`${at}: pattern is not a regular expression (${e.message})`);
         }
@@ -4223,5 +4268,5 @@ var FormBox_default = ((userOpts) => {
 });
 
 export { FormBox_default, Forms, defaultOptions, loadKeySources, logHints, resolveOptions, resolveOrThrow, resolveText, templateNames, templateOf, warnOnce };
-//# sourceMappingURL=chunk-WD3YRDBY.js.map
-//# sourceMappingURL=chunk-WD3YRDBY.js.map
+//# sourceMappingURL=chunk-L4FA7E54.js.map
+//# sourceMappingURL=chunk-L4FA7E54.js.map

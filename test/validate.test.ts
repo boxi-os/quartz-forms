@@ -103,6 +103,45 @@ describe("validate: forms and fields", () => {
     expect(fieldProblems({ type: "number", name: "a", label: "x", min: 3, max: 1 })[0]).toMatch(
       /min 3 is above max 1/,
     );
+  });
+
+  it("refuses a pattern only JavaScript reads: the relay's PCRE would refuse every value of the field", () => {
+    // Second review, finding 3 (2026-10-19): the build and the browser read `[\u0041-\u005A]+`,
+    // the relay got false from preg_match and, fail-closed since the first review, refused
+    // "ABC" as invalid; the owner found the reason only in the server's error log.
+    const pattern = (pattern: string) =>
+      fieldProblems({ type: "text", name: "a", label: "x", pattern });
+    expect(pattern("[\\u0041-\\u005A]+")).toEqual([
+      "forms.f.fields[0].pattern: `\\u` escapes are JavaScript only, the relay's PCRE cannot read them: write the character itself, or `\\xHH` below U+0100",
+    ]);
+    expect(pattern("\\u{1F600}")[0]).toMatch(/`\\u` escapes are JavaScript only/);
+    expect(pattern("[^]+")).toEqual([
+      "forms.f.fields[0].pattern: `[^]` is JavaScript only, the relay's PCRE cannot read it: write `[\\s\\S]`",
+    ]);
+    expect(pattern("a[]b")).toEqual([
+      "forms.f.fields[0].pattern: `[]` is JavaScript only (it matches nothing), the relay's PCRE cannot read it",
+    ]);
+    expect(pattern("(?<=a+)b")).toEqual([
+      "forms.f.fields[0].pattern: a lookbehind of unlimited length is JavaScript only, the relay's PCRE cannot read it",
+    ]);
+    expect(pattern("(?<!(ab)*)c")[0]).toMatch(/lookbehind of unlimited length/);
+    expect(pattern("(?<=a{2,})b")[0]).toMatch(/lookbehind of unlimited length/);
+    // What both read passes: an escaped backslash before u, `]` and `^` inside a class, a
+    // lookbehind of fixed length, a quantifier after the lookbehind, named groups, properties.
+    for (const ok of [
+      "https?:\\/\\/.+",
+      "[A-Z]{3}",
+      "\\\\u",
+      "[\\]^]+",
+      "(?<=ab)c",
+      "(?<=a|bc)d+",
+      "(?<=a)b+",
+      "(?<n>a)\\k<n>",
+      "\\p{Script=Latin}+",
+      "a{2,}",
+    ]) {
+      expect([ok, pattern(ok)]).toEqual([ok, []]);
+    }
     expect(fieldProblems({ type: "wat", name: "a", label: "x" } as never)[0]).toMatch(
       /unknown field type/,
     );

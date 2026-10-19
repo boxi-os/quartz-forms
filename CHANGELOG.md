@@ -189,6 +189,15 @@ Fixes from a second review of the changes above (another model, fresh context, 2
   was checked (`qf_trim`). A lookbehind now lets only the first position of a run try: 2 ms for
   40 000 spaces without the JIT, the same results on every case of the parity catalog. The relay
   suite runs one more `php -S` with `pcre.jit=0`.
+- A field pattern the build and the browser read (JavaScript, flag `u`) but PCRE cannot compile,
+  such as `[\u0041-\u005A]+`, `[^]+` or `(?<=a+)b`, passed the build and `relay:config` without
+  a word, and the relay, fail-closed since the first review, refused every value of the field
+  with "use the requested format" for what the browser had just accepted. The build now refuses
+  the syntax no PCRE2 reads (`\u` escapes, `[^]`, `[]`, a lookbehind of unlimited length) and
+  names the field; `relay:config` compiles every pattern with the `php` on the machine the way
+  `send.php` does and stops at one PCRE cannot read, such as `\p{Assigned}`, naming PCRE's
+  reason, or says that no `php` was there to check (`--skip-pattern-check` writes the config
+  anyway, for a host whose PCRE is newer).
 
 ## [0.1.1] - 2026-10-19
 

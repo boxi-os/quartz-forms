@@ -118,9 +118,13 @@ Formular) und, außer `hidden` und `consent`, ein `label` (Text). Optional bei d
 | `hidden`                                                    | `value`                                                                                    |
 
 Ein `pattern` ist ein regulärer Ausdruck in JavaScript-Schreibweise (Bau und Browser lesen ihn mit
-`u`), das Relay wendet ihn mit PCRE an: Schreib nur, was beide gleich lesen. Lookbehind mit
-variabler Länge und lange Unicode-Eigenschaftsnamen kennt nur JavaScript; das Relay weist dann jeden
-Wert dieses Feldes ab und nennt das Muster im Fehlerprotokoll des Servers.
+`u`), das Relay wendet ihn mit PCRE an: Schreib nur, was beide gleich lesen. Der Bau weist ab, was
+kein PCRE2 liest (`\u`-Escapes, `[^]`, Lookbehind unbegrenzter Länge), und `npm run relay:config`
+kompiliert jedes Muster mit dem `php` deines Rechners und bricht bei einem ab, das PCRE nicht lesen
+kann, etwa einem Eigenschaftsnamen, den nur JavaScript kennt (`--skip-pattern-check` schreibt die
+Konfiguration trotzdem, für einen Host mit neuerem PCRE als deinem). Was das PCRE des Hosts dann
+noch nicht liest, lässt das Relay jeden Wert dieses Feldes abweisen, und das Muster steht im
+Fehlerprotokoll des Servers.
 
 ### Transport
 

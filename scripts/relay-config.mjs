@@ -4,10 +4,13 @@
 // relay/php/config.php once (with a fresh secret) and never touches it again: addresses and
 // origins are yours.
 //
-//   npm run relay:config -- /path/to/site [--out relay/php]
+//   npm run relay:config -- /path/to/site [--out relay/php] [--skip-pattern-check]
 //
-// Needs the plugin built (`npm run build`): the resolver comes from dist/.
+// Needs the plugin built (`npm run build`): the resolver comes from dist/. With a `php` on the
+// PATH every field pattern is compiled the way send.php compiles it, and a pattern PCRE cannot
+// read stops the run: `--skip-pattern-check` writes the config anyway.
 
+import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -19,11 +22,15 @@ const root = path.resolve(here, "..");
 
 function usage(message) {
   console.error(message);
-  console.error("usage: npm run relay:config -- <site directory> [--out <directory>]");
+  console.error(
+    "usage: npm run relay:config -- <site directory> [--out <directory>] [--skip-pattern-check]",
+  );
   process.exit(2);
 }
 
-const args = process.argv.slice(2);
+const argv = process.argv.slice(2);
+const skipPatternCheck = argv.includes("--skip-pattern-check");
+const args = argv.filter((a) => a !== "--skip-pattern-check");
 const outIndex = args.indexOf("--out");
 const outDir =
   outIndex >= 0 ? path.resolve(args[outIndex + 1] ?? "") : path.join(root, "relay", "php");
@@ -157,6 +164,64 @@ for (const form of Object.values(opts.forms)) {
       return rule;
     }),
   };
+}
+
+// The build and the browser read a pattern as JavaScript (`u`), the relay applies it with PCRE,
+// and a pattern PCRE cannot compile makes the relay refuse every value of its field (second
+// review, finding 3, 2026-10-19). The build refuses the syntax no PCRE2 reads (src/validate.ts);
+// what is left (a property name this PCRE does not know, a lookbehind of bounded variable length
+// before PCRE2 10.43) is asked of the php on this machine, compiled as send.php compiles it: the
+// same delimiter, the same anchors, the same flag. The host's PCRE may still be older.
+const patterns = Object.entries(forms).flatMap(([id, form]) =>
+  form.fields
+    .filter((rule) => rule.pattern)
+    .map((rule) => ({ form: id, field: rule.name, pattern: rule.pattern })),
+);
+if (patterns.length > 0) {
+  const probe = String.raw`
+    $in = json_decode(stream_get_contents(STDIN), true);
+    $errors = [];
+    foreach ($in as $p) {
+        $why = null;
+        set_error_handler(function (int $no, string $message) use (&$why): bool {
+            $why = preg_replace('/^preg_match\(\): /', '', $message);
+            return true;
+        });
+        $m = preg_match("\x01^(?:" . $p['pattern'] . ")$\x01u", '');
+        restore_error_handler();
+        if ($m === false) {
+            $errors[] = $p + ['why' => $why ?? preg_last_error_msg()];
+        }
+    }
+    echo json_encode(['pcre' => explode(' ', PCRE_VERSION)[0], 'php' => PHP_VERSION, 'errors' => $errors]);
+  `;
+  const r = spawnSync("php", ["-r", probe], { input: JSON.stringify(patterns), encoding: "utf8" });
+  if (r.error?.code === "ENOENT") {
+    console.warn(
+      `relay-config: ${patterns.length} pattern(s) not checked against PCRE: no php on the PATH. The relay refuses every value of a field whose pattern its PCRE cannot read.`,
+    );
+  } else if (r.status !== 0) {
+    console.error(`relay-config: php could not check the patterns:\n${r.stderr}`);
+    process.exit(1);
+  } else {
+    const { pcre, php: phpVersion, errors } = JSON.parse(r.stdout);
+    for (const e of errors) {
+      console.error(
+        `relay-config: forms.${e.form} field "${e.field}": PCRE cannot read the pattern "${e.pattern}" (${e.why}); the relay would refuse every value of this field`,
+      );
+    }
+    if (errors.length > 0 && !skipPatternCheck) {
+      console.error(
+        "relay-config: nothing written; fix the pattern, or pass --skip-pattern-check when the host's PCRE is newer than this machine's",
+      );
+      process.exit(1);
+    }
+    if (errors.length > 0) console.warn("relay-config: written anyway (--skip-pattern-check)");
+    else
+      console.log(
+        `${patterns.length} pattern(s) read by PCRE ${pcre} (PHP ${phpVersion} on this machine; the host's may be older)`,
+      );
+  }
 }
 
 const recipients = [

@@ -26,6 +26,63 @@ export const FORM_ID = /^[a-z0-9][a-z0-9-]*$/;
 export const FIELD_NAME = /^[A-Za-z][A-Za-z0-9_-]*$/;
 export const LANGUAGE_OPTION = /^[A-Za-z]{2,3}([-_][A-Za-z0-9]+)*$|^auto$/;
 
+/**
+ * The JavaScript regular-expression syntax no PCRE2 compiles, found with one walk over a pattern
+ * `new RegExp(pattern, "u")` has accepted. The build and the browser read a pattern as
+ * JavaScript, the relay applies it with PCRE and, fail-closed, refuses every value of a field
+ * whose pattern PCRE cannot read: the visitor saw "use the requested format" for a value the
+ * browser had just accepted, and only the server's error log said why (second review,
+ * finding 3, 2026-10-19). What a particular PCRE version refuses beyond this list (a property
+ * name it does not know, a lookbehind of bounded variable length before PCRE2 10.43) is asked of
+ * the php on the owner's machine by `npm run relay:config`.
+ *
+ * After the `u` check every `\u` is a code point escape, every `{` a quantifier and every `[`
+ * opens a class, so the walk needs no more than escapes, classes and the group depth.
+ */
+export function jsOnlyPattern(pattern: string): string | undefined {
+  const lookbehinds: number[] = []; // the depth at which each open lookbehind began
+  let depth = 0;
+  let inClass = false;
+  for (let i = 0; i < pattern.length; i++) {
+    const c = pattern[i];
+    if (c === "\\") {
+      if (pattern[i + 1] === "u")
+        return "`\\u` escapes are JavaScript only, the relay's PCRE cannot read them: write the character itself, or `\\xHH` below U+0100";
+      i++;
+      continue;
+    }
+    if (inClass) {
+      if (c === "]") inClass = false;
+      continue;
+    }
+    switch (c) {
+      case "[":
+        if (pattern.startsWith("[^]", i))
+          return "`[^]` is JavaScript only, the relay's PCRE cannot read it: write `[\\s\\S]`";
+        if (pattern[i + 1] === "]")
+          return "`[]` is JavaScript only (it matches nothing), the relay's PCRE cannot read it";
+        inClass = true;
+        break;
+      case "(":
+        depth++;
+        if (pattern.startsWith("(?<=", i) || pattern.startsWith("(?<!", i)) lookbehinds.push(depth);
+        if (pattern[i + 1] === "?") i++; // the `?` of a group prefix is no quantifier
+        break;
+      case ")":
+        if (lookbehinds[lookbehinds.length - 1] === depth) lookbehinds.pop();
+        depth--;
+        break;
+      case "*":
+      case "+":
+      case "{":
+        if (lookbehinds.length > 0 && (c !== "{" || /^\{\d+,\}/.test(pattern.slice(i))))
+          return "a lookbehind of unlimited length is JavaScript only, the relay's PCRE cannot read it";
+        break;
+    }
+  }
+  return undefined;
+}
+
 /** Names the submission envelope uses itself; a field may not take them. */
 export const RESERVED_NAMES = new Set([
   "form",
@@ -104,6 +161,8 @@ function checkField(field: FormField, at: string, out: Validation): void {
       if (field.pattern !== undefined) {
         try {
           new RegExp(field.pattern, "u");
+          const jsOnly = jsOnlyPattern(field.pattern);
+          if (jsOnly) out.problems.push(`${at}.pattern: ${jsOnly}`);
         } catch (e) {
           out.problems.push(`${at}: pattern is not a regular expression (${(e as Error).message})`);
         }
