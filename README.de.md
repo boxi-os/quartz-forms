@@ -5,7 +5,7 @@ Website: Kontakt, Feedback, Anmeldung und Umfrage, zur Build-Zeit gerendert, im 
 mit OpenPGP verschlüsselt, bevor sie die Seite verlassen, und über einen konfigurierbaren Versandweg
 verschickt.
 
-**Stand: 0.1.0, privat.** Läuft in einem gemessenen Bau; das PHP-Relay ist noch nicht gegen einen Interpreter gelaufen.
+**Stand: 0.1.1 plus unveröffentlichte Korrekturen, privat.** Gemessen in einer gebauten Site und in Chrome; das PHP-Relay misst die Testsuite unter `php -S` (`test/relay.test.ts`), dazu kam ein unabhängiges Review (siehe CHANGELOG).
 
 - Formulare werden einmal in `quartz.config.yaml` definiert (`options.forms`), nach Kennung
 - Eine Seite bindet ein Formular mit einem ` ```quartz-form `-Codeblock, einem
@@ -124,12 +124,12 @@ Wert dieses Feldes ab und nennt das Muster im Fehlerprotokoll des Servers.
 
 ### Transport
 
-| Schlüssel | Werte                                                             | Beschreibung                                                                                   |
-| --------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `kind`    | `relay`, `endpoint`, `formspree`, `web3forms`, `mailto`           | Das PHP-Relay von quartz-forms; jede POST-URL; zwei Dienst-Voreinstellungen; das Mailprogramm. |
-| `url`     | URL oder die Formular-Kennung / der Zugangsschlüssel des Dienstes | Pflicht für `relay`, `endpoint` und die Voreinstellungen.                                      |
-| `format`  | `json` \| `form`                                                  | Kodierung des Inhalts für `endpoint` (das Relay bekommt immer JSON).                           |
-| `extra`   | `Record<string, string>`                                          | Felder, die mit jeder Sendung gehen.                                                           |
+| Schlüssel | Werte                                                             | Beschreibung                                                                                                      |
+| --------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `kind`    | `relay`, `endpoint`, `formspree`, `web3forms`, `mailto`           | Das PHP-Relay von quartz-forms; jede POST-URL; zwei Dienst-Voreinstellungen; das Mailprogramm.                    |
+| `url`     | URL oder die Formular-Kennung / der Zugangsschlüssel des Dienstes | Pflicht für `relay`, `endpoint` und die Voreinstellungen.                                                         |
+| `format`  | `json` \| `form`                                                  | Kodierung des Inhalts für `endpoint`. Das Relay bekommt JSON vom Script und ohne JavaScript einen einfachen Post. |
+| `extra`   | `Record<string, string>`                                          | Felder, die mit jeder Sendung gehen.                                                                              |
 
 ### Spam
 

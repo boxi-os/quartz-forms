@@ -23,7 +23,6 @@ interface QfConfig {
   lang: string;
   fields: QfRule[];
   transport: { kind: string; url: string; format: "json" | "form"; extra: Record<string, string> };
-  recipient?: string;
   subject?: string;
   spam: {
     honeypot: boolean;

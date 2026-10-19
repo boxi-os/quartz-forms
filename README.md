@@ -4,7 +4,7 @@ A [Quartz v5](https://quartz.jzhao.xyz) plugin for web forms on a static site: c
 sign-up and survey forms, rendered at build time, validated in the browser, encrypted with OpenPGP
 before they leave the page, and sent through a configurable transport.
 
-**Status: 0.1.0, private.** Works in a measured build; the PHP relay has not been run against an interpreter yet.
+**Status: 0.1.1 plus unreleased fixes, private.** Measured in a built site and in Chrome; the PHP relay is measured under `php -S` by the test suite (`test/relay.test.ts`) and was reviewed independently (see the CHANGELOG).
 
 - Forms are defined once in `quartz.config.yaml` (`options.forms`), by id
 - A page embeds a form with a ` ```quartz-form ` code block, a `{{form:id}}` placeholder or
@@ -120,12 +120,12 @@ and names the pattern in the server's error log.
 
 ### Transport
 
-| Key      | Values                                                  | Description                                                                  |
-| -------- | ------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `kind`   | `relay`, `endpoint`, `formspree`, `web3forms`, `mailto` | The plugin's PHP relay; any POST URL; two service presets; the mail program. |
-| `url`    | URL, or the service's form id / access key              | Required for `relay`, `endpoint` and the presets.                            |
-| `format` | `json` \| `form`                                        | Body encoding for `endpoint` (the relay always gets JSON).                   |
-| `extra`  | `Record<string, string>`                                | Fields sent with every submission.                                           |
+| Key      | Values                                                  | Description                                                                                            |
+| -------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `kind`   | `relay`, `endpoint`, `formspree`, `web3forms`, `mailto` | The plugin's PHP relay; any POST URL; two service presets; the mail program.                           |
+| `url`    | URL, or the service's form id / access key              | Required for `relay`, `endpoint` and the presets.                                                      |
+| `format` | `json` \| `form`                                        | Body encoding for `endpoint`. The relay gets JSON from the script and a plain post without JavaScript. |
+| `extra`  | `Record<string, string>`                                | Fields sent with every submission.                                                                     |
 
 ### Spam
 

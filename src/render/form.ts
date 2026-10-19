@@ -459,7 +459,6 @@ export function clientConfig(form: ResolvedForm, ctx: RenderContext): ClientConf
       format: form.transport.format ?? "json",
       extra: presetFields(form),
     },
-    recipient: form.transport.kind === "relay" ? form.recipient : undefined,
     subject: resolveText(form.subject, ctx.lang),
     spam: {
       honeypot: form.spam.honeypot,
@@ -610,8 +609,8 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
       dataTransport: form.transport.kind,
       dataEncryption: form.encryption.mode,
       method: "post",
-      // With encryption required the plaintext target is never written into the page; the
-      // script sets it once it has encrypted. Without JavaScript the form cannot send.
+      // With encryption required the plaintext target is never written into the page: the
+      // script sends with fetch and never reads `action`. Without JavaScript the form cannot send.
       action: scriptOnly ? undefined : action,
       enctype: form.transport.kind === "mailto" ? "text/plain" : undefined,
       novalidate: undefined,

@@ -101,11 +101,14 @@ interface InputField {
     autocomplete?: string;
     /** Regular expression the value must match (HTML `pattern`). */
     pattern?: string;
-    /** Lower bound for `number`. */
+    /** Lower bound for `number`, checked by the build, the script and the relay. */
     min?: number;
-    /** Upper bound for `number`. */
+    /** Upper bound for `number`, checked like `min`. */
     max?: number;
-    /** Step for `number`. */
+    /**
+     * Step for `number` (HTML `step`). Only the browser's own check reads it, and that runs on the
+     * no-script path alone; the script and the relay accept any number within the bounds.
+     */
     step?: number;
     /** Rows of a `textarea`. */
     rows?: number;

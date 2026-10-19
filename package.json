@@ -1183,6 +1183,7 @@
             },
             "minSeconds": {
               "type": "number",
+              "minimum": 0,
               "description": "Seconds a visitor needs at least between opening the page and sending. 0 turns it off.",
               "x-quartz-l10n": {
                 "de": {
@@ -1214,6 +1215,8 @@
             },
             "powDifficulty": {
               "type": "integer",
+              "minimum": 8,
+              "maximum": 24,
               "description": "Leading zero bits the proof must reach; 16 takes a fraction of a second.",
               "x-quartz-l10n": {
                 "de": {
@@ -1441,6 +1444,7 @@
             },
             "minSeconds": {
               "type": "number",
+              "minimum": 0,
               "description": "Seconds a visitor needs at least between opening the page and sending. 0 turns it off.",
               "x-quartz-l10n": {
                 "de": {
@@ -1472,6 +1476,8 @@
             },
             "powDifficulty": {
               "type": "integer",
+              "minimum": 8,
+              "maximum": 24,
               "description": "Leading zero bits the proof must reach; 16 takes a fraction of a second.",
               "x-quartz-l10n": {
                 "de": {

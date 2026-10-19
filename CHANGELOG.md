@@ -132,6 +132,14 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   mails nothing of the envelope on the encrypted path. The plaintext mail showed the slug alone
   where the encrypted text reads `Page: Title (slug)`; the title now travels with the slug
   (`pageTitle`, also as a hidden field of the no-script form) and both paths read the same line.
+- Documentation brought back to the code: the READMEs said 0.1.0 and that the relay had never
+  run, and that "the relay always gets JSON" (a plain post goes without JavaScript);
+  `pageContext` promised a URL that is never sent; `step` reads as what it is (the browser's own
+  check on the no-script path only); the `configSchema` now carries the bounds the build enforces
+  (`minSeconds` ≥ 0, `powDifficulty` 8–24), so an editor offers no value the build refuses; a
+  comment in the renderer claimed the script sets `action` after encrypting (it sends with
+  `fetch`); the relay's header said the page sends a recipient name, and the page's form
+  configuration carried that name without anyone reading it, so it is gone.
 
 ## [0.1.1] - 2026-10-19
 

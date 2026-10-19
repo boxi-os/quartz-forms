@@ -3217,7 +3217,6 @@ function clientConfig(form, ctx) {
       format: form.transport.format ?? "json",
       extra: presetFields(form)
     },
-    recipient: form.transport.kind === "relay" ? form.recipient : void 0,
     subject: resolveText(form.subject, ctx.lang),
     spam: {
       honeypot: form.spam.honeypot,
@@ -3348,8 +3347,8 @@ function renderForm(form, ctx) {
       dataTransport: form.transport.kind,
       dataEncryption: form.encryption.mode,
       method: "post",
-      // With encryption required the plaintext target is never written into the page; the
-      // script sets it once it has encrypted. Without JavaScript the form cannot send.
+      // With encryption required the plaintext target is never written into the page: the
+      // script sends with fetch and never reads `action`. Without JavaScript the form cannot send.
       action: scriptOnly ? void 0 : action,
       enctype: form.transport.kind === "mailto" ? "text/plain" : void 0,
       novalidate: void 0
@@ -4215,5 +4214,5 @@ var FormBox_default = ((userOpts) => {
 });
 
 export { FormBox_default, Forms, defaultOptions, loadKeySources, logHints, resolveOptions, resolveOrThrow, resolveText, templateNames, templateOf, warnOnce };
-//# sourceMappingURL=chunk-7XR56YCI.js.map
-//# sourceMappingURL=chunk-7XR56YCI.js.map
+//# sourceMappingURL=chunk-KE7WWJCR.js.map
+//# sourceMappingURL=chunk-KE7WWJCR.js.map

@@ -5,7 +5,7 @@
  * Validation level 3 of three: the fields are checked against the definition that
  * `npm run relay:config` wrote into config.generated.php from quartz.config.yaml, so the relay
  * applies the same rules as the build and the browser. Recipient addresses live only here,
- * never on the site; the page sends a form id and a recipient name.
+ * never on the site; the page sends a form id.
  *
  * Promises this file keeps: nothing is logged, no address of the sender is stored, an anonymous
  * form gets no Reply-To and no page context, and rate limiting counts submissions per form and

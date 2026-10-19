@@ -289,7 +289,8 @@ describe("renderForm", () => {
       format: "json",
       extra: {},
     });
-    expect(config.recipient).toBe("owner");
+    // The recipient's name is the relay's business: nothing in the page names it.
+    expect("recipient" in config).toBe(false);
     expect(config.spam.pow).toBe(false);
     expect(config.texts.required).toBe("This field is required.");
   });
