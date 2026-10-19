@@ -199,16 +199,7 @@
     min-inline-size: 0;
   }
 
-  // A theme that draws task-list checkboxes (`article input[type="checkbox"]` with
-  // `appearance: none`, a mask image and a negative margin) would draw ours the same way and
-  // push them out of the form; measured on the gui-test template. Back to the browser's own.
-  input[type="checkbox"],
-  input[type="radio"] {
-    all: revert;
-    margin: 0;
-    flex: none;
-    accent-color: var(--secondary);
-  }
+  // The browser's own checkboxes and radios: guard.scss, which stays out of the layer.
 
   &__options {
     display: flex;

@@ -1,5 +1,5 @@
 import { createRequire } from 'module';
-export { FormBox_default as FormBox } from '../chunk-DX2DQM7X.js';
+export { FormBox_default as FormBox } from '../chunk-DI4EUXQ6.js';
 import '../chunk-SZJZMQHM.js';
 
 createRequire(import.meta.url);

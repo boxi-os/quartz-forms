@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed (a regression of 0.5.2): with the whole stylesheet in `@layer quartz-base`, the rule that
+  gives the form's checkboxes and radios back to the browser lost to a theme's unlayered
+  task-list rules, and the form's checkboxes were drawn as task glyphs. That one rule now ships
+  unlayered on its own (`guard.scss`); everything else stays in the layer.
+
 ## [0.5.2] - 2026-10-19
 
 - Fixed: the stylesheet reached the page twice, once through the component (which Quartz puts in

@@ -8,6 +8,7 @@ import { makeContext, pageLanguage, type PageInfo } from "./render/context";
 import { renderForm, renderMissing } from "./render/form";
 import { warnOnce } from "./util/warn";
 import style from "./components/styles/forms.scss";
+import guard from "./components/styles/guard.scss";
 // @ts-expect-error: bundled to a browser-ready string by the inline-script loader in tsup.config.ts
 import script from "./scripts/forms.inline";
 
@@ -233,7 +234,12 @@ export const Forms: QuartzTransformerPlugin<Partial<QuartzFormsOptions>> = (user
         // site's unlayered custom.scss wins with a plain `.quartz-form { --quartz-forms-*: … }`.
         // Unlayered, this copy loaded last and beat every such rule, the README's way of
         // changing a colour included (measured in Chrome, 2026-10-19).
-        css: [{ content: `@layer quartz-base {\n${style}\n}`, inline: true }],
+        // The checkbox guard alone stays unlayered: it has to beat a theme's task-list rules
+        // (guard.scss says why).
+        css: [
+          { content: `@layer quartz-base {\n${style}\n}`, inline: true },
+          { content: guard, inline: true },
+        ],
         js: [{ loadTime: "afterDOMReady", contentType: "inline", script }],
       };
     },
