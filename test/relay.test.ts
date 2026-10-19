@@ -892,6 +892,38 @@ describe.skipIf(!php)("relay: refusals", () => {
     const fits = await post(env("small", { s: "ok" }));
     expect(fits.status).toBe(200);
   });
+  it("size: a plain post is measured on its content, not on its URL encoding", async () => {
+    // Second review, finding 8 (2026-10-19): maxBytes was applied to the raw body, and the URL
+    // encoding of a plain post triples every non-ASCII byte, so 15 000 CJK characters in a
+    // 20 000-character textarea (45 kB as JSON, 135 kB encoded) were refused as too large
+    // (measured against the code before: 413 here, and the page for a body too large to read
+    // was English for lang=de).
+    const before = mails().length;
+    const cjk = await plain({
+      form: "feedback",
+      lang: "de-DE",
+      rating: "4",
+      comment: "漢".repeat(15_000),
+    });
+    expect(cjk.status).toBe(200);
+    expect(mails().length).toBe(before + 1);
+    expect(lastMail().body).toContain("漢".repeat(15_000));
+    // The decoded size still counts, against this form's own limit, in the submission's language.
+    const over = await plain({ form: "small", lang: "de-DE", s: "x".repeat(1000) });
+    expect(over.status).toBe(413);
+    expect(over.text).toContain("<title>Nicht gesendet</title>");
+    // A body beyond what the relay reads at all (three times the largest limit) is answered
+    // before it is parsed; that page speaks the browser's language.
+    const huge = await post(`form=feedback&lang=de-DE&rating=4&comment=${"x".repeat(400_000)}`, {
+      raw: true,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "text/html",
+        "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
+      },
+    });
+    expect([huge.status, huge.text.includes("<title>Nicht gesendet</title>")]).toEqual([413, true]);
+  });
 });
 
 describe.skipIf(!php)("relay: accepted submissions and their mail", () => {

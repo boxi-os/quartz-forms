@@ -145,7 +145,7 @@ every value of that field, with the pattern named in the server's error log.
 | `maxFieldLength`    | `2000`   | Default length limit of a single-line field.                                                                                                                                   |
 | `maxTextareaLength` | `20000`  | Default length limit of a textarea.                                                                                                                                            |
 | `maxKeyLength`      | `16384`  | Length limit of a pasted public key.                                                                                                                                           |
-| `maxBytes`          | `131072` | Size limit of a whole submission, in bytes; the build warns when the fields may hold more.                                                                                     |
+| `maxBytes`          | `131072` | Size limit of a whole submission, in bytes, measured on its content (a plain post's URL encoding does not count); the build warns when the fields may hold more.               |
 
 With the relay, the script fetches a ticket when the page opens (`GET send.php?challenge=<id>`):
 a stamp of that moment signed by the relay for that form, and the hour's proof-of-work challenge

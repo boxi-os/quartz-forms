@@ -441,6 +441,29 @@ function qf_admit(array $config, string $form, int $perHour, callable $spend): ?
  * last value, so every ticked `checkboxes` field was refused as `invalid` on the plain-form path
  * (review finding, 2026-10-19).
  */
+/**
+ * Bytes of a plain post once decoded: its names and values. The URL encoding triples every
+ * non-ASCII byte, so the raw body says little about the content it carries (second review,
+ * finding 8, 2026-10-19: 15 000 CJK characters, 45 kB as JSON, arrived as 135 kB).
+ */
+function qf_decoded_size(array $data): int
+{
+    $n = 0;
+    foreach ($data as $name => $value) {
+        foreach (is_array($value) ? $value : [$value] as $v) {
+            $n += strlen((string) $name) + strlen((string) $v);
+        }
+    }
+    return $n;
+}
+
+/** The first language the browser asks for; 'en' when it names none. */
+function qf_accept_language(): string
+{
+    $header = $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '';
+    return preg_match('/^\s*([A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*)/', $header, $m) ? $m[1] : 'en';
+}
+
 function qf_parse_form(string $raw): array
 {
     $out = [];
@@ -907,18 +930,25 @@ if ($method !== 'POST') {
 }
 
 // Read no more than the largest limit of any form; the addressed form's limit is applied below.
+// maxBytes bounds the content: a plain post, whose URL encoding may triple it, is read up to
+// three times the limit and measured decoded (second review, finding 8, 2026-10-19).
+$isForm = str_contains($_SERVER['CONTENT_TYPE'] ?? '', 'application/x-www-form-urlencoded');
+// Until the body names a language, an answer page speaks the browser's: a body too large to
+// read at all is answered before it is parsed (same finding: that page was English for lang=de).
+$qfLang = qf_accept_language();
 $maxBytes = 0;
 foreach ($forms as $f) {
     $maxBytes = max($maxBytes, (int) ($f['spam']['maxBytes'] ?? 65536));
 }
-$raw = file_get_contents('php://input', false, null, 0, $maxBytes + 1) ?: '';
-if (strlen($raw) > $maxBytes) {
+$readLimit = $isForm ? $maxBytes * 3 : $maxBytes;
+$raw = file_get_contents('php://input', false, null, 0, $readLimit + 1) ?: '';
+if (strlen($raw) > $readLimit) {
     qf_fail(413, 'too_large', 'the submission is too large');
 }
 
-$isForm = str_contains($_SERVER['CONTENT_TYPE'] ?? '', 'application/x-www-form-urlencoded');
 if ($isForm) {
     $data = qf_parse_form($raw);
+    $size = qf_decoded_size($data);
     $envelope = [
         'form' => $data['form'] ?? '',
         'lang' => $data['lang'] ?? '',
@@ -935,6 +965,7 @@ if ($isForm) {
         unset($envelope['fields'][$k]);
     }
 } else {
+    $size = strlen($raw);
     $envelope = json_decode($raw, true);
     if (!is_array($envelope)) {
         qf_fail(400, 'bad_json', 'the body is not JSON');
@@ -954,7 +985,7 @@ $redirect = $formCfg['redirect'] ?? null;
 
 // The body was read up to the largest limit of any form; this form's own limit applies now
 // (review finding, 2026-10-19: a form with maxBytes 300 took a thousand bytes).
-if (strlen($raw) > (int) ($spam['maxBytes'] ?? 65536)) {
+if ($size > (int) ($spam['maxBytes'] ?? 65536)) {
     qf_fail(413, 'too_large', 'the submission is too large');
 }
 

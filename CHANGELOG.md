@@ -228,6 +228,14 @@ Fixes from a second review of the changes above (another model, fresh context, 2
   produce the other's signature. A stamp still serves its form for a day rather than one message:
   a page left open in a tab keeps working, and a bot that fetches tickets would lose only the
   fetch. The relay suite fetches one stamp per fixture form.
+- The relay applied `maxBytes` to the raw body, and the URL encoding of a plain post without
+  JavaScript triples every non-ASCII byte, so a message well within its field's length was
+  refused as too large (measured: 15 000 CJK characters in a 20 000-character textarea, 45 kB as
+  JSON, arrived as 135 kB and got a 413). The relay now reads a plain post up to three times the
+  limit and measures it decoded, so `maxBytes` bounds the content on both paths and the build's
+  capacity hint fits both. The page for a body too large to read at all was English whatever the
+  form's language, because the body had not been parsed yet; it now speaks the browser's
+  language (`Accept-Language`) until the body names one.
 
 ## [0.1.1] - 2026-10-19
 
