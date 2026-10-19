@@ -912,7 +912,8 @@ function checkForm(form, raw, rawSpam, keyNames, out) {
       out.hints.push(`${at}: encrypted mailto puts the whole ciphertext into the mail body`);
   }
   const sp = form.spam;
-  if (sp.minSeconds < 0) out.problems.push(`${at}.spam.minSeconds: not below 0`);
+  if (!Number.isInteger(sp.minSeconds) || sp.minSeconds < 0)
+    out.problems.push(`${at}.spam.minSeconds: a whole number of seconds, 0 or more`);
   if (!Number.isInteger(sp.powDifficulty) || sp.powDifficulty < 8 || sp.powDifficulty > 20)
     out.problems.push(`${at}.spam.powDifficulty: an integer from 8 to 20`);
   if (!["none", "turnstile", "hcaptcha"].includes(sp.captcha))
@@ -4283,5 +4284,5 @@ var FormBox_default = ((userOpts) => {
 });
 
 export { FormBox_default, Forms, defaultOptions, loadKeySources, logHints, resolveOptions, resolveOrThrow, resolveText, templateNames, templateOf, warnOnce };
-//# sourceMappingURL=chunk-ISJMRTUY.js.map
-//# sourceMappingURL=chunk-ISJMRTUY.js.map
+//# sourceMappingURL=chunk-ADYXWCNN.js.map
+//# sourceMappingURL=chunk-ADYXWCNN.js.map

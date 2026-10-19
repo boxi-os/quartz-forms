@@ -137,20 +137,20 @@ Fehlerprotokoll des Servers.
 
 ### Spam
 
-| Schlüssel           | Vorgabe  | Beschreibung                                                                                                                                                                           |
-| ------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `honeypot`          | `true`   | Ein unsichtbares Feld, das leer bleiben muss.                                                                                                                                          |
-| `minSeconds`        | `3`      | Sekunden zwischen Öffnen der Seite und Senden, gemessen vom Relay am Post des Skripts; ein einfacher Post ohne JavaScript trägt keinen Stempel (siehe `noScript`). `0` schaltet es ab. |
-| `noScript`          | `true`   | Einfache Formular-Posts aus Browsern ohne JavaScript annehmen; siehe unten.                                                                                                            |
-| `pow`               | `false`  | Proof-of-Work, das das Relay prüft, eines je Nachricht (nur `relay`).                                                                                                                  |
-| `powDifficulty`     | `16`     | Führende Nullbits, 8 bis 20. Gerechnet in einem Worker: 16 dauert auf einem Desktop bis zu einer Sekunde, ab 18 auf einem Telefon Sekunden (der Bau sagt es).                          |
-| `captcha`           | `none`   | `turnstile` oder `hcaptcha`; lädt das Skript des Anbieters. Bei anonym ignoriert: kein Widget, und das Relay verlangt kein Token.                                                      |
-| `captchaSiteKey`    | `""`     | Der Site-Schlüssel des Anbieters; der geheime Schlüssel steht in der `config.php` des Relays.                                                                                          |
-| `rateLimitPerHour`  | `60`     | Mails je Formular und Stunde, die das Relay sendet; abgewiesene Posts zählen nicht, keine Adressen.                                                                                    |
-| `maxFieldLength`    | `2000`   | Vorgabe für die Höchstlänge eines einzeiligen Felds.                                                                                                                                   |
-| `maxTextareaLength` | `20000`  | Vorgabe für die Höchstlänge eines Textfelds.                                                                                                                                           |
-| `maxKeyLength`      | `16384`  | Höchstlänge eines eingefügten öffentlichen Schlüssels.                                                                                                                                 |
-| `maxBytes`          | `131072` | Höchstgröße einer ganzen Sendung in Bytes; der Bau warnt, wenn die Felder mehr fassen können.                                                                                          |
+| Schlüssel           | Vorgabe  | Beschreibung                                                                                                                                                                                 |
+| ------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `honeypot`          | `true`   | Ein unsichtbares Feld, das leer bleiben muss.                                                                                                                                                |
+| `minSeconds`        | `3`      | Ganze Sekunden zwischen Öffnen der Seite und Senden, gemessen vom Relay am Post des Skripts; ein einfacher Post ohne JavaScript trägt keinen Stempel (siehe `noScript`). `0` schaltet es ab. |
+| `noScript`          | `true`   | Einfache Formular-Posts aus Browsern ohne JavaScript annehmen; siehe unten.                                                                                                                  |
+| `pow`               | `false`  | Proof-of-Work, das das Relay prüft, eines je Nachricht (nur `relay`).                                                                                                                        |
+| `powDifficulty`     | `16`     | Führende Nullbits, 8 bis 20. Gerechnet in einem Worker: 16 dauert auf einem Desktop bis zu einer Sekunde, ab 18 auf einem Telefon Sekunden (der Bau sagt es).                                |
+| `captcha`           | `none`   | `turnstile` oder `hcaptcha`; lädt das Skript des Anbieters. Bei anonym ignoriert: kein Widget, und das Relay verlangt kein Token.                                                            |
+| `captchaSiteKey`    | `""`     | Der Site-Schlüssel des Anbieters; der geheime Schlüssel steht in der `config.php` des Relays.                                                                                                |
+| `rateLimitPerHour`  | `60`     | Mails je Formular und Stunde, die das Relay sendet; abgewiesene Posts zählen nicht, keine Adressen.                                                                                          |
+| `maxFieldLength`    | `2000`   | Vorgabe für die Höchstlänge eines einzeiligen Felds.                                                                                                                                         |
+| `maxTextareaLength` | `20000`  | Vorgabe für die Höchstlänge eines Textfelds.                                                                                                                                                 |
+| `maxKeyLength`      | `16384`  | Höchstlänge eines eingefügten öffentlichen Schlüssels.                                                                                                                                       |
+| `maxBytes`          | `131072` | Höchstgröße einer ganzen Sendung in Bytes; der Bau warnt, wenn die Felder mehr fassen können.                                                                                                |
 
 Mit dem Relay holt das Skript beim Öffnen der Seite ein Ticket (`GET send.php?challenge=<id>`):
 einen vom Relay signierten Stempel dieses Moments und, wenn das Formular es verlangt, die

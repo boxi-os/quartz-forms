@@ -426,7 +426,10 @@ function checkForm(
 
   // Spam
   const sp = form.spam;
-  if (sp.minSeconds < 0) out.problems.push(`${at}.spam.minSeconds: not below 0`);
+  // The relay measures the stamp's age in whole seconds and casts the value to int, so 0.5 was
+  // half a second in the browser and no trap at all there (second review, aside 5, 2026-10-19).
+  if (!Number.isInteger(sp.minSeconds) || sp.minSeconds < 0)
+    out.problems.push(`${at}.spam.minSeconds: a whole number of seconds, 0 or more`);
   // 20 bits take about 2 s in a Worker on a desktop and several times that on a phone; 24 bits
   // took minutes (review finding 18, measured in Chrome, 2026-10-19).
   if (!Number.isInteger(sp.powDifficulty) || sp.powDifficulty < 8 || sp.powDifficulty > 20)

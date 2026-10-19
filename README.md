@@ -132,20 +132,20 @@ every value of that field, with the pattern named in the server's error log.
 
 ### Spam
 
-| Key                 | Default  | Description                                                                                                                                                                    |
-| ------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `honeypot`          | `true`   | An invisible field that must stay empty.                                                                                                                                       |
-| `minSeconds`        | `3`      | Seconds between opening the page and sending, measured by the relay on the script's post; a plain post without JavaScript carries no stamp (see `noScript`). `0` turns it off. |
-| `noScript`          | `true`   | Accept plain form posts from browsers without JavaScript; see below.                                                                                                           |
-| `pow`               | `false`  | Proof of work the relay checks, one per message (`relay` only).                                                                                                                |
-| `powDifficulty`     | `16`     | Leading zero bits, 8 to 20. Hashed in a Worker: 16 takes up to a second on a desktop, 18 and more take seconds on a phone (the build says so).                                 |
-| `captcha`           | `none`   | `turnstile` or `hcaptcha`; loads that provider's script. Ignored when anonymous: no widget, and the relay asks for no token.                                                   |
-| `captchaSiteKey`    | `""`     | The provider's site key; the secret key goes into the relay's `config.php`.                                                                                                    |
-| `rateLimitPerHour`  | `60`     | Mails per form and hour the relay sends; refused posts do not count, no addresses.                                                                                             |
-| `maxFieldLength`    | `2000`   | Default length limit of a single-line field.                                                                                                                                   |
-| `maxTextareaLength` | `20000`  | Default length limit of a textarea.                                                                                                                                            |
-| `maxKeyLength`      | `16384`  | Length limit of a pasted public key.                                                                                                                                           |
-| `maxBytes`          | `131072` | Size limit of a whole submission, in bytes, measured on its content (a plain post's URL encoding does not count); the build warns when the fields may hold more.               |
+| Key                 | Default  | Description                                                                                                                                                                          |
+| ------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `honeypot`          | `true`   | An invisible field that must stay empty.                                                                                                                                             |
+| `minSeconds`        | `3`      | Whole seconds between opening the page and sending, measured by the relay on the script's post; a plain post without JavaScript carries no stamp (see `noScript`). `0` turns it off. |
+| `noScript`          | `true`   | Accept plain form posts from browsers without JavaScript; see below.                                                                                                                 |
+| `pow`               | `false`  | Proof of work the relay checks, one per message (`relay` only).                                                                                                                      |
+| `powDifficulty`     | `16`     | Leading zero bits, 8 to 20. Hashed in a Worker: 16 takes up to a second on a desktop, 18 and more take seconds on a phone (the build says so).                                       |
+| `captcha`           | `none`   | `turnstile` or `hcaptcha`; loads that provider's script. Ignored when anonymous: no widget, and the relay asks for no token.                                                         |
+| `captchaSiteKey`    | `""`     | The provider's site key; the secret key goes into the relay's `config.php`.                                                                                                          |
+| `rateLimitPerHour`  | `60`     | Mails per form and hour the relay sends; refused posts do not count, no addresses.                                                                                                   |
+| `maxFieldLength`    | `2000`   | Default length limit of a single-line field.                                                                                                                                         |
+| `maxTextareaLength` | `20000`  | Default length limit of a textarea.                                                                                                                                                  |
+| `maxKeyLength`      | `16384`  | Length limit of a pasted public key.                                                                                                                                                 |
+| `maxBytes`          | `131072` | Size limit of a whole submission, in bytes, measured on its content (a plain post's URL encoding does not count); the build warns when the fields may hold more.                     |
 
 With the relay, the script fetches a ticket when the page opens (`GET send.php?challenge=<id>`):
 a stamp of that moment signed by the relay for that form, and the hour's proof-of-work challenge

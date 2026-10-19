@@ -1182,12 +1182,12 @@
               "x-quartz-order": 10
             },
             "minSeconds": {
-              "type": "number",
+              "type": "integer",
               "minimum": 0,
-              "description": "Seconds a visitor needs at least between opening the page and sending. 0 turns it off.",
+              "description": "Whole seconds a visitor needs at least between opening the page and sending. 0 turns it off.",
               "x-quartz-l10n": {
                 "de": {
-                  "description": "Sekunden, die ein Besucher mindestens zwischen Öffnen der Seite und Senden braucht. 0 schaltet es ab."
+                  "description": "Ganze Sekunden, die ein Besucher mindestens zwischen Öffnen der Seite und Senden braucht. 0 schaltet es ab."
                 }
               },
               "x-quartz-order": 20
@@ -1443,12 +1443,12 @@
               "x-quartz-order": 10
             },
             "minSeconds": {
-              "type": "number",
+              "type": "integer",
               "minimum": 0,
-              "description": "Seconds a visitor needs at least between opening the page and sending. 0 turns it off.",
+              "description": "Whole seconds a visitor needs at least between opening the page and sending. 0 turns it off.",
               "x-quartz-l10n": {
                 "de": {
-                  "description": "Sekunden, die ein Besucher mindestens zwischen Öffnen der Seite und Senden braucht. 0 schaltet es ab."
+                  "description": "Ganze Sekunden, die ein Besucher mindestens zwischen Öffnen der Seite und Senden braucht. 0 schaltet es ab."
                 }
               },
               "x-quartz-order": 20

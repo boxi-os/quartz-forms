@@ -268,6 +268,14 @@ describe("validate: transport, encryption, spam, success", () => {
   });
 
   it("checks the spam settings and says what has no effect", () => {
+    // Second review, aside 5 (2026-10-19): the schema said `number`, the relay casts to int, so
+    // 0.5 was half a second in the browser and no time trap at all in the relay.
+    expect(problemsOf({ spam: { minSeconds: 0.5 } as never })).toEqual([
+      "forms.contact.spam.minSeconds: a whole number of seconds, 0 or more",
+    ]);
+    expect(problemsOf({ spam: { minSeconds: -1 } as never })).toEqual([
+      "forms.contact.spam.minSeconds: a whole number of seconds, 0 or more",
+    ]);
     expect(problemsOf({ spam: { powDifficulty: 4 } as never })).toEqual([
       "forms.contact.spam.powDifficulty: an integer from 8 to 20",
     ]);
