@@ -2712,8 +2712,17 @@ var Forms = (userOpts) => {
             else parent.children.splice(index2, 1);
             return SKIP;
           });
+          const inCode = /* @__PURE__ */ new WeakSet();
+          visit(tree, "element", (node) => {
+            if (node.tagName !== "code" && node.tagName !== "pre") return;
+            visit(node, "text", (t) => {
+              inCode.add(t);
+            });
+            return SKIP;
+          });
           visit(tree, "text", (node, index2, parent) => {
-            if (!parent || index2 === void 0 || !FORM_PLACEHOLDER.test(node.value)) return;
+            if (!parent || index2 === void 0 || inCode.has(node)) return;
+            if (!FORM_PLACEHOLDER.test(node.value)) return;
             const match = FORM_PLACEHOLDER.exec(node.value);
             const id = match[1] ?? match[2];
             const form = page.render(id);
@@ -3399,5 +3408,5 @@ var FormBox_default = ((userOpts) => {
 });
 
 export { FormBox_default, Forms, loadKeySources, resolveText };
-//# sourceMappingURL=chunk-WGZY5X7F.js.map
-//# sourceMappingURL=chunk-WGZY5X7F.js.map
+//# sourceMappingURL=chunk-Q7OMMOQG.js.map
+//# sourceMappingURL=chunk-Q7OMMOQG.js.map

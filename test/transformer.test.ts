@@ -98,6 +98,16 @@ describe("code block", () => {
 });
 
 describe("placeholder", () => {
+  it("leaves a placeholder in inline code and in a code block alone", async () => {
+    const { html } = await transform(
+      "Write `{{form:example}}` into a page.\n\n```\n{{form:other}}\n```\n",
+      options(),
+    );
+    expect(html).toContain("<code>{{form:example}}</code>");
+    expect(html).toContain("{{form:other}}");
+    expect(html).not.toContain("quartz-form");
+  });
+
   it("replaces a paragraph that is only {{form:id}} by the form", async () => {
     const { html } = await transform("Text.\n\n{{form:contact}}\n\nMore.\n", options());
     expect(html).toMatch(

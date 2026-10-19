@@ -156,8 +156,20 @@ export const Forms: QuartzTransformerPlugin<Partial<QuartzFormsOptions>> = (user
 
           // 2. `{{form:id}}` in the text. A paragraph that holds nothing else is replaced by the
           // form (a form inside <p> is not valid HTML); otherwise the form follows the paragraph.
+          // Not inside code: `{{form:contact}}` in backticks or a code block is how a page writes
+          // about the placeholder, and it used to be replaced - or stop the build for an id that
+          // is only an example (found 2026-10-19 by a page of the measuring site).
+          const inCode = new WeakSet<HastText>();
+          visit(tree, "element", (node: Element) => {
+            if (node.tagName !== "code" && node.tagName !== "pre") return;
+            visit(node, "text", (t: HastText) => {
+              inCode.add(t);
+            });
+            return SKIP;
+          });
           visit(tree, "text", (node: HastText, index, parent) => {
-            if (!parent || index === undefined || !FORM_PLACEHOLDER.test(node.value)) return;
+            if (!parent || index === undefined || inCode.has(node)) return;
+            if (!FORM_PLACEHOLDER.test(node.value)) return;
             const match = FORM_PLACEHOLDER.exec(node.value)!;
             const id = match[1] ?? match[2]!;
             const form = page.render(id);
