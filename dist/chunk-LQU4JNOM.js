@@ -535,11 +535,30 @@ function textKeys() {
   return Object.keys(en_US_default);
 }
 
+// src/pgp/armor.ts
+var BLOCK = /-----BEGIN PGP ([A-Z ]+?)-----[\s\S]*?-----END PGP \1-----/g;
+var PUBLIC = "PUBLIC KEY BLOCK";
+function publicKeyBlock(text3) {
+  if (/-----BEGIN PGP PRIVATE KEY BLOCK-----/.test(text3))
+    return {
+      problem: "holds a private key block; export only the public key (gpg --export --armor)"
+    };
+  const blocks = [...text3.matchAll(BLOCK)];
+  const begins = text3.match(/-----BEGIN PGP /g)?.length ?? 0;
+  const first = blocks[0];
+  if (!first) return { problem: "not an armored PGP public key block" };
+  if (begins > blocks.length) return { problem: "holds an incomplete armor block" };
+  const other = blocks.find((b) => b[1] !== PUBLIC);
+  if (other) return { problem: `holds a PGP ${other[1]} besides the public key` };
+  if (blocks.length > 1)
+    return { problem: `holds ${blocks.length} key blocks; one public key per source` };
+  return { armored: first[0] };
+}
+
 // src/validate.ts
 var FORM_ID = /^[a-z0-9][a-z0-9-]*$/;
 var FIELD_NAME = /^[A-Za-z][A-Za-z0-9_-]*$/;
 var LANGUAGE_OPTION = /^[A-Za-z]{2,3}([-_][A-Za-z0-9]+)*$|^auto$/;
-var PUBLIC_KEY_BLOCK = /-----BEGIN PGP PUBLIC KEY BLOCK-----[\s\S]+-----END PGP PUBLIC KEY BLOCK-----/;
 var RESERVED_NAMES = /* @__PURE__ */ new Set([
   "form",
   "lang",
@@ -706,8 +725,8 @@ function checkKeySource(name2, src, out) {
     return;
   }
   if (armored !== void 0) {
-    if (!PUBLIC_KEY_BLOCK.test(armored))
-      out.problems.push(`${at}.armored: not an armored PGP public key block`);
+    const block2 = publicKeyBlock(armored);
+    if (block2.problem) out.problems.push(`${at}.armored: ${block2.problem}`);
     return;
   }
   const abs = path.resolve(process.cwd(), file);
@@ -722,8 +741,8 @@ function checkKeySource(name2, src, out) {
     out.problems.push(`${at}.file: ${src.file} not found or not readable`);
     return;
   }
-  if (!PUBLIC_KEY_BLOCK.test(text3))
-    out.problems.push(`${at}.file: ${src.file} is not an armored PGP public key block`);
+  const block = publicKeyBlock(text3);
+  if (block.problem) out.problems.push(`${at}.file: ${src.file}: ${block.problem}`);
 }
 function checkForm(form, raw, keyNames, out) {
   const at = `forms.${form.id}`;
@@ -1217,13 +1236,13 @@ function visit(tree, testOrVisitor, visitorOrReverse, maybeReverse) {
   }
 }
 var cache = /* @__PURE__ */ new Map();
-function loadKeys(sources, names) {
+function loadKeySources(sources, names) {
   const out = [];
   for (const name2 of names) {
     const src = sources[name2];
     if (!src) continue;
     if (typeof src.armored === "string" && src.armored.trim()) {
-      out.push({ name: name2, armored: src.armored.trim() });
+      out.push({ name: name2, ...publicKeyBlock(src.armored) });
       continue;
     }
     if (typeof src.file !== "string") continue;
@@ -1232,15 +1251,22 @@ function loadKeys(sources, names) {
       const mtimeMs = fs2.statSync(abs).mtimeMs;
       const hit = cache.get(abs);
       if (hit && hit.mtimeMs === mtimeMs) {
-        out.push({ name: name2, armored: hit.armored });
+        const { mtimeMs: _, ...block2 } = hit;
+        out.push({ name: name2, ...block2 });
         continue;
       }
-      const armored = fs2.readFileSync(abs, "utf8").trim();
-      cache.set(abs, { mtimeMs, armored });
-      out.push({ name: name2, armored });
+      const block = publicKeyBlock(fs2.readFileSync(abs, "utf8"));
+      cache.set(abs, { mtimeMs, ...block });
+      out.push({ name: name2, ...block });
     } catch {
     }
   }
+  return out;
+}
+function loadKeys(sources, names) {
+  const out = [];
+  for (const key of loadKeySources(sources, names))
+    if (key.armored !== void 0) out.push({ name: key.name, armored: key.armored });
   return out;
 }
 
@@ -4132,6 +4158,6 @@ var FormBox_default = ((userOpts) => {
   return FormBox;
 });
 
-export { FormBox_default, Forms, defaultOptions, loadKeys, logHints, resolveOptions, resolveOrThrow, resolveText, templateNames, templateOf, warnOnce };
-//# sourceMappingURL=chunk-XOVWWMDE.js.map
-//# sourceMappingURL=chunk-XOVWWMDE.js.map
+export { FormBox_default, Forms, defaultOptions, loadKeySources, logHints, resolveOptions, resolveOrThrow, resolveText, templateNames, templateOf, warnOnce };
+//# sourceMappingURL=chunk-LQU4JNOM.js.map
+//# sourceMappingURL=chunk-LQU4JNOM.js.map

@@ -3,7 +3,7 @@ import path from "node:path";
 import type { BuildCtx, FilePath, QuartzEmitterPlugin } from "@quartz-community/types";
 import { logHints, resolveOrThrow } from "./options";
 import type { QuartzFormsOptions, ResolvedOptions } from "./types";
-import { loadKeys } from "./render/keys";
+import { loadKeySources } from "./render/keys";
 import { checkKey } from "./pgp/check";
 import { BROWSER_FILES, vendorDir } from "./pgp/load";
 import { warnOnce } from "./util/warn";
@@ -30,7 +30,11 @@ async function checkKeys(opts: ResolvedOptions, serve: boolean): Promise<void> {
   const names = keysInUse(opts);
   if (names.length === 0) return;
   const problems: string[] = [];
-  for (const { name, armored } of loadKeys(opts.keys, names)) {
+  for (const { name, armored, problem } of loadKeySources(opts.keys, names)) {
+    if (armored === undefined) {
+      problems.push(`keys.${name}: ${problem}`);
+      continue;
+    }
     const report = await checkKey(name, armored);
     if (report.problem) {
       problems.push(`keys.${name}: ${report.problem}`);

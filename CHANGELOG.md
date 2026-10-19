@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10-19):
+
+- A key source that held a private key block behind the public one (`gpg --export-secret-keys
+  > > owner.asc`) passed every build check, and the whole file went into the page: the private
+key was published on every form page. A source must now hold exactly one public key block
+(`src/pgp/armor.ts`), checked at build time and again whenever the file is read, and the page
+gets that block alone. The emitter reports a file that went bad during `--serve`.
+
 ## [0.1.1] - 2026-10-19
 
 Measured the PHP relay against PHP 8.5.11 (`php -S`): 46 requests covering every refusal

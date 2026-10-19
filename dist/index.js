@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
-import { resolveOrThrow, logHints, loadKeys, warnOnce } from './chunk-XOVWWMDE.js';
-export { FormBox_default as FormBox, Forms, defaultOptions, resolveOptions, resolveOrThrow, resolveText, templateNames, templateOf } from './chunk-XOVWWMDE.js';
+import { resolveOrThrow, logHints, loadKeySources, warnOnce } from './chunk-LQU4JNOM.js';
+export { FormBox_default as FormBox, Forms, defaultOptions, resolveOptions, resolveOrThrow, resolveText, templateNames, templateOf } from './chunk-LQU4JNOM.js';
 import fs2 from 'fs/promises';
 import path from 'path';
 import fs from 'fs';
@@ -101,7 +101,11 @@ async function checkKeys(opts, serve) {
   const names = keysInUse(opts);
   if (names.length === 0) return;
   const problems = [];
-  for (const { name, armored } of loadKeys(opts.keys, names)) {
+  for (const { name, armored, problem } of loadKeySources(opts.keys, names)) {
+    if (armored === void 0) {
+      problems.push(`keys.${name}: ${problem}`);
+      continue;
+    }
     const report = await checkKey(name, armored);
     if (report.problem) {
       problems.push(`keys.${name}: ${report.problem}`);

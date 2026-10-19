@@ -1,7 +1,10 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { resolveOptions } from "../src/options";
 import type { FormDefinition, FormField, QuartzFormsOptions } from "../src/types";
 import { contact, options } from "./helpers";
+import { tmpDir } from "./keys";
 
 function problemsOf(extra: Partial<QuartzFormsOptions>): string[] {
   return resolveOptions(options(extra)).problems;
@@ -14,6 +17,9 @@ function fieldProblems(field: FormField): string[] {
 }
 
 const ARMORED = "-----BEGIN PGP PUBLIC KEY BLOCK-----\n\nabc\n-----END PGP PUBLIC KEY BLOCK-----";
+const PRIVATE =
+  "-----BEGIN PGP PRIVATE KEY BLOCK-----\n\nsecret\n-----END PGP PRIVATE KEY BLOCK-----";
+const MESSAGE = "-----BEGIN PGP MESSAGE-----\n\nmsg\n-----END PGP MESSAGE-----";
 
 describe("validate: forms and fields", () => {
   it("rejects a form id that is not lower-case letters, digits and dashes", () => {
@@ -169,12 +175,36 @@ describe("validate: transport, encryption, spam, success", () => {
       "keys.k.file: test/fixtures/missing.asc not found or not readable",
     ]);
     expect(problemsOf({ keys: { k: { file: "test/helpers.ts" } } })).toEqual([
-      "keys.k.file: test/helpers.ts is not an armored PGP public key block",
+      "keys.k.file: test/helpers.ts: not an armored PGP public key block",
     ]);
     expect(problemsOf({ keys: { k: { file: "../outside.asc" } } })).toEqual([
       "keys.k.file: ../outside.asc lies outside the site",
     ]);
     expect(problemsOf({ keys: { k: { file: "test/fixtures/public.asc" } } })).toEqual([]);
+  });
+
+  it("refuses a key source that holds anything besides one public key block", () => {
+    // gpg --export-secret-keys >> owner.asc: the private key behind the public one
+    expect(problemsOf({ keys: { k: { armored: `${ARMORED}\n${PRIVATE}` } } })).toEqual([
+      "keys.k.armored: holds a private key block; export only the public key (gpg --export --armor)",
+    ]);
+    expect(problemsOf({ keys: { k: { armored: `${ARMORED}\n${ARMORED}` } } })).toEqual([
+      "keys.k.armored: holds 2 key blocks; one public key per source",
+    ]);
+    expect(problemsOf({ keys: { k: { armored: `${ARMORED}\n${MESSAGE}` } } })).toEqual([
+      "keys.k.armored: holds a PGP MESSAGE besides the public key",
+    ]);
+    expect(
+      problemsOf({
+        keys: { k: { armored: `${ARMORED}\n-----BEGIN PGP PUBLIC KEY BLOCK-----\nx` } },
+      }),
+    ).toEqual(["keys.k.armored: holds an incomplete armor block"]);
+    const dir = tmpDir("validate-privkey");
+    fs.writeFileSync(path.join(dir, "owner.asc"), `${ARMORED}\n${PRIVATE}`);
+    const rel = path.relative(process.cwd(), path.join(dir, "owner.asc"));
+    expect(problemsOf({ keys: { k: { file: rel } } })).toEqual([
+      `keys.k.file: ${rel}: holds a private key block; export only the public key (gpg --export --armor)`,
+    ]);
   });
 
   it("wants keys when a form encrypts, and known ones", () => {

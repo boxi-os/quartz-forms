@@ -10,6 +10,7 @@ import type {
 } from "./types";
 import { availableLocales, textKeys } from "./i18n";
 import { isTemplateName, templateOf } from "./templates";
+import { publicKeyBlock } from "./pgp/armor";
 
 /**
  * Validation level 1 of three: the form definitions, at build time. The rules come from the
@@ -24,8 +25,6 @@ export interface Validation {
 export const FORM_ID = /^[a-z0-9][a-z0-9-]*$/;
 export const FIELD_NAME = /^[A-Za-z][A-Za-z0-9_-]*$/;
 export const LANGUAGE_OPTION = /^[A-Za-z]{2,3}([-_][A-Za-z0-9]+)*$|^auto$/;
-export const PUBLIC_KEY_BLOCK =
-  /-----BEGIN PGP PUBLIC KEY BLOCK-----[\s\S]+-----END PGP PUBLIC KEY BLOCK-----/;
 
 /** Names the submission envelope uses itself; a field may not take them. */
 export const RESERVED_NAMES = new Set([
@@ -205,8 +204,8 @@ function checkKeySource(name: string, src: PgpKeySource, out: Validation): void 
     return;
   }
   if (armored !== undefined) {
-    if (!PUBLIC_KEY_BLOCK.test(armored))
-      out.problems.push(`${at}.armored: not an armored PGP public key block`);
+    const block = publicKeyBlock(armored);
+    if (block.problem) out.problems.push(`${at}.armored: ${block.problem}`);
     return;
   }
   const abs = path.resolve(process.cwd(), file!);
@@ -221,8 +220,8 @@ function checkKeySource(name: string, src: PgpKeySource, out: Validation): void 
     out.problems.push(`${at}.file: ${src.file} not found or not readable`);
     return;
   }
-  if (!PUBLIC_KEY_BLOCK.test(text))
-    out.problems.push(`${at}.file: ${src.file} is not an armored PGP public key block`);
+  const block = publicKeyBlock(text);
+  if (block.problem) out.problems.push(`${at}.file: ${src.file}: ${block.problem}`);
 }
 
 function checkForm(form: ResolvedForm, raw: FormDefinition, keyNames: string[], out: Validation) {

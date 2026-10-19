@@ -6,6 +6,7 @@ import { FormsAssets, OPENPGP_SITE_DIR, keysInUse, needsOpenpgp } from "../src/e
 import { resolveOptions } from "../src/options";
 import { checkKey } from "../src/pgp/check";
 import { BROWSER_FILES, formatFingerprint, pluginRoot } from "../src/pgp/load";
+import { loadKeySources, loadKeys, resetKeyCache } from "../src/render/keys";
 import { resetWarnings } from "../src/util/warn";
 import { contact, options } from "./helpers";
 import { generatePair, tmpDir, type TestKeyPair } from "./keys";
@@ -55,6 +56,24 @@ describe("key check", () => {
         )
       ).problem,
     ).toMatch(/not a readable PGP key/);
+  });
+});
+
+describe("key sources", () => {
+  it("gives the page the public key block alone, never the file around it", () => {
+    const sources = {
+      inline: { armored: `Comment above\n${pair.publicKey}\ntrailing text\n` },
+      withPrivate: { armored: `${pair.publicKey}\n${pair.privateKey}` },
+      two: { armored: `${pair.publicKey}\n${pair.publicKey}` },
+    };
+    const loaded = loadKeySources(sources, ["inline", "withPrivate", "two", "missing"]);
+    expect(loaded.map((k) => k.name)).toEqual(["inline", "withPrivate", "two"]);
+    expect(loaded[0]?.armored).toBe(pair.publicKey.trim());
+    expect(loaded[1]?.problem).toMatch(/private key block/);
+    expect(loaded[2]?.problem).toMatch(/2 key blocks/);
+    const forPage = loadKeys(sources, ["inline", "withPrivate", "two"]);
+    expect(forPage).toEqual([{ name: "inline", armored: pair.publicKey.trim() }]);
+    expect(JSON.stringify(forPage)).not.toContain("PRIVATE");
   });
 });
 
@@ -135,6 +154,25 @@ describe("FormsAssets", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     await FormsAssets(bad).emit(ctx(out, true), [], { css: [], js: [], additionalHead: [] });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("keys.owner: this key expired"));
+  });
+
+  it("refuses a key file that gained a private key after the build started (serve)", async () => {
+    // Level 1 saw a clean public key; the file changes while `quartz build --serve` runs.
+    const dir = tmpDir("emit-privkey");
+    const file = path.join(dir, "owner.asc");
+    fs.writeFileSync(file, pair.publicKey);
+    const rel = path.relative(process.cwd(), file);
+    const plugin = FormsAssets(
+      options({
+        keys: { owner: { file: rel } },
+        forms: { f: contact({ encryption: { mode: "required" } }) },
+      }),
+    );
+    resetKeyCache();
+    fs.writeFileSync(file, `${pair.publicKey}\n${pair.privateKey}`);
+    await expect(
+      plugin.emit(ctx(path.join(dir, "out")), [], { css: [], js: [], additionalHead: [] }),
+    ).rejects.toThrow(/keys\.owner: holds a private key block/);
   });
 
   it("reads a key from a file inside the site", async () => {
