@@ -324,7 +324,15 @@ function qf_counter_dir(array $config): ?string
  * Called after every check the visitor can fail, right before the mail: the proof used to be
  * spent before the captcha and the fields were looked at, so a refused post burnt it, and the
  * corrected message was refused as "already used" until the hour changed (second review,
- * finding 1, 2026-10-19). A proof is spent by the message it buys.
+ * finding 1, 2026-10-19). A proof is spent by the message it buys, and only after the hour's
+ * quota let it through (see qf_admit).
+ *
+ * One directory per window under the counters, removed as a whole once no challenge of its
+ * window is accepted any more, so a post lists the two or three windows, never the proofs: as
+ * files beside the counters, 100 000 of them made every post read them all, 330 ms instead of 4
+ * for a proof-of-work post and 70 instead of 2 for a plain one, whose quota lists the same
+ * directory (second review, finding 6, 2026-10-19). The files of the earlier layout
+ * (`pow-<window>-<hash>.spent`) expire the same way.
  */
 function qf_pow_spent(array $config, string $challenge, string $nonce, int $window): bool
 {
@@ -334,13 +342,18 @@ function qf_pow_spent(array $config, string $challenge, string $nonce, int $wind
         return false;
     }
     $now = qf_window(qf_now());
-    foreach (glob($dir . '/pow-*.spent') ?: [] as $old) {
-        if (preg_match('/^pow-(\d+)-/', basename($old), $m) && (int) $m[1] < $now - 1) {
-            @unlink($old);
+    foreach (glob($dir . '/pow-*') ?: [] as $old) {
+        $isWindow = preg_match('/^pow-(\d+)(-[0-9a-f]{32}\.spent)?$/', basename($old), $m);
+        if ($isWindow && (int) $m[1] < $now - 1) {
+            qf_remove($old);
         }
     }
-    $key = substr(hash('sha256', $challenge . ':' . $nonce), 0, 32);
-    $file = sprintf('%s/pow-%d-%s.spent', $dir, $window, $key);
+    $windowDir = sprintf('%s/pow-%d', $dir, $window);
+    if (!is_dir($windowDir) && !@mkdir($windowDir, 0700) && !is_dir($windowDir)) {
+        error_log('quartz-forms relay: cannot write to ' . $dir . '; a proof of work may be reused');
+        return false;
+    }
+    $file = $windowDir . '/' . substr(hash('sha256', $challenge . ':' . $nonce), 0, 32) . '.spent';
     $fh = @fopen($file, 'x'); // atomic: fails when the file is already there
     if ($fh === false) {
         if (file_exists($file)) {
@@ -353,17 +366,39 @@ function qf_pow_spent(array $config, string $challenge, string $nonce, int $wind
     return false;
 }
 
-/** Counts a mail for this form in this hour; no address, no time beyond the hour. */
-function qf_rate_limited(array $config, string $form, int $perHour): bool
+/** Removes a file, or a directory of files: the used proofs of one window. */
+function qf_remove(string $path): void
 {
-    if ($perHour <= 0) {
-        return false;
+    if (is_dir($path)) {
+        foreach (scandir($path) ?: [] as $entry) {
+            if ($entry !== '.' && $entry !== '..') {
+                @unlink($path . '/' . $entry);
+            }
+        }
+        @rmdir($path);
+        return;
     }
-    $dir = qf_counter_dir($config);
+    @unlink($path);
+}
+
+/**
+ * The gate right before the mail, under the lock of the form's hour: the quota is read, the
+ * proof of work is spent (`$spend` marks it and says whether it already was), the mail is
+ * counted, in that order. So a post the quota refuses marks no proof, and a form's spent files
+ * of an hour never outnumber its mails, 60 by default (second review, finding 6, 2026-10-19:
+ * with the proof marked first, a bot with cheap proofs and valid fields left a file per post
+ * while every post got 429; measured: three files for two mails). And a replayed proof uses no
+ * quota, because the hour counts mails, not posts (review finding 10, 2026-10-19: two invalid
+ * posts spent two of three). The counter is a file per form and hour; no address, no time
+ * beyond the hour. Returns the error the visitor gets, or null when the mail may go.
+ */
+function qf_admit(array $config, string $form, int $perHour, callable $spend): ?string
+{
+    $dir = $perHour > 0 ? qf_counter_dir($config) : null;
     if ($dir === null) {
-        return false; // cannot count: let the mail through rather than lose it
+        return $spend() ? 'pow' : null; // no quota, or none that can be counted: the mail goes
     }
-    $hour = gmdate('YmdH');
+    $hour = gmdate('YmdH', qf_now());
     $file = $dir . '/' . preg_replace('/[^a-z0-9-]/', '', $form) . '-' . $hour . '.count';
     foreach (glob($dir . '/*.count') ?: [] as $old) {
         if (!str_ends_with($old, '-' . $hour . '.count')) {
@@ -372,12 +407,16 @@ function qf_rate_limited(array $config, string $form, int $perHour): bool
     }
     $fh = @fopen($file, 'c+');
     if ($fh === false) {
-        return false;
+        return $spend() ? 'pow' : null; // cannot count: let the mail through rather than lose it
     }
     flock($fh, LOCK_EX);
     $count = (int) stream_get_contents($fh);
-    $limited = $count >= $perHour;
-    if (!$limited) {
+    $refused = null;
+    if ($count >= $perHour) {
+        $refused = 'rate_limited';
+    } elseif ($spend()) {
+        $refused = 'pow';
+    } else {
         ftruncate($fh, 0);
         rewind($fh);
         fwrite($fh, (string) ($count + 1));
@@ -385,7 +424,7 @@ function qf_rate_limited(array $config, string $form, int $perHour): bool
     }
     flock($fh, LOCK_UN);
     fclose($fh);
-    return $limited;
+    return $refused;
 }
 
 /**
@@ -1082,13 +1121,20 @@ if (!empty($config['subjectPrefix'])) {
     $subject = $config['subjectPrefix'] . ' ' . $subject;
 }
 
-// The hour's quota counts mails, not posts: counted here, after every check, so refused posts
-// cannot use it up (review finding, 2026-10-19: two invalid posts spent two of three).
-if ($powWindow !== null && qf_pow_spent($config, $pow['challenge'], $pow['nonce'], $powWindow)) {
-    qf_fail(400, 'pow', 'this proof of work was already used');
-}
-if (qf_rate_limited($config, $formId, (int) ($spam['rateLimitPerHour'] ?? 0))) {
+// The gate before the mail, after every check: the hour's quota is read, the proof is spent,
+// the mail is counted, in that order (see qf_admit), so a refused post uses up neither.
+$refused = qf_admit(
+    $config,
+    $formId,
+    (int) ($spam['rateLimitPerHour'] ?? 0),
+    fn (): bool => $powWindow !== null
+        && qf_pow_spent($config, $pow['challenge'], $pow['nonce'], $powWindow),
+);
+if ($refused === 'rate_limited') {
     qf_fail(429, 'rate_limited', 'too many messages at the moment');
+}
+if ($refused !== null) {
+    qf_fail(400, 'pow', 'this proof of work was already used');
 }
 
 if (!qf_mail($config, $to, $subject, $body, $replyTo)) {

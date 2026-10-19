@@ -104,6 +104,11 @@ const siteOptions = {
       spam: { rateLimitPerHour: 3 },
       fields: [{ type: "text", name: "x", label: "X" }],
     },
+    gated: {
+      recipient: "owner",
+      spam: { pow: true, powDifficulty: 8, rateLimitPerHour: 2 },
+      fields: [{ type: "text", name: "g", label: "G" }],
+    },
     small: {
       recipient: "owner",
       spam: { maxBytes: 300 },
@@ -347,6 +352,22 @@ const env = (
   fields,
   ...extra,
 });
+/**
+ * The used proofs the relay keeps, as paths under counters/. Files in the directory itself count
+ * too, so the suite measures where the relay puts them instead of assuming it.
+ */
+function spentFiles(): string[] {
+  const counters = path.join(dir, "counters");
+  return fs.readdirSync(counters).flatMap((entry) => {
+    const full = path.join(counters, entry);
+    if (fs.statSync(full).isDirectory())
+      return fs
+        .readdirSync(full)
+        .filter((f) => f.endsWith(".spent"))
+        .map((f) => `${entry}/${f}`);
+    return entry.endsWith(".spent") ? [entry] : [];
+  });
+}
 function mails(): string[] {
   const file = path.join(dir, "outbox.txt");
   if (!fs.existsSync(file)) return [];
@@ -684,9 +705,12 @@ describe.skipIf(!php)("relay: refusals", () => {
     const again = await post(env("contact", contactFields, { pow }));
     expect([again.status, again.json?.error]).toEqual([400, "pow"]);
     expect(mails().filter((m) => m.includes("Name: Ada Lovelace")).length).toBe(1);
-    const spent = fs.readdirSync(path.join(dir, "counters")).filter((f) => f.endsWith(".spent"));
+    // One directory per hour, removed as a whole once the hour's challenges have expired, so a
+    // post lists the hours, not the proofs (second review, finding 6, 2026-10-19: 100 000 spent
+    // files beside the counters cost every post of the relay a read of them all).
+    const spent = spentFiles();
     expect(spent.length).toBeGreaterThan(0);
-    expect(spent[0]).toMatch(/^pow-\d+-[0-9a-f]{32}\.spent$/);
+    for (const f of spent) expect(f).toMatch(/^pow-\d+\/[0-9a-f]{32}\.spent$/);
   });
   it("a proof is spent by the message it buys, not by a post the relay refuses", async () => {
     // Second review, finding 1 (2026-10-19): the proof was marked used before the captcha and
@@ -695,20 +719,18 @@ describe.skipIf(!php)("relay: refusals", () => {
     // try again" could not be followed until the hour changed. Two visitors who count from the
     // same start (the browsers did) find the same nonce; the relay must at least not burn it on
     // a refusal.
-    const spentFiles = () =>
-      fs.readdirSync(path.join(dir, "counters")).filter((f) => f.endsWith(".spent")).length;
     const adaMails = () => mails().filter((m) => m.includes("Name: Ada Lovelace")).length;
     const pow = solve(challenge, 8, "same-start-");
-    const before = spentFiles();
+    const before = spentFiles().length;
     const sent = adaMails();
     const refused = await post(
       env("contact", { ...contactFields, email: "not-an-address" }, { pow }),
     );
     expect([refused.status, refused.json?.error]).toEqual([400, "invalid"]);
-    expect(spentFiles()).toBe(before);
+    expect(spentFiles().length).toBe(before);
     const fixed = await post(env("contact", contactFields, { pow }));
     expect(fixed.json).toEqual({ ok: true });
-    expect(spentFiles()).toBe(before + 1);
+    expect(spentFiles().length).toBe(before + 1);
     const again = await post(env("contact", contactFields, { pow }));
     expect([again.status, again.json?.error]).toEqual([400, "pow"]);
     expect(adaMails()).toBe(sent + 1);
@@ -742,6 +764,50 @@ describe.skipIf(!php)("relay: refusals", () => {
       "the proof of work is missing or wrong",
     ]);
     expect(mails().filter((m) => m.includes("hour H")).length).toBe(1);
+    // The next proof that is spent clears the proofs of hour H, whose challenges have expired.
+    const fresh = (await get("challenge=contact", ORIGIN, at(shift + 7200).headers)).json as {
+      challenge: string;
+    };
+    const sent = await post(
+      env(
+        "contact",
+        { ...contactFields, message: "H+2, fresh" },
+        { pow: solve(fresh.challenge, 8), ts: ticket.stamp },
+      ),
+      at(shift + 7201),
+    );
+    expect(sent.json).toEqual({ ok: true });
+    const hourH = Math.floor((real + shift) / 3600);
+    expect(spentFiles().filter((f) => f.startsWith(`pow-${hourH}`))).toEqual([]);
+  });
+  it("the quota is read before the proof is spent: a refused post leaves no spent file, a replayed proof uses no quota", async () => {
+    // Second review, finding 6 (2026-10-19): the spent files grew without bound. Finding 1 put
+    // the marking behind the field checks; the quota was the one check still behind it, so a
+    // bot with cheap proofs and valid fields left a file per post while every post got 429
+    // (measured: three files for two mails). The quota is read first now, under its lock, and
+    // the mail is counted last, so a replayed proof uses none of it either.
+    const ticket = (await get("challenge=gated")).json as { challenge: string };
+    const proof = (prefix: string) => solve(ticket.challenge, 8, prefix);
+    const count = () => {
+      const file = fs.readdirSync(path.join(dir, "counters")).find((f) => f.startsWith("gated-"));
+      return file ? fs.readFileSync(path.join(dir, "counters", file), "utf8") : "none";
+    };
+    const before = spentFiles().length;
+    const a = proof("a-");
+    expect((await post(env("gated", { g: "1" }, { pow: a }))).json).toEqual({ ok: true });
+    const replay = await post(env("gated", { g: "1 again" }, { pow: a }));
+    expect([replay.status, replay.json?.error, count()]).toEqual([400, "pow", "1"]);
+    expect((await post(env("gated", { g: "2" }, { pow: proof("b-") }))).json).toEqual({
+      ok: true,
+    });
+    expect([spentFiles().length - before, count()]).toEqual([2, "2"]);
+    const refused = await post(env("gated", { g: "3" }, { pow: proof("c-") }));
+    expect([refused.status, refused.json?.error]).toEqual([429, "rate_limited"]);
+    expect([spentFiles().length - before, count()]).toEqual([2, "2"]);
+    // With the quota used up, a replay is told that first: the quota is the first thing read.
+    const late = await post(env("gated", { g: "1 once more" }, { pow: a }));
+    expect([late.status, late.json?.error]).toEqual([429, "rate_limited"]);
+    expect(mails().filter((m) => m.includes("G: ")).length).toBe(2);
   });
   it("encryption: plaintext to a required form, ciphertext to an off form, ciphertext without armor", async () => {
     const plainToEnc = await post(env("enc", { a: "x" }));

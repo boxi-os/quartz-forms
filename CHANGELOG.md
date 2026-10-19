@@ -211,6 +211,16 @@ Fixes from a second review of the changes above (another model, fresh context, 2
   400). The file is now named after the window of the challenge the proof answers. The relay's
   one clock is `qf_now()`, which the relay suite's copy moves with a header, so the suite
   crosses an hour boundary without waiting for one.
+- The used proofs of work piled up as files beside the counters, and every post read them all:
+  with 100 000 of them a proof-of-work post took 330 ms instead of 4 and a plain post 70 instead
+  of 2, because the hour's quota lists the same directory. And they could pile up: the proof was
+  marked before the quota was asked, so a bot with cheap proofs and valid fields left a file per
+  post while every post got 429 (measured: three files for two mails). The proofs of an hour
+  now live in a directory of their own that goes as a whole once the hour's challenges have
+  expired, so a post lists the hours, not the proofs (with 100 000 of them: 3 ms and 2 ms,
+  measured with a temporary test on the suite's relay), and the gate before the mail reads the
+  quota first, spends the proof second and counts the mail last, so an hour never holds more
+  spent files than it mailed, 60 by default. The relay suite has a form with both.
 
 ## [0.1.1] - 2026-10-19
 
