@@ -566,6 +566,32 @@ describe("validate: transport, encryption, spam, success", () => {
       resolveOptions(options({ spam: { minSeconds: 10, noScript: false } as never })).hints,
     ).toEqual([LEVER]);
     expect(resolveOptions(options({ spam: { minSeconds: 0 } as never })).hints).toEqual([LEVER]);
+    // Quartz lays the options over the manifest's defaultOptions, one level deep
+    // (config-loader.ts: `{ ...manifest.defaultOptions, ...entry.options }`), so a site that
+    // writes no `spam` hands the plugin the whole default block. It read as written: every form
+    // without the relay said "rateLimitPerHour has no effect", every relay form "minSeconds ...
+    // skips it" (measured in the handbook's build, 2026-10-19). A value equal to the default
+    // says nothing, wherever it came from.
+    const manifest = (
+      JSON.parse(fs.readFileSync(path.join(__dirname, "../package.json"), "utf8")) as {
+        quartz: { defaultOptions: Partial<QuartzFormsOptions> };
+      }
+    ).quartz.defaultOptions;
+    const merged = (extra: Partial<QuartzFormsOptions>) =>
+      resolveOptions({ ...manifest, ...options(extra) }).hints;
+    expect(merged({})).toEqual([LEVER]);
+    expect(merged({ transport: { kind: "endpoint", url: "https://e.example/x" } })).toEqual([]);
+    expect(merged({ transport: { kind: "demo" } })).toEqual([]);
+    expect(
+      merged({
+        transport: { kind: "endpoint", url: "https://e.example/x" },
+        spam: { ...manifest.spam, rateLimitPerHour: 5 } as never,
+      }),
+    ).toEqual(["forms.contact.spam.rateLimitPerHour: has no effect without the relay"]);
+    expect(merged({ spam: { ...manifest.spam, minSeconds: 10 } as never })).toEqual([
+      "forms.contact.spam.minSeconds: a plain post without JavaScript (noScript: true) carries no stamp and skips it; noScript: false requires the script",
+      LEVER,
+    ]);
     expect(
       resolveOptions(
         options({

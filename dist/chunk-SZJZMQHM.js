@@ -1275,6 +1275,12 @@ function withoutNulls(obj) {
   for (const [k, v] of Object.entries(obj)) if (v !== null && v !== void 0) out[k] = v;
   return out;
 }
+function writtenSpam(spam) {
+  const out = {};
+  for (const [k, v] of Object.entries(spam))
+    if (v !== defaultSpam[k]) out[k] = v;
+  return out;
+}
 function resolveForm(id, def, global) {
   const user = withoutNulls(def);
   const base = isTemplateName(user.template) ? templateOf(user.template) : {};
@@ -1344,7 +1350,7 @@ function resolveOptions(userOpts) {
   const { problems, hints, problemMessages, hintMessages } = validate(
     resolved,
     rawForms,
-    isObject2(user.spam) ? withoutNulls(user.spam) : {}
+    isObject2(user.spam) ? writtenSpam(withoutNulls(user.spam)) : {}
   );
   resolved.problems = problems;
   resolved.hints = hints;
@@ -1367,5 +1373,5 @@ function logHints(opts) {
 }
 
 export { __commonJS, __export, __require, __toESM, conditionOf, conditionsOf, defaultOptions, formatMessage, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-QEXEVNG5.js.map
-//# sourceMappingURL=chunk-QEXEVNG5.js.map
+//# sourceMappingURL=chunk-SZJZMQHM.js.map
+//# sourceMappingURL=chunk-SZJZMQHM.js.map

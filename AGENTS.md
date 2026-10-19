@@ -61,8 +61,11 @@ map, `README.md` for user-facing options.
 
 ## Constraints
 
-- Quartz calls every factory with the raw YAML `options`; manifest `defaultOptions` are not
-  merged in. Keep defaults in `src/options.ts`.
+- Quartz calls every factory with the YAML `options` laid over the manifest's `defaultOptions`,
+  one level deep (`{ ...manifest.defaultOptions, ...entry.options }`): a site without a `spam`
+  block hands over the whole default one. Keep defaults in `src/options.ts`; the manifest mirrors
+  them (`test/config-schema.test.ts`), and "written by the owner" means "differs from the
+  default" for a global value (`writtenSpam` in `src/options.ts`).
 - The manifest declares exactly one component (`FormBox`); Quartz resolves the YAML `layout`
   block by plugin name. Never add a `default` export to `src/index.ts`.
 - Validation rules live once, in the form definition. Build, browser and relay derive from it;

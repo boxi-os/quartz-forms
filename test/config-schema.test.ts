@@ -12,6 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { defaultOptions } from "../src/options";
 
 const ROOT_INTERFACE = "QuartzFormsOptions";
 const TYPES_FILE = path.join(__dirname, "../src/types.ts");
@@ -224,6 +225,12 @@ describe("quartz.configSchema", () => {
     };
     walk(pkg.quartz.defaultOptions, root, "");
     expect(missing).toEqual([]);
+  });
+
+  it("mirrors the defaults of src/options.ts in quartz.defaultOptions, which Quartz merges in", () => {
+    // Quartz lays the site's options over these one level deep, and the build tells a written
+    // spam value from a default by comparing with src/options.ts: the two have to agree.
+    expect(pkg.quartz.defaultOptions).toEqual(JSON.parse(JSON.stringify(defaultOptions)));
   });
 
   it("tells editors the bounds the build enforces (review finding 26, 2026-10-19)", () => {

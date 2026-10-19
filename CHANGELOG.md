@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed: Quartz lays the site's options over the manifest's `defaultOptions` one level deep, so a
+  site without a `spam` block handed over the whole default one, and the build read every
+  default as written. Every form without the relay said "rateLimitPerHour: has no effect without
+  the relay", every relay form "minSeconds: a plain post without JavaScript ... skips it". A
+  global value equal to the default now says nothing.
+
 ## [0.5.0] - 2026-10-19
 
 - The German texts and templates address the visitor with du instead of Sie, in the browser, on

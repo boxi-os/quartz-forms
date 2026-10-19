@@ -54,6 +54,20 @@ function withoutNulls<T extends object>(obj: T): T {
   return out as T;
 }
 
+/**
+ * The global spam values the owner wrote, as far as anyone can tell: Quartz lays the options over
+ * the manifest's `defaultOptions` one level deep, so a site without a `spam` block hands over the
+ * whole default one, and every default read as written (the hints "has no effect without the
+ * relay" and "skips it" at every form, 2026-10-19). A value equal to the default says nothing,
+ * wherever it came from. A form's own `spam` is never merged and counts as written.
+ */
+function writtenSpam(spam: Partial<SpamConfig>): Partial<SpamConfig> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(spam))
+    if (v !== defaultSpam[k as keyof SpamConfig]) out[k] = v;
+  return out as Partial<SpamConfig>;
+}
+
 function resolveForm(
   id: string,
   def: FormDefinition,
@@ -144,7 +158,7 @@ export function resolveOptions(userOpts?: Partial<QuartzFormsOptions>): Resolved
   const { problems, hints, problemMessages, hintMessages } = validate(
     resolved,
     rawForms,
-    isObject(user.spam) ? withoutNulls(user.spam) : {},
+    isObject(user.spam) ? writtenSpam(withoutNulls(user.spam)) : {},
   );
   resolved.problems = problems;
   resolved.hints = hints;
