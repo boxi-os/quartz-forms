@@ -200,6 +200,11 @@ let server: ChildProcess | undefined;
  * seconds (2 by default), so the relay read the previous config (CI run 39215450865 and one
  * local run, 2026-10-19). Measured with an include aged past file_update_protection: stale with
  * opcache on, fresh with it off. `ini` adds `-d` settings, e.g. a hoster's allow_url_fopen=0.
+ *
+ * In a process group of its own, which stopRelay ends as a whole: the workers are php's children,
+ * and a kill of the server alone left all four running, 20 per run of the suite, 1452 after a day
+ * of runs (noticed beside the third review, 2026-10-19; measured: 5 processes, 4 after kill(),
+ * 0 after a kill of the group).
  */
 function spawnRelay(port: number, ini: string[] = []): ChildProcess {
   const log = fs.openSync(path.join(dir, "php.log"), "a");
@@ -214,8 +219,20 @@ function spawnRelay(port: number, ini: string[] = []): ChildProcess {
       "opcache.enable=0",
       ...ini.flatMap((i) => ["-d", i]),
     ],
-    { stdio: ["ignore", log, log], env: { ...process.env, PHP_CLI_SERVER_WORKERS: "4" } },
+    {
+      stdio: ["ignore", log, log],
+      env: { ...process.env, PHP_CLI_SERVER_WORKERS: "4" },
+      detached: true,
+    },
   );
+}
+function stopRelay(proc: ChildProcess | undefined): void {
+  if (proc?.pid === undefined) return;
+  try {
+    process.kill(-proc.pid, "SIGTERM");
+  } catch {
+    proc.kill(); // the group is gone already, or there is none to signal
+  }
 }
 async function untilUp(at: string): Promise<Response> {
   const until = Date.now() + 10_000;
@@ -297,7 +314,7 @@ echo json_encode(['success' => ($_POST['secret'] ?? '') === 'cap-secret' && ($_P
 }, 30_000);
 
 afterAll(() => {
-  server?.kill();
+  stopRelay(server);
 });
 
 interface Answer {
@@ -1324,7 +1341,7 @@ describe.skipIf(!php)("relay: captcha verification on a host without allow_url_f
       await untilUp(`http://127.0.0.1:${port}`);
     }
   }, 30_000);
-  afterAll(() => procs.forEach((p) => p.kill()));
+  afterAll(() => procs.forEach(stopRelay));
 
   it("asks the provider through cURL when allow_url_fopen is off", async () => {
     const good = await post(env("captcha", { a: "x" }, { captcha: "good" }), { at: noFopen });
@@ -1364,7 +1381,7 @@ describe.skipIf(!php)("relay: a PHP without mbstring", () => {
     noMb = `http://127.0.0.1:${port}`;
     await untilUp(noMb);
   }, 30_000);
-  afterAll(() => proc?.kill());
+  afterAll(() => stopRelay(proc));
 
   it("tells the owner that mbstring is missing, on the ticket GET and on a post alike", async () => {
     const ticket = await fetch(`${noMb}/send.php?challenge=contact`, {
@@ -1394,7 +1411,7 @@ describe.skipIf(!php)("relay: a host without PCRE JIT", () => {
     noJit = `http://127.0.0.1:${port}`;
     await untilUp(noJit);
   }, 30_000);
-  afterAll(() => proc?.kill());
+  afterAll(() => stopRelay(proc));
 
   it("trims a value with a long run of whitespace in linear time, inside and at the end", async () => {
     const sent = mails().length;
