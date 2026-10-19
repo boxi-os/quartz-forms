@@ -324,10 +324,26 @@ function mails(): string[] {
     .filter((m) => m.trim() !== "");
 }
 /** The last mail: headers and the body as the relay wrote them. */
-function lastMail(): { headers: string; body: string } {
+/** The body as the recipient's mail program shows it: transfer encoding undone. */
+function qpDecode(raw: string): string {
+  const bytes: number[] = [];
+  const joined = raw.replace(/=\r?\n/g, "");
+  for (let i = 0; i < joined.length; i++) {
+    const c = joined[i]!;
+    if (c === "=" && /^[0-9A-F]{2}$/.test(joined.slice(i + 1, i + 3))) {
+      bytes.push(parseInt(joined.slice(i + 1, i + 3), 16));
+      i += 2;
+    } else bytes.push(c.charCodeAt(0));
+  }
+  return Buffer.from(bytes).toString("utf8");
+}
+function lastMail(): { headers: string; body: string; raw: string } {
   const m = mails().at(-1) ?? "";
   const i = m.indexOf("\r\n\r\n");
-  return { headers: m.slice(0, i), body: m.slice(i + 4) };
+  const headers = m.slice(0, i);
+  const raw = m.slice(i + 4);
+  const body = /Content-Transfer-Encoding: quoted-printable/i.test(headers) ? qpDecode(raw) : raw;
+  return { headers, body, raw };
 }
 function solve(ch: string, difficulty: number): { challenge: string; nonce: string } {
   const bits = (buf: Buffer) => {
@@ -632,6 +648,22 @@ describe.skipIf(!php)("relay: accepted submissions and their mail", () => {
     expect(body).toContain("Name: Ada Lovelace");
     expect(body).toMatch(/\[x\] Agreed/);
     expect(headers + body).not.toMatch(/X-Originating|User-Agent|127\.0\.0\.1/);
+  });
+  it("a long line is sent quoted-printable, so no line of the mail exceeds 76 octets", async () => {
+    // Review finding 20 (2026-10-19): the body went out 8bit with the visitor's lines as they
+    // were; a textarea line of thousands of characters breaks RFC 5322's 998-octet limit, and an
+    // MTA wraps it where it likes, possibly inside a UTF-8 sequence, or refuses the mail.
+    const line = "ä".repeat(1500) + "a".repeat(1500);
+    const r = await post(env("feedback", { rating: "4", comment: `Erste Zeile\n${line}` }));
+    expect(r.json).toEqual({ ok: true });
+    const { headers, body, raw } = lastMail();
+    expect(headers).toContain("Content-Transfer-Encoding: quoted-printable");
+    expect(headers).toContain("Content-Type: text/plain; charset=utf-8");
+    const longest = Math.max(...raw.split("\r\n").map((l) => Buffer.byteLength(l)));
+    expect(longest).toBeLessThanOrEqual(76);
+    // Decoded, the mail reads as before: the line whole, the umlauts intact.
+    expect(body).toContain(`:\r\nErste Zeile\r\n${line}\r\n`);
+    expect(body).toContain("Erste Zeile");
   });
   it("feedback with page context: the page line, no Reply-To without an e-mail field", async () => {
     const r = await post(

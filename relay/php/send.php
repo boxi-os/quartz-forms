@@ -711,7 +711,7 @@ function qf_mail(array $config, string $to, string $subject, string $body, ?stri
         'From: ' . $from,
         'MIME-Version: 1.0',
         'Content-Type: text/plain; charset=utf-8',
-        'Content-Transfer-Encoding: 8bit',
+        'Content-Transfer-Encoding: quoted-printable',
         'X-Mailer: quartz-forms-relay/' . QF_VERSION,
         'Auto-Submitted: auto-generated',
     ];
@@ -721,6 +721,13 @@ function qf_mail(array $config, string $to, string $subject, string $body, ?stri
     $encodedSubject = mb_encode_mimeheader(qf_header_safe($subject), 'UTF-8', 'B', "\r\n");
     $body = str_replace("\r\n", "\n", $body);
     $body = str_replace("\n", "\r\n", $body);
+    // Quoted-printable, so that no line of the mail is longer than 76 octets: the body used to go
+    // out 8bit with the visitor's lines as they were, and a textarea line of thousands of
+    // characters broke RFC 5322's 998-octet limit, which an MTA wraps where it likes, possibly
+    // inside a UTF-8 sequence, or refuses (review finding 20, 2026-10-19). The encoder keeps CRLF
+    // line breaks as they are and encodes a lone LF, hence the CRLF form above. Mail programs
+    // undo the encoding before they show or decrypt the text; an armored block stays decryptable.
+    $body = quoted_printable_encode($body);
 
     $mailer = $config['mailer'] ?? 'mail';
     if (is_array($mailer) && isset($mailer['sendmail'])) {

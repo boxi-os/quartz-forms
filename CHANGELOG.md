@@ -121,6 +121,11 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   `captcha` → `captchaFailed`, `rate_limited`, `too_large`); what only the site owner can change
   is "could not be sent" to the visitor and a console warning with the code and the relay's
   sentence. An own `endpoint` is still quoted (`rejected`), its words are the site's.
+- The mail went out `8bit` with the visitor's lines as they were: a textarea line of thousands of
+  characters broke the 998-octet limit of RFC 5322, and a mail server wraps such a line where it
+  likes, possibly inside a UTF-8 sequence, or refuses the mail. The body is now quoted-printable,
+  no line longer than 76 octets; mail programs undo the encoding, an armored block stays
+  decryptable, and the outbox file of the test mailer holds the encoded form.
 
 ## [0.1.1] - 2026-10-19
 
