@@ -58,7 +58,8 @@ no-referrer` hides both from a plain form post without JavaScript (the browser s
   One that asks for encryption (`_encrypt`) is refused too: only the script can encrypt.
   The answer is the form's redirect (made absolute with the request's origin when it is on
   `allowedOrigins`, else with the site's `baseUrl` from the generated config, plus the site's
-  base path) or a short page in the submission's language.
+  base path) or a short page in the submission's language; when fields were refused, the page
+  names each one by its label with the sentence the browser script would show at the field.
 
 ## What it promises
 

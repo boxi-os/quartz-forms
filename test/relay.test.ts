@@ -875,7 +875,7 @@ describe.skipIf(!php)("relay: refusals", () => {
       headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "text/html" },
     });
     expect(bytes.status).toBe(400);
-    expect(bytes.text).toContain("some fields were not accepted");
+    expect(bytes.text).toContain("<li>Site: Bitte verwenden Sie das verlangte Format.</li>");
   });
   it("captcha: the secret from config.php is sent to the provider; without one the owner is told", async () => {
     const good = await post(env("captcha", { a: "x" }, { captcha: "good" }));
@@ -1129,7 +1129,14 @@ describe.skipIf(!php)("relay: a browser without JavaScript (plain form post)", (
     expect(bad.status).toBe(400);
     expect(bad.text).toContain('lang="de"');
     expect(bad.text).toContain("<title>Nicht gesendet</title>");
-    expect(bad.text).toContain("<small>some fields were not accepted</small>");
+    // Second review, aside 3 (2026-10-19): the page said only "some fields were not accepted",
+    // in English, and named no field. It names each one by its label in the submission's
+    // language, with the sentence the browser script would show at the field.
+    expect(bad.text).toContain("Diese Angaben wurden nicht angenommen:");
+    expect(bad.text).toContain(
+      "<li>Wie hilfreich war diese Seite?: Bitte wählen Sie eine Option.</li>",
+    );
+    expect(bad.text).not.toContain("some fields were not accepted");
   });
   it("skips the time trap and the proof of work, which only the script can supply", async () => {
     const r = await plain({ form: "contact", lang: "de-DE", ...contactFields });
@@ -1157,7 +1164,13 @@ describe.skipIf(!php)("relay: a browser without JavaScript (plain form post)", (
     expect(lastMail().body).toContain("Topics: News");
     const none = await plain({ form: "multi", lang: "de-DE", note: "x" });
     expect(none.status).toBe(400);
-    expect(none.text).toContain("some fields were not accepted");
+    expect(none.text).toContain("<li>Topics: Dieses Feld ist ein Pflichtfeld.</li>");
+    const noneEn = await plain({ form: "multi", lang: "en-US", note: "x", nope: "y" });
+    expect(noneEn.status).toBe(400);
+    expect(noneEn.text).toContain('lang="en"');
+    expect(noneEn.text).toContain("These entries were not accepted:");
+    expect(noneEn.text).toContain("<li>Topics: This field is required.</li>");
+    expect(noneEn.text).toContain("<li>nope: This field is not part of the form.</li>");
     const bad = await plain({ form: "multi", lang: "de-DE", topics: "spam" });
     expect(bad.status).toBe(400);
   });

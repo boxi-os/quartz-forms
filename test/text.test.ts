@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { interpolate, resolveText, textLanguages } from "../src/text";
 import { availableLocales, i18n, textKeys, wording } from "../src/i18n";
@@ -26,6 +28,35 @@ describe("resolveText", () => {
 });
 
 describe("i18n", () => {
+  it("is mirrored by the relay's page for a post without JavaScript, sentence for sentence", () => {
+    // Second review, aside 3 (2026-10-19): the relay's page named no field and spoke English
+    // only. It now names each refused field with the sentence the script shows at the field; the
+    // sentences are a copy in send.php (`qf_words`), so this test holds the copy to the original.
+    const php = fs.readFileSync(path.join(__dirname, "..", "relay", "php", "send.php"), "utf8");
+    const words = (name: string): Record<string, string> => {
+      const block = php.match(new RegExp(`\\$${name} = \\[([\\s\\S]*?)\\n {4}\\];`))?.[1] ?? "";
+      return Object.fromEntries(
+        [...block.matchAll(/'(\w+)' => '((?:[^'\\]|\\.)*)'/g)].map((m) => [
+          m[1]!,
+          m[2]!.replace(/\\(.)/g, "$1"),
+        ]),
+      );
+    };
+    const mirrored: Record<string, string> = { de: "de-DE", en: "en-US" };
+    let compared = 0;
+    for (const [name, locale] of Object.entries(mirrored)) {
+      const relay = words(name);
+      const t = i18n(locale) as Record<string, string>;
+      expect(Object.keys(relay).length, name).toBeGreaterThan(10);
+      for (const [key, sentence] of Object.entries(relay)) {
+        if (!(key in t)) continue;
+        expect(sentence, `${name}.${key}`).toBe(t[key]);
+        compared++;
+      }
+    }
+    expect(compared).toBeGreaterThanOrEqual(22);
+  });
+
   it("ships the same keys and the same placeholders in every locale", () => {
     const en = i18n("en-US");
     for (const locale of availableLocales()) {

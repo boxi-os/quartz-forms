@@ -26,19 +26,50 @@ $config = require __DIR__ . '/config.php';
 header_remove('X-Powered-By');
 
 /** The two sentences the no-JavaScript answer page needs, in the submission's language. */
+/**
+ * The words of the page a browser without JavaScript gets. The field sentences are a copy of
+ * the plugin's `src/i18n/locales/*.ts`, under the same keys; `test/text.test.ts` holds the copy
+ * to the original. Keys the locales do not have are this page's own.
+ */
 function qf_words(string $lang): array
 {
     $de = [
-        'sent' => 'Gesendet',
-        'sentText' => 'Danke, Ihre Nachricht wurde gesendet.',
-        'notSent' => 'Nicht gesendet',
+        'sentTitle' => 'Gesendet',
+        'sent' => 'Danke, Ihre Nachricht wurde gesendet.',
+        'notSentTitle' => 'Nicht gesendet',
         'notSentText' => 'Die Nachricht konnte nicht gesendet werden.',
+        'fieldsIntro' => 'Diese Angaben wurden nicht angenommen:',
+        'unknownField' => 'Dieses Feld gehört nicht zum Formular.',
+        'required' => 'Dieses Feld ist ein Pflichtfeld.',
+        'invalidEmail' => 'Bitte geben Sie eine gültige E-Mail-Adresse ein.',
+        'invalidUrl' => 'Bitte geben Sie eine gültige Webadresse ein.',
+        'invalidTel' => 'Bitte geben Sie eine gültige Telefonnummer ein.',
+        'invalidNumber' => 'Bitte geben Sie eine Zahl ein.',
+        'invalidDate' => 'Bitte geben Sie ein Datum ein.',
+        'tooLong' => 'Bitte verwenden Sie höchstens {max} Zeichen.',
+        'patternMismatch' => 'Bitte verwenden Sie das verlangte Format.',
+        'chooseOne' => 'Bitte wählen Sie eine Option.',
+        'consentRequired' => 'Bitte stimmen Sie vor dem Senden zu.',
+        'keyInvalid' => 'Das ist kein öffentlicher PGP-Schlüssel.',
     ];
     $en = [
-        'sent' => 'Sent',
-        'sentText' => 'Thank you, your message has been sent.',
-        'notSent' => 'Not sent',
+        'sentTitle' => 'Sent',
+        'sent' => 'Thank you, your message has been sent.',
+        'notSentTitle' => 'Not sent',
         'notSentText' => 'The message could not be sent.',
+        'fieldsIntro' => 'These entries were not accepted:',
+        'unknownField' => 'This field is not part of the form.',
+        'required' => 'This field is required.',
+        'invalidEmail' => 'Please enter a valid e-mail address.',
+        'invalidUrl' => 'Please enter a valid web address.',
+        'invalidTel' => 'Please enter a valid phone number.',
+        'invalidNumber' => 'Please enter a number.',
+        'invalidDate' => 'Please enter a date.',
+        'tooLong' => 'Please use at most {max} characters.',
+        'patternMismatch' => 'Please use the requested format.',
+        'chooseOne' => 'Please choose one option.',
+        'consentRequired' => 'Please agree before sending.',
+        'keyInvalid' => 'This is not a PGP public key.',
     ];
     return str_starts_with(strtolower($lang), 'de') ? $de : $en;
 }
@@ -99,8 +130,44 @@ function qf_site_origin(array $config): string
     return rtrim((string) ($allowed[0] ?? ''), '/');
 }
 
-/** Answer for the no-JavaScript path: a redirect when the form has one, else a plain page. */
-function qf_html(int $status, string $title, string $text, ?string $redirect = null, string $detail = ''): never
+/**
+ * "Label: sentence" for every refused field, in the submission's language, the sentence the
+ * browser script would show at the field (same codes, same mapping as `qfFieldErrorText`). The
+ * page said only "some fields were not accepted", in English, and named no field (second
+ * review, aside 3, 2026-10-19).
+ */
+function qf_field_sentences(array $rules, array $errors, string $lang): array
+{
+    $w = qf_words($lang);
+    $byType = [
+        'email' => 'invalidEmail', 'url' => 'invalidUrl', 'tel' => 'invalidTel',
+        'number' => 'invalidNumber', 'date' => 'invalidDate', 'pgpKey' => 'keyInvalid',
+        'checkbox' => 'consentRequired', 'consent' => 'consentRequired',
+    ];
+    $lines = [];
+    foreach ($errors as $e) {
+        $name = (string) ($e['field'] ?? '');
+        $rule = $rules[$name] ?? null;
+        $type = is_array($rule) ? (string) ($rule['type'] ?? '') : '';
+        $key = match ((string) ($e['code'] ?? '')) {
+            'unknown_field' => 'unknownField',
+            'required' => $type === 'consent' ? 'consentRequired' : 'required',
+            'too_long' => 'tooLong',
+            'not_an_option' => 'chooseOne',
+            default => $byType[$type] ?? 'patternMismatch',
+        };
+        $sentence = str_replace('{max}', (string) ($rule['maxLength'] ?? ''), $w[$key]);
+        $lines[] = (is_array($rule) ? qf_label($rule, $lang) : $name) . ': ' . $sentence;
+    }
+    return $lines;
+}
+
+/**
+ * Answer for the no-JavaScript path: a redirect when the form has one, else a plain page. The
+ * detail is a sentence for the owner (English, like the JSON message) or the list of refused
+ * fields for the visitor.
+ */
+function qf_html(int $status, string $title, string $text, ?string $redirect = null, string|array $detail = ''): never
 {
     if ($redirect !== null && $status < 400) {
         if (str_starts_with($redirect, '/')) {
@@ -120,7 +187,13 @@ function qf_html(int $status, string $title, string $text, ?string $redirect = n
     $lang = htmlspecialchars(substr($GLOBALS['qfLang'] ?? 'en', 0, 2), ENT_QUOTES, 'UTF-8');
     $t = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
     $p = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
-    $d = $detail === '' ? '' : '<p><small>' . htmlspecialchars($detail, ENT_QUOTES, 'UTF-8') . '</small></p>';
+    if (is_array($detail)) {
+        $w = qf_words($GLOBALS['qfLang'] ?? 'en');
+        $items = array_map(fn ($l) => '<li>' . htmlspecialchars($l, ENT_QUOTES, 'UTF-8') . '</li>', $detail);
+        $d = '<p>' . htmlspecialchars($w['fieldsIntro'], ENT_QUOTES, 'UTF-8') . '</p><ul>' . implode('', $items) . '</ul>';
+    } else {
+        $d = $detail === '' ? '' : '<p><small>' . htmlspecialchars($detail, ENT_QUOTES, 'UTF-8') . '</small></p>';
+    }
     echo "<!doctype html><html lang=\"$lang\"><meta charset=\"utf-8\"><title>$t</title><h1>$t</h1><p>$p</p>$d</html>";
     exit;
 }
@@ -129,7 +202,7 @@ function qf_fail(int $status, string $error, string $message, array $errors = []
 {
     if (qf_wants_html()) {
         $w = qf_words($GLOBALS['qfLang'] ?? 'en');
-        qf_html($status, $w['notSent'], $w['notSentText'], null, $message);
+        qf_html($status, $w['notSentTitle'], $w['notSentText'], null, $message);
     }
     $body = ['ok' => false, 'error' => $error, 'message' => $message];
     if ($errors !== []) {
@@ -1093,7 +1166,7 @@ if (!empty($spam['honeypot'])) {
     if ($hp !== '' && $hp !== null) {
         if (qf_wants_html()) {
             $w = qf_words($lang);
-            qf_html(200, $w['sent'], $w['sentText'], $redirect);
+            qf_html(200, $w['sentTitle'], $w['sent'], $redirect);
         }
         qf_json(200, ['ok' => true]);
     }
@@ -1214,6 +1287,10 @@ if ($encrypted) {
         }
     }
     if ($errors !== []) {
+        if (qf_wants_html()) {
+            $w = qf_words($lang);
+            qf_html(400, $w['notSentTitle'], $w['notSentText'], null, qf_field_sentences($rules, $errors, $lang));
+        }
         qf_fail(400, 'invalid', 'some fields were not accepted', $errors);
     }
     $body = qf_serialize($formCfg, $fields, $lang, $page);
@@ -1265,6 +1342,6 @@ if (!qf_mail($config, $to, $subject, $body, $replyTo)) {
 
 if (qf_wants_html()) {
     $w = qf_words($lang);
-    qf_html(200, $w['sent'], $w['sentText'], $redirect);
+    qf_html(200, $w['sentTitle'], $w['sent'], $redirect);
 }
 qf_json(200, ['ok' => true]);
