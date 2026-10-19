@@ -464,6 +464,22 @@ function qf_captcha_valid(array $config, string $formId, string $provider, mixed
     return ($data['success'] ?? false) === true;
 }
 
+/**
+ * Line breaks as the browser counts them. A form post carries CRLF, the browser's maxlength and
+ * the script count LF: 250 short lines were 499 characters on the page and 748 here, refused as
+ * too long (review finding, 2026-10-19). Normalised before the check and for the mail.
+ */
+function qf_newlines(mixed $value): mixed
+{
+    if (is_string($value)) {
+        return str_replace(["\r\n", "\r"], "\n", $value);
+    }
+    if (is_array($value)) {
+        return array_map('qf_newlines', $value);
+    }
+    return $value;
+}
+
 /** One field against its rule; null when it passes. Same rules as the browser script. */
 function qf_check_field(array $rule, mixed $value): ?string
 {
@@ -905,6 +921,7 @@ if ($encrypted) {
     if (!is_array($fields)) {
         qf_fail(400, 'fields', 'no fields');
     }
+    $fields = qf_newlines($fields);
     $rules = [];
     foreach ($formCfg['fields'] as $rule) {
         $rules[$rule['name']] = $rule;

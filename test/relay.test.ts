@@ -652,6 +652,15 @@ describe.skipIf(!php)("relay: a browser without JavaScript (plain form post)", (
     const r = await plain({ form: "contact", lang: "de-DE", ...contactFields });
     expect(r.status).toBe(303);
   });
+  it("counts a line break as one character, as the browser's maxlength does, not as the two bytes it posts", async () => {
+    // Review finding 12 (2026-10-19): a form post carries CRLF, the browser counted LF; 250 short
+    // lines (499 characters in the browser) came as 748 and were refused as too long.
+    const lines = "a\r\n".repeat(250).trimEnd();
+    const r = await plain({ form: "contact", lang: "de-DE", ...contactFields, message: lines });
+    expect(r.status).toBe(303);
+    expect(lastMail().body.replace(/\r\n/g, "\n")).toContain("Message:\na\na\na\n");
+    expect(lastMail().body).not.toContain("\r\r");
+  });
   it("collects the boxes of a checkboxes field, which share one name, into a list", async () => {
     // The browser sends topics=news&topics=guides; parse_str kept only the last one.
     const two = await post("form=multi&lang=de-DE&topics=news&topics=guides&note=x", {

@@ -90,6 +90,10 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   `allow_url_fopen` is off, answers `500 captcha_config` with the reason when it has neither,
   and `502 captcha_verify` when the provider did not answer (measured under `php -S` with
   `allow_url_fopen=0`, with and without `curl_init`).
+- A plain form post (a browser without JavaScript) carries line breaks as CRLF, the browser's
+  `maxlength` and the script count them as one character: a textarea of 250 short lines was 499
+  characters on the page and 748 at the relay, refused as `too_long`. The relay now normalises
+  line breaks before the length check and in the mail.
 
 ## [0.1.1] - 2026-10-19
 
