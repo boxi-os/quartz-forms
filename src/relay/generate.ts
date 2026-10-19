@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import type { ResolvedOptions, Text } from "../types";
 import type { Message, MessageCode, Params } from "../messages";
-import { conditionsOf } from "../conditions";
+import { conditionsOf, isNamed } from "../conditions";
 
 /**
  * What the relay is told about the site: its origin and, for every form that sends through the
@@ -108,7 +108,8 @@ export function relayData(opts: ResolvedOptions, baseUrl: unknown): RelayData {
         rateLimitPerHour: form.spam.rateLimitPerHour,
         maxBytes: form.spam.maxBytes,
       },
-      fields: form.fields.map((f) => {
+      // A page break is no field: it has no value and no line in the mail.
+      fields: form.fields.filter(isNamed).map((f) => {
         const when = conditions.get(f.name);
         const rule: Record<string, unknown> = {
           name: f.name,

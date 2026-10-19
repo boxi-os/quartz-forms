@@ -58,6 +58,10 @@ const deDE: Translation = {
   onlyWhenTicked: "Nur nötig, wenn „{field}“ angehakt ist.",
   quoted: "„{text}“",
   orWord: " oder ",
+  next: "Weiter",
+  back: "Zurück",
+  stepOf: "Schritt {current} von {total}",
+  stepOfTitled: "Schritt {current} von {total}: {title}",
 };
 
 export default deDE;

@@ -52,7 +52,10 @@ describe("resolveOptions", () => {
     const fromTemplate = resolveOptions(
       options({ forms: { fb: { template: "feedback", recipient: "owner" } } }),
     ).forms.fb!;
-    expect(fromTemplate.fields.map((f) => f.name)).toEqual(["rating", "comment"]);
+    expect(fromTemplate.fields.map((f) => ("name" in f ? f.name : f.type))).toEqual([
+      "rating",
+      "comment",
+    ]);
     expect(fromTemplate.pageContext).toBe(true);
     expect(fromTemplate.title).toEqual({
       en: "Feedback on this page",
@@ -70,7 +73,7 @@ describe("resolveOptions", () => {
         },
       }),
     ).forms.fb!;
-    expect(own.fields.map((f) => f.name)).toEqual(["comment"]);
+    expect(own.fields.map((f) => ("name" in f ? f.name : f.type))).toEqual(["comment"]);
   });
 
   it("does not let one form's changes leak into the next form's template", () => {

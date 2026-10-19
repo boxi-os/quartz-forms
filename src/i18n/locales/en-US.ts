@@ -56,4 +56,8 @@ export default {
   onlyWhenTicked: "Only needed if “{field}” is ticked.",
   quoted: "“{text}”",
   orWord: " or ",
+  next: "Next",
+  back: "Back",
+  stepOf: "Step {current} of {total}",
+  stepOfTitled: "Step {current} of {total}: {title}",
 };

@@ -45,6 +45,10 @@ const de: { [K in keyof typeof en]: (p: Params, t: Translate) => string } = {
   showIfController: (p) =>
     `„${s(p, "field")}“ ist ein Feld vom Typ ${s(p, "type")}; eine Bedingung braucht select, radio, checkboxes, checkbox oder scale`,
   showIfValue: (p) => `„${s(p, "field")}“ kann den Wert „${s(p, "value")}“ nicht haben`,
+  pageBreakEdge: () => "ein Seitenumbruch steht zwischen Feldern, nicht am Anfang oder Ende",
+  pageBreakTwice: () => "zwei Seitenumbrüche hintereinander lassen einen Schritt ohne Felder",
+  stepOnlyHidden: (p) =>
+    `Schritt ${s(p, "step")} enthält nur verborgene Werte und zeigt dem Besucher nichts`,
 
   keyShape: () => "ein Schlüssel ist { file } oder { armored }",
   keyExactlyOne: () => "genau eines von file oder armored",

@@ -265,6 +265,17 @@ export const conditionFields: FormField[] = [
     required: true,
     showIf: { field: "sel", equals: "s1" },
   },
+  // A step that counts only with the box ticked: its condition reaches each of its fields, before
+  // a field's own.
+  { type: "pageBreak", title: "Step", showIf: { field: "box", equals: "yes" } },
+  { type: "text", name: "inStep", label: "In step", required: true },
+  {
+    type: "text",
+    name: "inStepIf5",
+    label: "In step, if 5",
+    required: true,
+    showIf: { field: "rate", equals: "5" },
+  },
 ];
 
 export type ConditionOutcome = "ok" | "required" | "dropped";
@@ -285,6 +296,8 @@ export const conditionCases: ConditionCase[] = [
       ifLow: "dropped",
       sel: "dropped",
       ifS1: "dropped",
+      inStep: "dropped",
+      inStepIf5: "dropped",
     },
   },
   { values: { topic: "a" }, expect: { ifA: "required" } },
@@ -321,5 +334,19 @@ export const conditionCases: ConditionCase[] = [
     values: { topic: "a", ifA: "hi", sel: "s1", ifS1: "x" },
     expect: { sel: "dropped", ifS1: "dropped" },
     note: "a field whose controller does not count does not count either",
+  },
+  {
+    values: { box: "yes", ifBox: "t" },
+    expect: { inStep: "required", inStepIf5: "dropped" },
+    note: "the step counts, a field in it with an own condition still needs that one",
+  },
+  {
+    values: { box: "yes", ifBox: "t", rate: "5", inStep: "s" },
+    expect: { inStep: "ok", inStepIf5: "required" },
+  },
+  {
+    values: { rate: "5", inStep: "posted anyway", inStepIf5: "posted anyway" },
+    expect: { inStep: "dropped", inStepIf5: "dropped" },
+    note: "a field's own condition holds, but its step's does not",
   },
 ];

@@ -38,6 +38,7 @@ const PARAMS = {
   field: "⟦field⟧",
   why: "⟦why⟧",
   key: "⟦key⟧",
+  step: 7007,
 };
 const markers = (text: string): string[] => (text.match(/⟦\w+⟧|70\d\d/g) ?? []).sort();
 

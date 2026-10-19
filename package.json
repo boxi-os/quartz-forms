@@ -529,6 +529,9 @@
             },
             {
               "$ref": "#/$defs/hiddenField"
+            },
+            {
+              "$ref": "#/$defs/pageBreakField"
             }
           ]
         },
@@ -1232,6 +1235,45 @@
             "type",
             "name",
             "value"
+          ]
+        },
+        "pageBreakField": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "pageBreak"
+              ],
+              "description": "A page break: the fields after it are the next step of the form.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "Ein Seitenumbruch: Die Felder danach sind der nächste Schritt des Formulars."
+                }
+              }
+            },
+            "title": {
+              "$ref": "#/$defs/text",
+              "description": "Heading of the step that starts here.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "Überschrift des Schritts, der hier beginnt."
+                }
+              }
+            },
+            "showIf": {
+              "$ref": "#/$defs/showIf",
+              "description": "Skip the step that starts here unless an earlier field has one of the given values.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "Den Schritt, der hier beginnt, überspringen, außer ein früheres Feld hat einen der Werte."
+                }
+              }
+            }
+          },
+          "required": [
+            "type"
           ]
         },
         "transport": {

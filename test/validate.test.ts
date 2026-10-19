@@ -96,6 +96,51 @@ describe("validate: forms and fields", () => {
     );
   });
 
+  it("holds page breaks between fields, one at a time, and says a step of hidden values only", () => {
+    const text = (name: string): FormField => ({ type: "text", name, label: name });
+    const page = (extra: object = {}): FormField => ({ type: "pageBreak", ...extra }) as FormField;
+    const of = (...fields: FormField[]) => formProblems(contact({ fields }));
+    expect(of(text("a"), page({ title: "Two" }), text("b"))).toEqual([]);
+    expect(of(text("a"), page({ title: { en: "Two", de: "Zwei" } }), text("b"))).toEqual([]);
+    expect(of(page(), text("a"))).toEqual([
+      "forms.f.fields[0]: a page break stands between fields, not first or last",
+    ]);
+    expect(of(text("a"), page())).toEqual([
+      "forms.f.fields[1]: a page break stands between fields, not first or last",
+    ]);
+    expect(of(text("a"), page(), page(), text("b"))).toEqual([
+      "forms.f.fields[2]: two page breaks in a row leave a step without fields",
+    ]);
+    expect(of(text("a"), page({ title: "" }), text("b"))).toEqual([
+      "forms.f.fields[1].title: empty text",
+    ]);
+    // its condition is held like a field's: an earlier field of a kind with values
+    const box: FormField = { type: "checkbox", name: "box", label: "B" };
+    expect(of(box, page({ showIf: { field: "box", equals: "yes" } }), text("b"))).toEqual([]);
+    expect(of(text("a"), page({ showIf: { field: "box", equals: "yes" } }), box)).toEqual([
+      'forms.f.fields[1].showIf: "box" must come before the field that depends on it',
+    ]);
+    const hiddenStep = resolveOptions(
+      options({
+        forms: {
+          f: contact({
+            fields: [
+              text("a"),
+              page(),
+              { type: "hidden", name: "h", value: "v" },
+              page(),
+              text("b"),
+            ],
+          }),
+        },
+      }),
+    );
+    expect(hiddenStep.problems).toEqual([]);
+    expect(hiddenStep.hints).toContain(
+      "forms.f: step 2 holds only hidden values and shows the visitor nothing",
+    );
+  });
+
   it("rejects a form id that is not lower-case letters, digits and dashes", () => {
     for (const id of ["Contact", "kontakt formular", "-x", "ä"])
       expect(problemsOf({ forms: { [id]: contact() } })[0]).toMatch(/form id must match/);

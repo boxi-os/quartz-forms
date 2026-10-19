@@ -19,7 +19,7 @@ import {
   type MessageCode,
   type Params,
 } from "./messages";
-import { CONTROLLER_TYPES, conditionOf } from "./conditions";
+import { CONTROLLER_TYPES, conditionOf, stepsOf } from "./conditions";
 
 /**
  * Validation level 1 of three: the form definitions, at build time. The rules come from the
@@ -176,6 +176,12 @@ function checkField(field: FormField, at: string, out: Validation): void {
     problem(out, at, "fieldShape");
     return;
   }
+  // A page break has no name and no label; its title is a text, its condition is checked with the
+  // fields' (checkConditions), its place with the form (checkSteps).
+  if (field.type === "pageBreak") {
+    checkText(field.title, `${at}.title`, out);
+    return;
+  }
   if (typeof field.name !== "string" || !FIELD_NAME.test(field.name)) {
     problem(out, at, "fieldNamePattern", {
       name: JSON.stringify(field.name),
@@ -319,6 +325,25 @@ function checkConditions(fields: FormField[], at: string, out: Validation): void
   });
 }
 
+/**
+ * Where page breaks may stand: not first and not last (a step without fields would be a page with
+ * nothing but "Next"), never two in a row. A step that holds nothing but hidden values shows the
+ * visitor nothing either; that is said, not refused.
+ */
+function checkSteps(fields: FormField[], at: string, out: Validation): void {
+  if (!fields.some((f) => isObject(f) && f.type === "pageBreak")) return;
+  fields.forEach((field, i) => {
+    if (!isObject(field) || field.type !== "pageBreak") return;
+    if (i === 0 || i === fields.length - 1) problem(out, `${at}.fields[${i}]`, "pageBreakEdge");
+    else if (isObject(fields[i - 1]) && fields[i - 1]!.type === "pageBreak")
+      problem(out, `${at}.fields[${i}]`, "pageBreakTwice");
+  });
+  stepsOf(fields).forEach((step, i) => {
+    if (step.fields.length > 0 && step.fields.every((f) => f.type === "hidden"))
+      hint(out, at, "stepOnlyHidden", { step: i + 1 });
+  });
+}
+
 /** Can the controlling field have this value? */
 function controllerHas(field: FormField, value: string): boolean {
   switch (field.type) {
@@ -421,6 +446,8 @@ export function submissionCapacity(form: ResolvedForm): number {
       case "pgpKey":
         chars += form.spam.maxKeyLength;
         break;
+      case "pageBreak":
+        break;
       default:
         chars += 64; // options, scales, boxes, hidden values: short by construction
     }
@@ -467,6 +494,7 @@ function checkForm(
     });
     if (keyFields > 1) problem(out, at, "onePgpKey");
     checkConditions(form.fields, at, out);
+    checkSteps(form.fields, at, out);
   }
 
   // Transport
@@ -573,7 +601,10 @@ function checkForm(
       raw.fields ?? (isTemplateName(raw.template) ? templateOf(raw.template).fields : undefined);
     written?.forEach((field, i) => {
       if (isObject(field) && "required" in field && field.required && isPersonalField(field))
-        hint(out, `${at}.fields[${i}]`, "personalOptional", { name: field.name, type: field.type });
+        hint(out, `${at}.fields[${i}]`, "personalOptional", {
+          name: String((field as { name?: unknown }).name),
+          type: field.type,
+        });
     });
   }
 

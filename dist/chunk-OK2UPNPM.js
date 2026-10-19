@@ -213,6 +213,9 @@ var en = {
   showIfLater: (p) => `"${s(p, "field")}" must come before the field that depends on it`,
   showIfController: (p) => `"${s(p, "field")}" is a ${s(p, "type")} field; a condition needs a select, radio, checkboxes, checkbox or scale`,
   showIfValue: (p) => `"${s(p, "field")}" cannot have the value "${s(p, "value")}"`,
+  pageBreakEdge: () => "a page break stands between fields, not first or last",
+  pageBreakTwice: () => "two page breaks in a row leave a step without fields",
+  stepOnlyHidden: (p) => `step ${s(p, "step")} holds only hidden values and shows the visitor nothing`,
   // keys in the options
   keyShape: () => "a key is { file } or { armored }",
   keyExactlyOne: () => "exactly one of file or armored",
@@ -351,6 +354,9 @@ var de = {
   showIfLater: (p) => `\u201E${s2(p, "field")}\u201C muss vor dem Feld stehen, das davon abh\xE4ngt`,
   showIfController: (p) => `\u201E${s2(p, "field")}\u201C ist ein Feld vom Typ ${s2(p, "type")}; eine Bedingung braucht select, radio, checkboxes, checkbox oder scale`,
   showIfValue: (p) => `\u201E${s2(p, "field")}\u201C kann den Wert \u201E${s2(p, "value")}\u201C nicht haben`,
+  pageBreakEdge: () => "ein Seitenumbruch steht zwischen Feldern, nicht am Anfang oder Ende",
+  pageBreakTwice: () => "zwei Seitenumbr\xFCche hintereinander lassen einen Schritt ohne Felder",
+  stepOnlyHidden: (p) => `Schritt ${s2(p, "step")} enth\xE4lt nur verborgene Werte und zeigt dem Besucher nichts`,
   keyShape: () => "ein Schl\xFCssel ist { file } oder { armored }",
   keyExactlyOne: () => "genau eines von file oder armored",
   keyOutside: (p) => `${s2(p, "file")} liegt au\xDFerhalb der Website`,
@@ -536,7 +542,11 @@ var en_US_default = {
   onlyWhen: "Only needed if \u201C{field}\u201D is {values}.",
   onlyWhenTicked: "Only needed if \u201C{field}\u201D is ticked.",
   quoted: "\u201C{text}\u201D",
-  orWord: " or "
+  orWord: " or ",
+  next: "Next",
+  back: "Back",
+  stepOf: "Step {current} of {total}",
+  stepOfTitled: "Step {current} of {total}: {title}"
 };
 
 // src/i18n/locales/de-DE.ts
@@ -593,7 +603,11 @@ var deDE = {
   onlyWhen: "Nur n\xF6tig, wenn bei \u201E{field}\u201C {values} gew\xE4hlt ist.",
   onlyWhenTicked: "Nur n\xF6tig, wenn \u201E{field}\u201C angehakt ist.",
   quoted: "\u201E{text}\u201C",
-  orWord: " oder "
+  orWord: " oder ",
+  next: "Weiter",
+  back: "Zur\xFCck",
+  stepOf: "Schritt {current} von {total}",
+  stepOfTitled: "Schritt {current} von {total}: {title}"
 };
 var de_DE_default = deDE;
 
@@ -632,6 +646,9 @@ function textKeys() {
 }
 
 // src/conditions.ts
+function isNamed(field) {
+  return field.type !== "pageBreak";
+}
 var CONTROLLER_TYPES = ["select", "radio", "checkboxes", "checkbox", "scale"];
 function conditionOf(field) {
   const showIf = field.showIf;
@@ -642,12 +659,27 @@ function conditionOf(field) {
   const values = list.filter((v) => typeof v === "string" && v !== "");
   return values.length ? { field: name, equals: values } : void 0;
 }
+function stepsOf(fields) {
+  const steps = [{ fields: [] }];
+  for (const field of fields) {
+    if (field.type === "pageBreak") {
+      const condition = conditionOf(field);
+      steps.push({
+        ...field.title !== void 0 ? { title: field.title } : {},
+        ...condition ? { condition } : {},
+        fields: []
+      });
+    } else steps[steps.length - 1].fields.push(field);
+  }
+  return steps;
+}
 function conditionsOf(fields) {
   const out = /* @__PURE__ */ new Map();
-  for (const field of fields) {
-    const own = conditionOf(field);
-    if (own) out.set(field.name, [own]);
-  }
+  for (const step of stepsOf(fields))
+    for (const field of step.fields) {
+      const list = [step.condition, conditionOf(field)].filter((c) => !!c);
+      if (list.length) out.set(field.name, list);
+    }
   return out;
 }
 
@@ -755,6 +787,10 @@ function checkText(text, at, out) {
 function checkField(field, at, out) {
   if (!isObject(field)) {
     problem(out, at, "fieldShape");
+    return;
+  }
+  if (field.type === "pageBreak") {
+    checkText(field.title, `${at}.title`, out);
     return;
   }
   if (typeof field.name !== "string" || !FIELD_NAME.test(field.name)) {
@@ -891,6 +927,19 @@ function checkConditions(fields, at, out) {
     if (typeof field.name === "string") seen.set(field.name, field);
   });
 }
+function checkSteps(fields, at, out) {
+  if (!fields.some((f) => isObject(f) && f.type === "pageBreak")) return;
+  fields.forEach((field, i) => {
+    if (!isObject(field) || field.type !== "pageBreak") return;
+    if (i === 0 || i === fields.length - 1) problem(out, `${at}.fields[${i}]`, "pageBreakEdge");
+    else if (isObject(fields[i - 1]) && fields[i - 1].type === "pageBreak")
+      problem(out, `${at}.fields[${i}]`, "pageBreakTwice");
+  });
+  stepsOf(fields).forEach((step, i) => {
+    if (step.fields.length > 0 && step.fields.every((f) => f.type === "hidden"))
+      hint(out, at, "stepOnlyHidden", { step: i + 1 });
+  });
+}
 function controllerHas(field, value) {
   switch (field.type) {
     case "select":
@@ -979,6 +1028,8 @@ function submissionCapacity(form) {
       case "pgpKey":
         chars += form.spam.maxKeyLength;
         break;
+      case "pageBreak":
+        break;
       default:
         chars += 64;
     }
@@ -1015,6 +1066,7 @@ function checkForm(form, raw, rawSpam, keyNames, out) {
     });
     if (keyFields > 1) problem(out, at, "onePgpKey");
     checkConditions(form.fields, at, out);
+    checkSteps(form.fields, at, out);
   }
   const tr = form.transport;
   switch (tr.kind) {
@@ -1094,7 +1146,10 @@ function checkForm(form, raw, rawSpam, keyNames, out) {
     const written = raw.fields ?? (isTemplateName(raw.template) ? templateOf(raw.template).fields : void 0);
     written?.forEach((field, i) => {
       if (isObject(field) && "required" in field && field.required && isPersonalField(field))
-        hint(out, `${at}.fields[${i}]`, "personalOptional", { name: field.name, type: field.type });
+        hint(out, `${at}.fields[${i}]`, "personalOptional", {
+          name: String(field.name),
+          type: field.type
+        });
     });
   }
   if (form.success.mode !== "inline" && form.success.mode !== "redirect")
@@ -1264,6 +1319,6 @@ function logHints(opts) {
   for (const hint2 of opts.hints) warnOnce(hint2, hint2);
 }
 
-export { __commonJS, __export, __require, __toESM, conditionsOf, defaultOptions, formatMessage, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-XBGAYCNU.js.map
-//# sourceMappingURL=chunk-XBGAYCNU.js.map
+export { __commonJS, __export, __require, __toESM, conditionOf, conditionsOf, defaultOptions, formatMessage, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
+//# sourceMappingURL=chunk-OK2UPNPM.js.map
+//# sourceMappingURL=chunk-OK2UPNPM.js.map

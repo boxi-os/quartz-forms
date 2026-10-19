@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
-import { pluginRoot, checkKey } from './chunk-DIFCZOOA.js';
-import { __commonJS, __require, __toESM, messageLang, publicKeyBlock, messageText, formatMessage, conditionsOf, resolveOptions } from './chunk-XBGAYCNU.js';
+import { pluginRoot, checkKey } from './chunk-G4OQDHME.js';
+import { __commonJS, __require, __toESM, messageLang, publicKeyBlock, messageText, formatMessage, conditionsOf, isNamed, resolveOptions } from './chunk-OK2UPNPM.js';
 import fs from 'fs';
 import path from 'path';
 import { spawnSync } from 'child_process';
@@ -7323,7 +7323,8 @@ function relayData(opts, baseUrl) {
         rateLimitPerHour: form.spam.rateLimitPerHour,
         maxBytes: form.spam.maxBytes
       },
-      fields: form.fields.map((f) => {
+      // A page break is no field: it has no value and no line in the mail.
+      fields: form.fields.filter(isNamed).map((f) => {
         const when = conditions.get(f.name);
         const rule = {
           name: f.name,

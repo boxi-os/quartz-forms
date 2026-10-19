@@ -32,6 +32,38 @@
     display: none !important;
   }
 
+  // What belongs to sending (encryption, captcha, the submit button) waits for the last step; the
+  // script marks the form while a step before it is open.
+  &[data-qf-step="middle"] [data-qf-later] {
+    display: none !important;
+  }
+
+  // Steps: without the script one after the other, each under its heading; with it one at a time,
+  // under the count "Step 2 of 4".
+  &__steps,
+  &__step {
+    display: flex;
+    flex-direction: column;
+    gap: var(--quartz-forms-gap);
+  }
+
+  &__steps {
+    row-gap: calc(var(--quartz-forms-gap) * 1.5);
+  }
+
+  &__step-title {
+    margin: 0;
+    font-family: var(--headerFont);
+    font-size: 1.05em;
+    color: var(--dark);
+  }
+
+  &__progress {
+    margin: 0;
+    font-size: 0.9em;
+    color: var(--gray);
+  }
+
   &__title {
     margin: 0;
     font-family: var(--headerFont);

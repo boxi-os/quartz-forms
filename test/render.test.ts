@@ -29,7 +29,7 @@ function field(f: FormField, lang = "en") {
   const find = (node: Element): Element | undefined => {
     for (const c of node.children) {
       if (c.type !== "element") continue;
-      if (c.properties.dataField === f.name) return c;
+      if ("name" in f && c.properties.dataField === f.name) return c;
       const inner = find(c);
       if (inner) return inner;
     }
@@ -384,6 +384,60 @@ describe("captcha container", () => {
     expect(stacked.html).toContain(
       '<div class="quartz-form__options"><div class="quartz-form__option">',
     );
+  });
+
+  it("renders a step per page break under its heading, with the buttons waiting for the script", () => {
+    const { html, config } = render(
+      contact({
+        fields: [
+          { type: "checkbox", name: "more", label: "More" },
+          { type: "pageBreak", title: { en: "Details", de: "Einzelheiten" } },
+          { type: "text", name: "a", label: "A", required: true },
+          { type: "pageBreak", showIf: { field: "more", equals: "yes" } },
+          { type: "textarea", name: "b", label: "B", required: true },
+        ],
+      }),
+    );
+    expect(config.steps).toEqual([
+      { fields: ["more"] },
+      { title: "Details", fields: ["a"] },
+      { fields: ["b"] },
+    ]);
+    expect(config.fields.map((f) => f.name)).toEqual(["more", "a", "b"]);
+    // the step's condition reaches its fields; without the script they carry no native required
+    expect(config.fields[2]!.when).toEqual([{ field: "more", equals: ["yes"] }]);
+    expect(html).toContain(
+      '<p class="quartz-form__progress" id="qf-f-progress" aria-live="polite" hidden></p>',
+    );
+    expect(html).toContain(
+      '<div class="quartz-form__step" data-step="1" role="group" aria-labelledby="qf-f-step-1"><h4 class="quartz-form__step-title" id="qf-f-step-1" tabindex="-1">Details</h4><div class="quartz-form__fields">',
+    );
+    expect(html).toContain(
+      '<div class="quartz-form__step" data-step="2"><noscript><p class="quartz-form__note quartz-form__note--when">Only needed if “More” is ticked.</p></noscript>',
+    );
+    const b = html.slice(html.indexOf('data-field="b"'), html.indexOf("</textarea>"));
+    expect(b).not.toMatch(/ required(=|>| )|aria-required/);
+    expect(html).toContain(
+      '<button type="button" class="quartz-form__button quartz-form__button--secondary" data-step-back="true" hidden>Back</button><button type="button" class="quartz-form__button" data-step-next="true" hidden>Next</button><button type="submit" class="quartz-form__button" data-qf-later="true">Send</button>',
+    );
+    expect(config.texts.stepOfTitled).toBe("Step {current} of {total}: {title}");
+    expect(render(contact({ fields: [{ type: "text", name: "a", label: "A" }] })).html).not.toMatch(
+      /quartz-form__step|data-step|data-qf-later/,
+    );
+    const de = render(
+      contact({
+        fields: [
+          { type: "text", name: "a", label: "A" },
+          { type: "pageBreak", title: { en: "Details", de: "Einzelheiten" } },
+          { type: "text", name: "b", label: "B" },
+        ],
+      }),
+      {},
+      "de",
+    );
+    expect(de.html).toContain(">Einzelheiten</h4>");
+    expect(de.html).toContain(">Zurück</button>");
+    expect(de.html).toContain(">Weiter</button>");
   });
 
   it("leaves the browser's own required off a conditional field and says when it is needed", () => {

@@ -1215,6 +1215,152 @@ describe("conditional fields", () => {
   });
 });
 
+describe("steps", () => {
+  const fields: FormField[] = [
+    {
+      type: "radio",
+      name: "kind",
+      label: "Kind",
+      options: [
+        { value: "event", label: "Event" },
+        { value: "survey", label: "Survey" },
+      ],
+    },
+    { type: "text", name: "name", label: "Name", required: true },
+    { type: "pageBreak", title: "Details", showIf: { field: "kind", equals: "event" } },
+    { type: "text", name: "guests", label: "Guests", required: true },
+    { type: "pageBreak" },
+    { type: "textarea", name: "msg", label: "Message", required: true },
+  ];
+  const step = (form: HTMLFormElement, i: number) =>
+    form.querySelector<HTMLElement>(`.quartz-form__step[data-step="${i}"]`)!;
+  const open = (form: HTMLFormElement) =>
+    [0, 1, 2].filter((i) => !step(form, i).hidden).map((i) => i);
+  const progress = (form: HTMLFormElement) =>
+    form.querySelector<HTMLElement>(".quartz-form__progress")!.textContent;
+  const button = (form: HTMLFormElement, which: "back" | "next") =>
+    form.querySelector<HTMLButtonElement>(`button[data-step-${which}]`)!;
+  const choose = (form: HTMLFormElement, value: string) => {
+    const radio = form.querySelector<HTMLInputElement>(`input[name="kind"][value="${value}"]`)!;
+    radio.checked = true;
+    radio.dispatchEvent(new Event("change", { bubbles: true }));
+  };
+  const click = async (el: HTMLElement) => {
+    el.click();
+    for (let i = 0; i < 3; i++) await tick();
+  };
+
+  it("opens one step at a time, checks only the open one and counts the steps that count", async () => {
+    const form = mount(contact({ ...quick, fields }));
+    await nav();
+    expect(open(form)).toEqual([0]);
+    // "Details" counts only for an event, so two steps for now
+    expect(progress(form)).toBe("Step 1 of 2");
+    expect(button(form, "back").hidden).toBe(true);
+    expect(button(form, "next").hidden).toBe(false);
+    expect(form.dataset.qfStep).toBe("middle");
+    expect(form.querySelector('button[type="submit"]')!.hasAttribute("data-qf-later")).toBe(true);
+
+    await click(button(form, "next"));
+    expect(open(form)).toEqual([0]);
+    expect(errorOf(form, "name")).toBe("This field is required.");
+    // the steps after it are not checked yet
+    expect(errorOf(form, "msg")).toBeNull();
+    expect(status(form).text).toBe("Please check one field.");
+    expect(document.activeElement).toBe(form.elements.namedItem("name"));
+
+    fill(form, "name", "Ada");
+    choose(form, "event");
+    expect(progress(form)).toBe("Step 1 of 3");
+    await click(button(form, "next"));
+    expect(open(form)).toEqual([1]);
+    expect(progress(form)).toBe("Step 2 of 3: Details");
+    expect(status(form).text).toBe("");
+    expect(document.activeElement).toBe(form.querySelector(".quartz-form__step-title"));
+    expect(button(form, "back").hidden).toBe(false);
+
+    await click(button(form, "back"));
+    expect(open(form)).toEqual([0]);
+    // a step without a heading: its first field
+    expect(document.activeElement).toBe(form.querySelector('input[name="kind"]'));
+
+    choose(form, "survey");
+    await click(button(form, "next"));
+    expect(open(form)).toEqual([2]);
+    expect(progress(form)).toBe("Step 2 of 2");
+    expect(form.dataset.qfStep).toBe("last");
+    expect(button(form, "next").hidden).toBe(true);
+    expect(document.activeElement).toBe(form.elements.namedItem("msg"));
+
+    fill(form, "msg", "hello");
+    fill(form, "guests", "12");
+    fetchMock.mockResolvedValueOnce(ok());
+    await submit(form);
+    const sent = JSON.parse(String(fetchMock.mock.calls[0]![1]!.body)) as {
+      fields: Record<string, unknown>;
+    };
+    // the passed-over step's field stays behind
+    expect(sent.fields).toEqual({ kind: "survey", name: "Ada", msg: "hello" });
+  });
+
+  it("goes on with Return before the last step, and sends from the last one", async () => {
+    const form = mount(contact({ ...quick, fields }));
+    await nav();
+    fill(form, "name", "Ada");
+    await submit(form);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(open(form)).toEqual([2]);
+    fill(form, "msg", "hello");
+    fetchMock.mockResolvedValueOnce(ok());
+    await submit(form);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(status(form).state).toBe("success");
+  });
+
+  it("opens the step of the first field the relay refused", async () => {
+    const form = mount(contact({ ...quick, fields }));
+    await nav();
+    fill(form, "name", "Ada");
+    await click(button(form, "next"));
+    fill(form, "msg", "hello");
+    fetchMock.mockResolvedValueOnce(
+      ok(
+        { ok: false, error: "invalid", errors: [{ field: "name", code: "too_long" }] },
+        { status: 400 },
+      ),
+    );
+    await submit(form);
+    expect(open(form)).toEqual([0]);
+    expect(errorOf(form, "name")).toBe("Please use at most 2000 characters.");
+    expect(document.activeElement).toBe(form.elements.namedItem("name"));
+    expect(form.dataset.qfStep).toBe("middle");
+  });
+
+  it("renders the captcha when the last step first opens", async () => {
+    const turnstile = fakeProvider();
+    (window as unknown as { turnstile: unknown }).turnstile = turnstile;
+    try {
+      const form = mount(
+        contact({
+          ...quick,
+          spam: { minSeconds: 0, captcha: "turnstile", captchaSiteKey: "site-key" },
+          fields,
+        }),
+      );
+      await nav();
+      expect(turnstile.render).not.toHaveBeenCalled();
+      fill(form, "name", "Ada");
+      await click(button(form, "next"));
+      expect(turnstile.render).toHaveBeenCalledTimes(1);
+      await click(button(form, "back"));
+      await click(button(form, "next"));
+      expect(turnstile.render).toHaveBeenCalledTimes(1);
+    } finally {
+      delete (window as unknown as { turnstile?: unknown }).turnstile;
+    }
+  });
+});
+
 describe("parity with the relay", () => {
   it("judges every case of the shared catalog as the relay does (test/parity-cases.ts)", async () => {
     const form = mount({ recipient: "owner", fields: parityFields, ...quick });

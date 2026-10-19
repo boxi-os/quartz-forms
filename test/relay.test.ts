@@ -688,7 +688,7 @@ describe.skipIf(!php)("relay: refusals", () => {
         const body = sent ? lastMail().body : "";
         for (const [name, want] of Object.entries(c.expect)) {
           const error = errorsOf(r).find((e) => e.field === name)?.code;
-          const label = conditionFields.find((f) => f.name === name)!;
+          const label = conditionFields.find((f) => "name" in f && f.name === name)!;
           const line = "label" in label ? `${String(label.label)}:` : name;
           const got =
             error === "required"

@@ -1,5 +1,12 @@
 import { h } from "hastscript";
-import { conditionsOf, type Condition } from "../conditions";
+import {
+  conditionOf,
+  conditionsOf,
+  isNamed,
+  stepsOf,
+  type Condition,
+  type NamedField,
+} from "../conditions";
 import type { Element, ElementContent } from "hast";
 import type {
   ChoiceField,
@@ -105,15 +112,42 @@ function describedBy(id: string, hint: Text | undefined): string {
   return hint !== undefined ? `${id}-hint ${id}-error` : `${id}-error`;
 }
 
+/** "Only needed if …": the sentence a page without JavaScript shows for a condition. */
+function conditionSentence(c: Condition, form: ResolvedForm, ctx: RenderContext): string {
+  const t = ctx.t;
+  const controller = form.fields.filter(isNamed).find((f) => f.name === c.field);
+  const label =
+    controller && "label" in controller
+      ? (resolveText(controller.label, ctx.lang) ?? c.field)
+      : c.field;
+  if (controller?.type === "checkbox") return interpolate(t.onlyWhenTicked, { field: label });
+  const labelOf = (value: string): string => {
+    if (controller && "options" in controller && Array.isArray(controller.options)) {
+      const option = controller.options.find((o) => o.value === value);
+      if (option) return resolveText(option.label, ctx.lang) ?? value;
+    }
+    return value;
+  };
+  const values = c.equals.map((v) => interpolate(t.quoted, { text: labelOf(v) })).join(t.orWord);
+  return interpolate(t.onlyWhen, { field: label, values });
+}
+
+function whenNote(sentence: string): Element {
+  return h("noscript", [
+    h("p", { className: ["quartz-form__note", "quartz-form__note--when"] }, sentence),
+  ]);
+}
+
 /**
- * A field that depends on another one. Without JavaScript every field is shown, so its control
- * must not carry the browser's own `required` - the browser would refuse a post where the field
- * does not apply - and a sentence says when it is needed. The script sets `aria-required` while
- * the field counts; the relay checks it then, and drops what was posted for it otherwise.
+ * A field that depends on another one, or stands in a step that does. Without JavaScript every
+ * field is shown, so its control must not carry the browser's own `required` - the browser would
+ * refuse a post where the field does not apply. A sentence says when it is needed (its own
+ * condition; a step's stands under the step's heading). The script sets `aria-required` while the
+ * field counts; the relay checks it then, and drops what was posted for it otherwise.
  */
 function conditional(
   el: Element,
-  conditions: Condition[],
+  own: Condition | undefined,
   form: ResolvedForm,
   ctx: RenderContext,
 ): Element {
@@ -123,33 +157,11 @@ function conditional(
     for (const c of node.children) if (c.type === "element") strip(c);
   };
   strip(el);
-  const t = ctx.t;
-  const sentences = conditions.map((c) => {
-    const controller = form.fields.find((f) => f.name === c.field);
-    const label =
-      controller && "label" in controller
-        ? (resolveText(controller.label, ctx.lang) ?? c.field)
-        : c.field;
-    if (controller?.type === "checkbox") return interpolate(t.onlyWhenTicked, { field: label });
-    const labelOf = (value: string): string => {
-      if (controller && "options" in controller && Array.isArray(controller.options)) {
-        const option = controller.options.find((o) => o.value === value);
-        if (option) return resolveText(option.label, ctx.lang) ?? value;
-      }
-      return value;
-    };
-    const values = c.equals.map((v) => interpolate(t.quoted, { text: labelOf(v) })).join(t.orWord);
-    return interpolate(t.onlyWhen, { field: label, values });
-  });
-  el.children.push(
-    h("noscript", [
-      h("p", { className: ["quartz-form__note", "quartz-form__note--when"] }, sentences.join(" ")),
-    ]),
-  );
+  if (own) el.children.push(whenNote(conditionSentence(own, form, ctx)));
   return el;
 }
 
-function fieldWrapper(field: FormField, children: Child[]): Element {
+function fieldWrapper(field: NamedField, children: Child[]): Element {
   const width =
     "width" in field && (field.width === "half" || field.width === "third") ? field.width : null;
   return h(
@@ -397,7 +409,7 @@ function renderPgpKey(field: PgpKeyField, ctx: RenderContext, maxLength: number)
   ]);
 }
 
-export function renderField(field: FormField, form: ResolvedForm, ctx: RenderContext): Element {
+export function renderField(field: NamedField, form: ResolvedForm, ctx: RenderContext): Element {
   switch (field.type) {
     case "textarea":
       return renderInput(field, ctx, form.spam.maxTextareaLength);
@@ -446,6 +458,7 @@ export interface ClientConfig {
   id: string;
   lang: string;
   fields: ClientFieldRule[];
+  steps?: { title?: string; fields: string[] }[];
   transport: {
     kind: TransportConfig["kind"];
     url: string;
@@ -477,7 +490,8 @@ export interface ClientConfig {
 export function clientConfig(form: ResolvedForm, ctx: RenderContext): ClientConfig {
   const t = ctx.t;
   const conditions = conditionsOf(form.fields);
-  const fields: ClientFieldRule[] = form.fields.map((f) => {
+  const steps = stepsOf(form.fields);
+  const fields: ClientFieldRule[] = form.fields.filter(isNamed).map((f) => {
     const rule: ClientFieldRule = {
       ...(conditions.has(f.name) ? { when: conditions.get(f.name) } : {}),
       name: f.name,
@@ -528,6 +542,15 @@ export function clientConfig(form: ResolvedForm, ctx: RenderContext): ClientConf
     id: form.id,
     lang: ctx.lang,
     fields,
+    // The steps, each with the names of its fields; only for a form with page breaks.
+    ...(steps.length > 1
+      ? {
+          steps: steps.map((step) => ({
+            ...(step.title !== undefined ? { title: resolveText(step.title, ctx.lang) } : {}),
+            fields: step.fields.map((f) => f.name),
+          })),
+        }
+      : {}),
     transport: {
       kind: form.transport.kind,
       url: endpointOf(form.transport, form.recipient),
@@ -594,6 +617,8 @@ export function clientConfig(form: ResolvedForm, ctx: RenderContext): ClientConf
       tooLarge: t.tooLarge,
       errorSummary: t.errorSummary,
       errorSummaryOne: t.errorSummaryOne,
+      stepOf: t.stepOf,
+      stepOfTitled: t.stepOfTitled,
     },
   };
 }
@@ -606,6 +631,10 @@ export function scriptJson(value: unknown): string {
 /** The whole form as a hast element. Transformer and component share this. */
 export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
   const conditions = conditionsOf(form.fields);
+  const field = (f: NamedField): Element => {
+    const el = renderField(f, form, ctx);
+    return conditions.has(f.name) ? conditional(el, conditionOf(f), form, ctx) : el;
+  };
   const t = ctx.t;
   const title = resolveText(form.title, ctx.lang);
   const description = resolveText(form.description, ctx.lang);
@@ -616,6 +645,10 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
   const scriptOnly = required || !form.spam.noScript;
   const action = endpointOf(form.transport, form.recipient);
   const hidden = presetFields(form);
+  const steps = stepsOf(form.fields);
+  // What belongs to sending - the encryption row, the captcha, the submit button - shows with the
+  // last step only; the script marks the form while a step before it is open (forms.scss).
+  const later = steps.length > 1 ? "true" : undefined;
 
   const notes: ElementContent[] = [];
   if (form.anonymous)
@@ -640,24 +673,33 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
     // ticked, a browser without JavaScript showed "Send encrypted" and posted plaintext
     // (review finding, 2026-10-19); the <noscript> note below says what happens instead.
     encryptionRow.push(
-      h("div", { className: ["quartz-form__field", "quartz-form__field--encrypt"] }, [
-        h("div", { className: ["quartz-form__option"] }, [
-          h("input", {
-            type: "checkbox",
-            id,
-            name: ENCRYPT_TOGGLE_NAME,
-            value: "yes",
-            disabled: true,
-            dataEnableWithJs: "true",
-          }),
-          h("label", { className: ["quartz-form__label"], for: id }, t.encryptToggle),
-        ]),
-      ]),
+      h(
+        "div",
+        { className: ["quartz-form__field", "quartz-form__field--encrypt"], dataQfLater: later },
+        [
+          h("div", { className: ["quartz-form__option"] }, [
+            h("input", {
+              type: "checkbox",
+              id,
+              name: ENCRYPT_TOGGLE_NAME,
+              value: "yes",
+              disabled: true,
+              dataEnableWithJs: "true",
+            }),
+            h("label", { className: ["quartz-form__label"], for: id }, t.encryptToggle),
+          ]),
+        ],
+      ),
     );
   }
   if (form.encryption.mode !== "off" && form.encryption.showFingerprint)
     encryptionRow.push(
-      h("p", { className: ["quartz-form__encrypted"], dataFingerprint: "true", hidden: true }),
+      h("p", {
+        className: ["quartz-form__encrypted"],
+        dataFingerprint: "true",
+        dataQfLater: later,
+        hidden: true,
+      }),
     );
 
   // The third-party captcha widget renders into this container; its script is loaded by the
@@ -671,6 +713,7 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
           ],
           dataSitekey: form.spam.captchaSiteKey,
           dataCaptcha: form.spam.captcha,
+          dataQfLater: later,
         })
       : null;
 
@@ -706,16 +749,43 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
           ])
         : null,
       // The fields in a grid of their own: the form's other children (title, notes, actions,
-      // status) stay a column, and a field's width is a span of six tracks (forms.scss).
-      h(
-        "div",
-        { className: ["quartz-form__fields"] },
-        form.fields.map((f) => {
-          const el = renderField(f, form, ctx);
-          const own = conditions.get(f.name);
-          return own ? conditional(el, own, form, ctx) : el;
-        }),
-      ),
+      // status) stay a column, and a field's width is a span of six tracks (forms.scss). With
+      // page breaks, one grid per step under the step's heading; without JavaScript every step
+      // shows, the script shows one at a time.
+      steps.length === 1
+        ? h("div", { className: ["quartz-form__fields"] }, steps[0]!.fields.map(field))
+        : h("div", { className: ["quartz-form__steps"] }, [
+            h("p", {
+              className: ["quartz-form__progress"],
+              id: `${ctx.idPrefix}-progress`,
+              ariaLive: "polite",
+              hidden: true,
+            }),
+            ...steps.map((step, i) => {
+              const title = resolveText(step.title, ctx.lang);
+              const headingId = `${ctx.idPrefix}-step-${i}`;
+              return h(
+                "div",
+                {
+                  className: ["quartz-form__step"],
+                  dataStep: String(i),
+                  role: title ? "group" : undefined,
+                  ariaLabelledby: title ? headingId : undefined,
+                },
+                clean([
+                  title
+                    ? h(
+                        "h4",
+                        { className: ["quartz-form__step-title"], id: headingId, tabIndex: -1 },
+                        title,
+                      )
+                    : null,
+                  step.condition ? whenNote(conditionSentence(step.condition, form, ctx)) : null,
+                  h("div", { className: ["quartz-form__fields"] }, step.fields.map(field)),
+                ]),
+              );
+            }),
+          ]),
       form.spam.honeypot
         ? h("div", { className: ["quartz-form__hp"], ariaHidden: "true" }, [
             h("label", { for: `${ctx.idPrefix}-${HONEYPOT_NAME}` }, "Website"),
@@ -743,6 +813,31 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
       ...encryptionRow,
       captcha,
       h("div", { className: ["quartz-form__actions"] }, [
+        // Between the steps; shown by the script, which also shows "Submit" on the last step only.
+        ...(steps.length > 1
+          ? [
+              h(
+                "button",
+                {
+                  type: "button",
+                  className: ["quartz-form__button", "quartz-form__button--secondary"],
+                  dataStepBack: "true",
+                  hidden: true,
+                },
+                t.back,
+              ),
+              h(
+                "button",
+                {
+                  type: "button",
+                  className: ["quartz-form__button"],
+                  dataStepNext: "true",
+                  hidden: true,
+                },
+                t.next,
+              ),
+            ]
+          : []),
         h(
           "button",
           {
@@ -750,6 +845,7 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
             className: ["quartz-form__button"],
             disabled: scriptOnly ? true : undefined,
             dataEnableWithJs: scriptOnly ? "true" : undefined,
+            dataQfLater: later,
           },
           submit,
         ),

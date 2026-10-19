@@ -51,6 +51,10 @@ const en = {
   showIfController: (p: Params) =>
     `"${s(p, "field")}" is a ${s(p, "type")} field; a condition needs a select, radio, checkboxes, checkbox or scale`,
   showIfValue: (p: Params) => `"${s(p, "field")}" cannot have the value "${s(p, "value")}"`,
+  pageBreakEdge: () => "a page break stands between fields, not first or last",
+  pageBreakTwice: () => "two page breaks in a row leave a step without fields",
+  stepOnlyHidden: (p: Params) =>
+    `step ${s(p, "step")} holds only hidden values and shows the visitor nothing`,
 
   // keys in the options
   keyShape: () => "a key is { file } or { armored }",

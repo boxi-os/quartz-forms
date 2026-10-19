@@ -24,6 +24,8 @@ interface QfConfig {
   id: string;
   lang: string;
   fields: QfRule[];
+  /** The steps of a form with page breaks, each with the names of its fields, in form order. */
+  steps?: { title?: string; fields: string[] }[];
   transport: { kind: string; url: string; format: "json" | "form"; extra: Record<string, string> };
   subject?: string;
   spam: {
@@ -298,11 +300,12 @@ function qfShowError(form: HTMLFormElement, name: string, message: string | null
   }
 }
 
-function qfValidate(form: HTMLFormElement, cfg: QfConfig): QfProblem[] {
+/** Checks every field that counts, or of those only the ones named in `only` (one step's). */
+function qfValidate(form: HTMLFormElement, cfg: QfConfig, only?: Set<string>): QfProblem[] {
   const problems: QfProblem[] = [];
   const active = qfActive(cfg, qfValuesOf(form, cfg));
   for (const rule of cfg.fields) {
-    if (rule.type === "hidden") continue;
+    if (rule.type === "hidden" || (only && !only.has(rule.name))) continue;
     if (!active.has(rule.name)) {
       qfShowError(form, rule.name, null);
       continue;
@@ -323,6 +326,16 @@ function qfStatus(
   if (!status) return;
   status.dataset.state = state;
   status.textContent = text;
+}
+
+function qfErrorSummary(form: HTMLFormElement, cfg: QfConfig, problems: QfProblem[]): void {
+  qfStatus(
+    form,
+    "error",
+    problems.length === 1
+      ? qfText(cfg, "errorSummaryOne")
+      : qfText(cfg, "errorSummary", { count: problems.length }),
+  );
 }
 
 function qfFocusFirst(form: HTMLFormElement, problems: QfProblem[]): void {
@@ -932,6 +945,150 @@ function qfFinish(form: HTMLFormElement, cfg: QfConfig, encrypted: boolean): voi
   qfStatus(form, "success", text);
 }
 
+/* ---- Steps: a form with page breaks, one step at a time ---- */
+
+interface QfStepper {
+  /** Shows the open step again after a value changed: which steps count, which buttons show. */
+  refresh(): void;
+  /** Whether the open step is the last one that counts, where the form is sent. */
+  isLast(): boolean;
+  /** Opens the step that holds a field (the first one with an error). */
+  reveal(name: string): void;
+  /** Checks the open step's fields and opens the next step that counts; false when it refused. */
+  next(): Promise<boolean>;
+  back(): void;
+}
+
+/**
+ * Without the script every step shows, one after the other. With it one step is open: "Next"
+ * checks only that step's fields, a step none of whose fields count (its own condition, or the
+ * ones of all its fields, do not hold) is passed over both ways, and the count "Step 2 of 4"
+ * counts the steps that count now. What belongs to sending (encryption, captcha, the submit
+ * button, all marked `data-qf-later`) shows with the last step; `onLast` runs when it first opens.
+ */
+function qfStepper(
+  form: HTMLFormElement,
+  cfg: QfConfig,
+  check: (only: Set<string>) => Promise<QfProblem[]>,
+  onLast: () => void,
+): QfStepper | null {
+  const steps = cfg.steps;
+  if (!steps || steps.length < 2) return null;
+  const boxes = steps.map((_, i) =>
+    form.querySelector<HTMLElement>(`.quartz-form__step[data-step="${i}"]`),
+  );
+  const progress = form.querySelector<HTMLElement>(".quartz-form__progress");
+  const backButton = form.querySelector<HTMLButtonElement>("button[data-step-back]");
+  const nextButton = form.querySelector<HTMLButtonElement>("button[data-step-next]");
+  let current = 0;
+  let reachedLast = false;
+
+  // Steps that count: the first, the open one, and every one with a field that counts and shows.
+  const counting = (): number[] => {
+    const active = qfActive(cfg, qfValuesOf(form, cfg));
+    const shown = new Set(cfg.fields.filter((r) => r.type !== "hidden").map((r) => r.name));
+    return steps
+      .map((step, i) =>
+        i === 0 || i === current || step.fields.some((n) => active.has(n) && shown.has(n)) ? i : -1,
+      )
+      .filter((i) => i >= 0);
+  };
+
+  const refresh = () => {
+    const list = counting();
+    const last = list[list.length - 1] === current;
+    boxes.forEach((box, i) => {
+      if (box) box.hidden = i !== current;
+    });
+    if (progress) {
+      const title = steps[current]?.title;
+      const text = qfText(cfg, title ? "stepOfTitled" : "stepOf", {
+        current: list.indexOf(current) + 1,
+        total: list.length,
+        title: title ?? "",
+      });
+      progress.hidden = false;
+      // The count is a live region: said when it changes, not on every keystroke.
+      if (progress.textContent !== text) progress.textContent = text;
+    }
+    if (backButton) backButton.hidden = current === list[0];
+    if (nextButton) nextButton.hidden = last;
+    form.dataset.qfStep = last ? "last" : "middle";
+    if (last && !reachedLast) {
+      reachedLast = true;
+      onLast();
+    }
+  };
+
+  // After a step changes, the visitor lands on its heading, or on its first field without one.
+  const focusStep = () => {
+    const box = boxes[current];
+    if (!box) return;
+    const heading = box.querySelector<HTMLElement>(".quartz-form__step-title");
+    if (heading) return heading.focus();
+    const control = Array.from(
+      box.querySelectorAll<HTMLElement>("input:not([type=hidden]), select, textarea, button"),
+    ).find((el) => !el.closest("[hidden]"));
+    control?.focus();
+  };
+
+  const open = (index: number) => {
+    if (index === current) return;
+    current = index;
+    qfStatus(form, "", "");
+    refresh();
+    focusStep();
+  };
+
+  let busy = false;
+  const next = async (): Promise<boolean> => {
+    if (busy) return false;
+    busy = true;
+    try {
+      const problems = await check(new Set(steps[current]?.fields ?? []));
+      if (problems.length > 0) {
+        qfErrorSummary(form, cfg, problems);
+        qfFocusFirst(form, problems);
+        return false;
+      }
+      const following = counting().find((i) => i > current);
+      if (following !== undefined) open(following);
+      return true;
+    } finally {
+      busy = false;
+    }
+  };
+
+  const back = () => {
+    const before = counting().filter((i) => i < current);
+    const previous = before[before.length - 1];
+    if (previous !== undefined) open(previous);
+  };
+
+  const reveal = (name: string) => {
+    const index = steps.findIndex((step) => step.fields.includes(name));
+    if (index < 0 || index === current) return;
+    current = index;
+    refresh();
+  };
+
+  const onNext = () => void next();
+  nextButton?.addEventListener("click", onNext);
+  backButton?.addEventListener("click", back);
+  window.addCleanup(() => {
+    nextButton?.removeEventListener("click", onNext);
+    backButton?.removeEventListener("click", back);
+  });
+  refresh();
+  return {
+    refresh,
+    isLast: () => form.dataset.qfStep === "last",
+    reveal,
+    next,
+    back,
+  };
+}
+
 function qfBind(form: HTMLFormElement): void {
   if (form.dataset.qfBound === "1") return;
   const cfg = qfReadConfig(form);
@@ -959,7 +1116,7 @@ function qfBind(form: HTMLFormElement): void {
     encryptToggle.checked = true;
   }
   if (cfg.encryption.mode !== "off") void qfShowFingerprint(form, cfg);
-  if (cfg.spam.captcha !== "none" && !cfg.anonymous) qfMountCaptcha(form, cfg.spam.captcha);
+  const captcha = cfg.spam.captcha !== "none" && !cfg.anonymous ? cfg.spam.captcha : null;
 
   const onBlur = (event: Event) => {
     const target = event.target as HTMLElement | null;
@@ -977,10 +1134,38 @@ function qfBind(form: HTMLFormElement): void {
   form.addEventListener("focusout", onBlur);
   window.addCleanup(() => form.removeEventListener("focusout", onBlur));
 
-  // Conditional fields: shown and hidden as the fields they depend on change.
+  const keyRule = cfg.fields.find((r) => r.type === "pgpKey");
+  // The fields' own check, of all of them or of one step's; then the visitor's key, if it counts.
+  const check = async (only?: Set<string>): Promise<QfProblem[]> => {
+    const problems = qfValidate(form, cfg, only);
+    if (
+      problems.length === 0 &&
+      keyRule &&
+      (!only || only.has(keyRule.name)) &&
+      qfValueOf(form, keyRule) !== "" &&
+      qfActive(cfg, qfValuesOf(form, cfg)).has(keyRule.name)
+    ) {
+      const message = await qfCheckVisitorKey(form, cfg, keyRule);
+      if (message) problems.push({ name: keyRule.name, message });
+    }
+    return problems;
+  };
+
+  // A form with page breaks shows one step at a time; its captcha renders when the last step
+  // first opens (a widget rendered out of sight is sized for nothing), the others' at once.
+  const stepper = qfStepper(form, cfg, check, () => {
+    if (captcha) qfMountCaptcha(form, captcha);
+  });
+  if (!stepper && captcha) qfMountCaptcha(form, captcha);
+
+  // Conditional fields: shown and hidden as the fields they depend on change; so are the steps
+  // that count, and with them "Next" or "Submit".
   if (cfg.fields.some((r) => r.when)) {
     qfApplyConditions(form, cfg);
-    const onChange = () => void qfApplyConditions(form, cfg);
+    const onChange = () => {
+      qfApplyConditions(form, cfg);
+      stepper?.refresh();
+    };
     form.addEventListener("change", onChange);
     form.addEventListener("input", onChange);
     window.addCleanup(() => {
@@ -989,36 +1174,24 @@ function qfBind(form: HTMLFormElement): void {
     });
   }
 
-  const keyRule = cfg.fields.find((r) => r.type === "pgpKey");
   let busy = false;
   const onSubmit = async (event: Event) => {
     event.preventDefault();
     if (busy) return;
+    // Return in a field of a step before the last one goes on, it does not send.
+    if (stepper && !stepper.isLast()) return void stepper.next();
 
-    const problems = qfValidate(form, cfg);
-    if (
-      problems.length === 0 &&
-      keyRule &&
-      qfValueOf(form, keyRule) !== "" &&
-      qfActive(cfg, qfValuesOf(form, cfg)).has(keyRule.name)
-    ) {
-      // The visitor's key is parsed, which takes a moment: no second submit meanwhile.
-      busy = true;
-      try {
-        const message = await qfCheckVisitorKey(form, cfg, keyRule);
-        if (message) problems.push({ name: keyRule.name, message });
-      } finally {
-        busy = false;
-      }
+    // The visitor's key is parsed, which takes a moment: no second submit meanwhile.
+    busy = true;
+    let problems: QfProblem[];
+    try {
+      problems = await check();
+    } finally {
+      busy = false;
     }
     if (problems.length > 0) {
-      qfStatus(
-        form,
-        "error",
-        problems.length === 1
-          ? qfText(cfg, "errorSummaryOne")
-          : qfText(cfg, "errorSummary", { count: problems.length }),
-      );
+      stepper?.reveal(problems[0]!.name);
+      qfErrorSummary(form, cfg, problems);
       qfFocusFirst(form, problems);
       return;
     }
@@ -1091,13 +1264,8 @@ function qfBind(form: HTMLFormElement): void {
         problems.push({ name: rule.name, message });
       }
       if (problems.length > 0) {
-        qfStatus(
-          form,
-          "error",
-          problems.length === 1
-            ? qfText(cfg, "errorSummaryOne")
-            : qfText(cfg, "errorSummary", { count: problems.length }),
-        );
+        stepper?.reveal(problems[0]!.name);
+        qfErrorSummary(form, cfg, problems);
         qfFocusFirst(form, problems);
         return;
       }

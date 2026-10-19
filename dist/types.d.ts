@@ -40,6 +40,9 @@ declare const en: {
     showIfLater: (p: Params) => string;
     showIfController: (p: Params) => string;
     showIfValue: (p: Params) => string;
+    pageBreakEdge: () => string;
+    pageBreakTwice: () => string;
+    stepOnlyHidden: (p: Params) => string;
     keyShape: () => string;
     keyExactlyOne: () => string;
     keyOutside: (p: Params) => string;
@@ -371,7 +374,20 @@ interface HiddenField {
     name: string;
     value: string;
 }
-type FormField = InputField | ChoiceField | CheckboxField | ScaleField | ConsentField | PgpKeyField | HiddenField;
+/**
+ * A page break: the fields after it are the next step of the form, with "Next" and "Back"
+ * between the steps and one submission at the end. Without JavaScript every step shows, one after
+ * the other. A step may have a condition of its own; while it does not hold, the step is skipped
+ * and its fields count as if their own condition did not hold.
+ */
+interface PageBreakField {
+    type: "pageBreak";
+    /** Heading of the step that starts here. */
+    title?: Text;
+    /** Skip the step that starts here unless an earlier field has one of the given values. */
+    showIf?: ShowIf;
+}
+type FormField = InputField | ChoiceField | CheckboxField | ScaleField | ConsentField | PgpKeyField | HiddenField | PageBreakField;
 /**
  * `relay`: the plugin's own PHP relay. `endpoint`: any URL that takes a POST. `formspree`,
  * `web3forms`: presets for those services. `mailto`: opens the visitor's mail program.
@@ -487,4 +503,4 @@ interface ResolvedOptions {
     hintMessages: Message[];
 }
 
-export type { CheckboxField, ChoiceField, ChoiceLayout, ChoiceOption, ConsentField, EncryptionConfig, EncryptionMode, FieldWidth, FormDefinition, FormField, FormTemplate, HiddenField, InputField, InputFieldType, PgpKeyField, PgpKeySource, QuartzFormsOptions, ResolvedForm, ResolvedOptions, ScaleField, ShowIf, SpamConfig, SuccessConfig, Text, TransportConfig, TransportKind };
+export type { CheckboxField, ChoiceField, ChoiceLayout, ChoiceOption, ConsentField, EncryptionConfig, EncryptionMode, FieldWidth, FormDefinition, FormField, FormTemplate, HiddenField, InputField, InputFieldType, PageBreakField, PgpKeyField, PgpKeySource, QuartzFormsOptions, ResolvedForm, ResolvedOptions, ScaleField, ShowIf, SpamConfig, SuccessConfig, Text, TransportConfig, TransportKind };
