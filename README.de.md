@@ -105,17 +105,18 @@ ein Record nach Sprachcode (`{ de: "Name", en: "Name" }`); die Seitensprache wä
 
 Jedes Feld hat `type`, `name` (ein Buchstabe, dann Buchstaben, Ziffern, `_` oder `-`; eindeutig je
 Formular) und, außer `hidden` und `consent`, ein `label` (Text). Optional bei den meisten:
-`required`, `hint` (Text).
+`required`, `hint` (Text), `width` und `showIf` (siehe unten).
 
 | `type`                                                      | Weitere Schlüssel                                                                          |
 | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `text`, `email`, `tel`, `url`, `number`, `date`, `textarea` | `placeholder` (Text), `autocomplete`, `pattern`, `min`, `max`, `step`, `rows`, `maxLength` |
-| `select`, `radio`, `checkboxes`                             | `options: [{value, label}]`                                                                |
+| `select`, `radio`, `checkboxes`                             | `options: [{value, label}]`; `layout` (`radio`, `checkboxes`)                              |
 | `checkbox`                                                  | –                                                                                          |
 | `scale`                                                     | `min`, `max` (ganze Zahlen, höchstens 21 Stufen), `minLabel`, `maxLabel`                   |
 | `consent`                                                   | `text` (Text), `link`, `linkLabel`; immer Pflicht                                          |
 | `pgpKey`                                                    | der eigene öffentliche Schlüssel des Besuchers (eingefügt oder als Datei); höchstens einer |
 | `hidden`                                                    | `value`                                                                                    |
+| `pageBreak`                                                 | kein `name`; `title` (Text), `showIf`; beginnt einen Schritt, siehe [Schritte](#schritte)  |
 
 Ein `pattern` ist ein regulärer Ausdruck in JavaScript-Schreibweise (Bau und Browser lesen ihn mit
 `u`), das Relay wendet ihn mit PCRE an: Schreib nur, was beide gleich lesen. Der Bau weist ab, was
@@ -125,6 +126,44 @@ kann, etwa einem Eigenschaftsnamen, den nur JavaScript kennt (`--skip-pattern-ch
 Konfiguration trotzdem, für einen Host mit neuerem PCRE als deinem). Was das PCRE des Hosts dann
 noch nicht liest, lässt das Relay jeden Wert dieses Feldes abweisen, und das Muster steht im
 Fehlerprotokoll des Servers.
+
+#### Breite und Anordnung
+
+`width: half` oder `third` stellt Felder nebeneinander; `full`, die Vorgabe, nimmt die ganze
+Zeile. Die Breiten richten sich nach der Breite des Formulars, nicht nach der des Fensters, ein
+Formular in der Seitenleiste ist also auch auf einem breiten Bildschirm schmal: Unter 32rem wird
+ein Drittel zur Hälfte, unter 22rem nimmt jedes Feld die ganze Zeile. Die beiden Breiten stehen
+als Zahlen im Stylesheet, weil Container-Queries keine Custom Properties annehmen.
+`layout: inline` stellt die Optionen eines `radio`- oder `checkboxes`-Felds nebeneinander und
+bricht um, wo sie nicht passen; bei `select` wirkt es nicht, und der Bau sagt das.
+Container-Queries brauchen Chrome 105, Safari 16 oder Firefox 110; ein älterer Browser lässt
+halbe und Drittel-Felder bei jeder Breite nebeneinander.
+
+#### Bedingungen
+
+`showIf: { field, equals }` zeigt ein Feld nur, solange ein früheres Feld einen der Werte hat.
+`field` nennt ein `select`-, `radio`-, `checkboxes`-, `checkbox`- oder `scale`-Feld davor;
+`equals` ist ein Wert oder eine Liste: Optionswerte, `yes` bei einer `checkbox`, die Zahl als
+String bei einer `scale`. Ein `checkboxes`-Feld erfüllt sie, wenn einer der Werte angehakt ist.
+Bedingungen dürfen sich verketten, und ein Feld, dessen Steuerfeld nicht zählt, zählt auch nicht.
+`hidden`- und `consent`-Felder können nicht bedingt sein.
+
+Ein Feld, das nicht zählt, ist nicht Pflicht, wird nicht geprüft, nicht gesendet und steht nicht
+in der Mail; ein Wert, der dafür gepostet wird, wird verworfen, nicht abgewiesen. Ohne JavaScript
+stehen alle Felder da: Ein bedingtes trägt kein natives `required`, ein Satz darunter sagt, wann
+es nötig ist („Nur nötig, wenn …“), und das Relay entscheidet.
+
+#### Schritte
+
+Ein Eintrag `{ type: pageBreak, title?, showIf? }` in `fields` beginnt einen Schritt. Er steht
+zwischen Feldern, nie am Anfang, am Ende oder zweimal hintereinander. Mit JavaScript ist ein
+Schritt auf einmal zu sehen, unter „Schritt 2 von 4: Titel“: „Weiter“ (und Return in einem Feld)
+prüft nur den offenen Schritt, „Zurück“ geht ohne Prüfung zurück, und ein Schritt, dessen
+`showIf` nicht gilt oder in dem kein Feld zählt, wird in beide Richtungen übersprungen.
+Verschlüsselung, Captcha und der Senden-Button erscheinen mit dem letzten Schritt. Weist das
+Relay ein Feld ab, öffnet das Formular dessen Schritt. Die Bedingung eines Schritts gilt für
+jedes seiner Felder, das Relay verwirft sie also wie jedes bedingte Feld. Ohne JavaScript stehen
+alle Schritte untereinander, jeder unter seinem Titel.
 
 ### Transport
 
@@ -207,7 +246,10 @@ sagt, dass er ungeprüft blieb.
 Die Regeln eines Felds stehen einmal, in seiner Definition, und werden dreimal angewendet: beim
 Bau (Kennungen, Namen, Optionen, Schlüssel, Versandweg, Zielseiten), im Browser (mit Sätzen in der
 Seitensprache, beim Verlassen eines Felds und beim Senden) und im Relay (jedes Klartextfeld; eine
-verschlüsselte Sendung nur nach Armor und Größe).
+verschlüsselte Sendung nur nach Armor und Größe). Welche Felder unter ihren Bedingungen und
+Schritten zählen, entscheiden alle drei gleich: Der Bau hält eine Bedingung an ein früheres Feld
+und an Werte, die es haben kann, und Browser und Relay lesen eine daraus abgeleitete Liste je
+Feld, in einem Durchgang in Formularreihenfolge.
 
 ## Texte
 

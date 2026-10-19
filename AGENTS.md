@@ -17,6 +17,8 @@ map, `README.md` for user-facing options.
   `test/config-schema.test.ts`, in both directions.
 - `src/options.ts`: defaults and `resolveOptions()` (single source of truth for defaults).
 - `src/validate.ts`: build-time validation of the form definitions (level 1 of three).
+- `src/conditions.ts`: the steps of a form and each field's conditions (`showIf` and its step's),
+  written as a `when` list into the browser's and the relay's config.
 - `src/render/`: pure functions from a form definition to hast; used by the transformer and the
   component.
 - `src/transformer.ts`: code block, placeholder and frontmatter embedding.
@@ -64,7 +66,9 @@ map, `README.md` for user-facing options.
 - The manifest declares exactly one component (`FormBox`); Quartz resolves the YAML `layout`
   block by plugin name. Never add a `default` export to `src/index.ts`.
 - Validation rules live once, in the form definition. Build, browser and relay derive from it;
-  no level has rules of its own.
+  no level has rules of its own. Which fields count is one of those rules: `qfActive` in the
+  script and `qf_active` in `send.php` evaluate the same `when` lists, and
+  `test/parity-cases.ts` holds them to one catalog.
 - Recipient addresses never reach the built site. The page sends a form id; the relay maps it to
   an address in its own `config.php`.
 - Encryption happens in the browser only. No transport, including the relay, ever sees a key.

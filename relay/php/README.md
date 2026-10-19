@@ -44,6 +44,8 @@ no-referrer` hides both from a plain form post without JavaScript (the browser s
   hour never holds more of them than it mailed), captcha token (Turnstile or hCaptcha, unless
   the form is anonymous), rate limit per form and hour (a counter file, counting mails, no
   addresses).
+- Conditions first: a field whose conditions (`when`, from its `showIf` and its step's) do not
+  hold is dropped from the submission, JSON and plain post alike, and neither checked nor mailed.
 - Plain text: every field against its rule (unknown field, required, length, options, e-mail,
   number range, pattern); errors go back as `{field, code}` and the browser shows them at the
   fields. E-mail and URL follow the browser script's rule, so letters outside ASCII pass on both

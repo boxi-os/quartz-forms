@@ -16,12 +16,14 @@ commit history for what is coming.
    `file.data.quartzForms` which forms a page rendered.
 4. **Render**: `FormBox` renders the layout-placed form unless the page hides it.
 5. **Emit**: `FormsAssets` copies the OpenPGP.js bundle when any rendered form encrypts.
-6. **Browser**: `forms.inline.ts` validates, applies the spam traps, encrypts and sends.
+6. **Browser**: `forms.inline.ts` shows the fields whose conditions hold and one step at a
+   time, validates, applies the spam traps, encrypts and sends.
 
 ## Directory Structure
 
 - `src/index.ts`: factories and types (what Quartz imports). `components/index.ts`: the component.
 - `src/types.ts`, `src/options.ts`: data model and defaults.
+- `src/conditions.ts`: steps and the conditions per field (`when`), read by browser and relay.
 - `src/transformer.ts`, `src/emitter.ts`, `src/components/FormBox.tsx`.
 - `src/components/styles/forms.scss`, `src/scripts/forms.inline.ts`.
 - `src/i18n/`: plugin UI strings (`en-US`, `de-DE`).

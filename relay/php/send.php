@@ -17,7 +17,7 @@
 declare(strict_types=1);
 
 const QF_HONEYPOT = '_hp_website';
-const QF_VERSION = '0.3.0';
+const QF_VERSION = '0.4.0';
 /** What config.example.php ships as `secret`; relay:config replaces it, a hand copy may not. */
 const QF_SECRET_PLACEHOLDER = 'REPLACE-WITH-A-LONG-RANDOM-STRING';
 const QF_SECRET_MIN_LENGTH = 32;

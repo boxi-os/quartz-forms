@@ -101,17 +101,19 @@ language code (`{ de: "Name", en: "Name" }`); the page language picks the entry.
 ### Fields
 
 Every field has `type`, `name` (a letter, then letters, digits, `_` or `-`; unique per form) and,
-except `hidden` and `consent`, a `label` (Text). Optional on most: `required`, `hint` (Text).
+except `hidden` and `consent`, a `label` (Text). Optional on most: `required`, `hint` (Text),
+`width` and `showIf` (see below).
 
 | `type`                                                      | Extra keys                                                                                 |
 | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `text`, `email`, `tel`, `url`, `number`, `date`, `textarea` | `placeholder` (Text), `autocomplete`, `pattern`, `min`, `max`, `step`, `rows`, `maxLength` |
-| `select`, `radio`, `checkboxes`                             | `options: [{value, label}]`                                                                |
+| `select`, `radio`, `checkboxes`                             | `options: [{value, label}]`; `layout` (`radio`, `checkboxes`)                              |
 | `checkbox`                                                  | –                                                                                          |
 | `scale`                                                     | `min`, `max` (integers, at most 21 steps), `minLabel`, `maxLabel`                          |
 | `consent`                                                   | `text` (Text), `link`, `linkLabel`; always required                                        |
 | `pgpKey`                                                    | the visitor's own public key (pasted or chosen as a file); at most one                     |
 | `hidden`                                                    | `value`                                                                                    |
+| `pageBreak`                                                 | no `name`; `title` (Text), `showIf`; starts a step, see [Steps](#steps)                    |
 
 A `pattern` is a JavaScript regular expression (the build and the browser read it with `u`), and
 the relay applies it with PCRE: write only what both read the same way. The build refuses what no
@@ -120,6 +122,42 @@ compiles every pattern with the `php` on your machine and stops at one PCRE cann
 property name only JavaScript knows (`--skip-pattern-check` writes the config anyway, for a host
 whose PCRE is newer than yours). What the host's PCRE still cannot read makes the relay refuse
 every value of that field, with the pattern named in the server's error log.
+
+#### Width and arrangement
+
+`width: half` or `third` sets fields side by side; `full`, the default, takes the whole row. The
+widths answer to the form's own width, not the window's, so a form in a sidebar is narrow on a
+wide screen too: below 32rem a third becomes a half, below 22rem every field takes the whole row.
+These two widths are numbers in the stylesheet, since container queries take no custom
+properties. `layout: inline` sets the options of a `radio` or `checkboxes` field side by side,
+wrapping where they do not fit; on a `select` it has no effect, and the build says so. Container
+queries need Chrome 105, Safari 16 or Firefox 110; an older browser keeps half and third fields
+side by side at every width.
+
+#### Conditions
+
+`showIf: { field, equals }` shows a field only while an earlier field has one of the values.
+`field` names a `select`, `radio`, `checkboxes`, `checkbox` or `scale` field before it; `equals`
+is one value or a list: option values, `yes` for a `checkbox`, the number as a string for a
+`scale`. A `checkboxes` field meets it with any one of the values ticked. Conditions may chain,
+and a field whose controlling field does not count does not count either. `hidden` and `consent`
+fields cannot be conditional.
+
+A field that does not count is not required, not checked, not sent and not in the mail; a value
+posted for it is dropped, not refused. Without JavaScript every field shows: a conditional one
+carries no native `required`, a note under it says when it is needed ("Only needed if …"), and
+the relay decides.
+
+#### Steps
+
+An entry `{ type: pageBreak, title?, showIf? }` in `fields` starts a step. It stands between
+fields, never first, last or twice in a row. With JavaScript one step shows at a time, under
+"Step 2 of 4: Title": "Next" (and Return in a field) checks only the open step, "Back" goes back
+without checking, and a step whose `showIf` does not hold, or none of whose fields counts, is
+passed over both ways. Encryption, captcha and the submit button show with the last step. When
+the relay refuses a field, the form opens its step. A step's condition applies to each of its
+fields, so the relay drops them like any conditional field. Without JavaScript all steps show
+one after the other, each under its title.
 
 ### Transport
 
@@ -200,7 +238,10 @@ the field says that it went unchecked.
 The rules of a field stand once, in its definition, and are applied three times: at build time
 (ids, names, options, keys, transport, redirect pages), in the browser (with messages in the page
 language, on leaving a field and on sending) and in the relay (every plain-text field; an
-encrypted submission only by its armor and size).
+encrypted submission only by its armor and size). Which fields count under their conditions and
+steps is decided the same way in all three: the build holds a condition to an earlier field and
+to values it can have, and browser and relay read one list per field derived from it, in one
+pass in form order.
 
 ## Texts
 

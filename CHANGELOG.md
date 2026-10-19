@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-19
+
+Layout, conditions and steps, each defined once and applied by build, browser and relay alike:
+
+- `width: full | half | third` on every visible field. The fields stand in a grid of six tracks
+  (`.quartz-form__fields`) that answers to the form's own width: below 32rem a third becomes a
+  half, below 22rem every field takes the row.
+- `layout: inline` sets the options of a `radio` or `checkboxes` field side by side
+  (`.quartz-form__options--inline`); on a `select` the build says it has no effect.
+- `showIf: { field, equals }` shows a field only while an earlier `select`, `radio`,
+  `checkboxes`, `checkbox` or `scale` field has one of the values; conditions may chain. The
+  build holds the condition to an earlier field and to values it can have. Browser and relay
+  read one `when` list per field and decide in one pass which fields count; a field that does
+  not count is neither required, checked, sent nor mailed, and a value posted for it is dropped.
+  Without JavaScript a conditional field carries no native `required` and a note says when it is
+  needed. `test/parity-cases.ts` holds browser and relay to one catalog of cases.
+- `{ type: pageBreak, title?, showIf? }` splits a form into steps. With JavaScript one step
+  shows at a time, with "Next", "Back" and the count "Step 2 of 4: Title"; "Next" and Return
+  check only the open step, a step that does not apply is passed over, encryption, captcha and
+  the submit button come with the last step, and a refused field opens its step. Without
+  JavaScript the steps stand one after the other under their titles.
+- New texts in both locales: `onlyWhen`, `onlyWhenTicked`, `quoted`, `orWord`, `next`, `back`,
+  `stepOf`, `stepOfTitled`; new message codes for the new rules, English and German.
+- Fixed: what the script hid with `hidden` stayed in view where a rule of the stylesheet set
+  `display` (the fields after sending); inside a form `[hidden]` now always hides.
+- Fixed: a `{{form:id}}` written inside inline code or a code block was replaced by the form.
+
 ## [0.3.0] - 2026-10-19
 
 - The plugin's messages about a definition - the problems that stop the build, the hints, what
