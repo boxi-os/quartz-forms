@@ -6,7 +6,9 @@ request is answered `500 mbstring_config` and says so); no packages to install.
 
 ## Install
 
-1. Run `npm run relay:config -- /path/to/site` in the plugin repo. It writes
+1. Run `npm run relay:config -- /path/to/site` in the plugin repo (or, from an installed copy,
+   `node dist/cli.js relay --site /path/to/site --out <dir>`, which writes the whole relay into
+   `<dir>`; see the main README). It writes
    `relay/php/config.generated.php` (forms, fields, spam settings from the site's
    `quartz.config.yaml`) and, once, `relay/php/config.php` with a fresh secret. With a `php` on
    your PATH it compiles every field pattern the way `send.php` does and stops at one PCRE

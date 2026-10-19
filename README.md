@@ -81,22 +81,22 @@ language code (`{ de: "Name", en: "Name" }`); the page language picks the entry.
 
 ### Form
 
-| Key           | Type                                          | Default        | Description                                                                                                                                            |
-| ------------- | --------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `template`    | `contact` \| `feedback` \| `rsvp` \| `survey` | –              | Start from a built-in field set. Own `fields` replace it entirely.                                                                                     |
-| `title`       | Text                                          | –              | Heading above the form.                                                                                                                                |
-| `description` | Text                                          | –              | A sentence under the heading.                                                                                                                          |
-| `submitLabel` | Text                                          | plugin text    | Text of the submit button.                                                                                                                             |
-| `fields`      | `Field[]`                                     | –              | The fields, in order. Required unless `template` is set.                                                                                               |
-| `recipient`   | `string`                                      | –              | Relay: a _name_ the relay maps to an address in its own config. `mailto`: the address.                                                                 |
-| `subject`     | Text                                          | form id        | Fixed subject line.                                                                                                                                    |
-| `transport`   | partial Transport                             | global         | Overrides single transport fields.                                                                                                                     |
-| `encryption`  | `{mode, keys?, showFingerprint?}`             | `mode: off`    | `required`: nothing leaves unencrypted (needs JavaScript). `optional`: a ticked toggle the visitor may untick. `keys`: names from `keys`, default all. |
-| `anonymous`   | `boolean`                                     | `false`        | See [Anonymous](#anonymous).                                                                                                                           |
-| `pageContext` | `boolean`                                     | `false`        | Send the page's title and slug along (feedback). Never for anonymous forms.                                                                            |
-| `spam`        | partial Spam                                  | global         | Overrides single spam fields.                                                                                                                          |
-| `success`     | `{mode, text?, slug?}`                        | `mode: inline` | `inline`: a sentence replaces the form. `redirect`: go to the page `slug` (checked at build).                                                          |
-| `className`   | `string`                                      | –              | Extra class(es) next to `quartz-form`.                                                                                                                 |
+| Key           | Type                                          | Default             | Description                                                                                                                                            |
+| ------------- | --------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `template`    | `contact` \| `feedback` \| `rsvp` \| `survey` | –                   | Start from a built-in field set. Own `fields` replace it entirely.                                                                                     |
+| `title`       | Text                                          | –                   | Heading above the form.                                                                                                                                |
+| `description` | Text                                          | –                   | A sentence under the heading.                                                                                                                          |
+| `submitLabel` | Text                                          | plugin text         | Text of the submit button.                                                                                                                             |
+| `fields`      | `Field[]`                                     | –                   | The fields, in order. Required unless `template` is set.                                                                                               |
+| `recipient`   | `string`                                      | –                   | Relay: a _name_ the relay maps to an address in its own config. `mailto`: the address.                                                                 |
+| `subject`     | Text                                          | title, else form id | Fixed subject line.                                                                                                                                    |
+| `transport`   | partial Transport                             | global              | Overrides single transport fields.                                                                                                                     |
+| `encryption`  | `{mode, keys?, showFingerprint?}`             | `mode: off`         | `required`: nothing leaves unencrypted (needs JavaScript). `optional`: a ticked toggle the visitor may untick. `keys`: names from `keys`, default all. |
+| `anonymous`   | `boolean`                                     | `false`             | See [Anonymous](#anonymous).                                                                                                                           |
+| `pageContext` | `boolean`                                     | `false`             | Send the page's title and slug along (feedback). Never for anonymous forms.                                                                            |
+| `spam`        | partial Spam                                  | global              | Overrides single spam fields.                                                                                                                          |
+| `success`     | `{mode, text?, slug?}`                        | `mode: inline`      | `inline`: a sentence replaces the form. `redirect`: go to the page `slug` (checked at build).                                                          |
+| `className`   | `string`                                      | –                   | Extra class(es) next to `quartz-form`.                                                                                                                 |
 
 ### Fields
 
@@ -215,6 +215,22 @@ mbstring extension (the relay says so when that is missing). `npm run relay:conf
 /path/to/site` writes its generated configuration from the site's `quartz.config.yaml`; recipient
 addresses go into `config.php` by hand and never reach the site. See
 [relay/php/README.md](relay/php/README.md).
+
+The same generator ships as a command line for an installed copy (`.quartz/plugins/quartz-forms`
+in a site), without `npm install`:
+
+```bash
+node dist/cli.js relay --site <site> --out <dir> [--skip-pattern-check] [--json]
+node dist/cli.js check --site <site> [--json]   # problems, hints, every key with its fingerprint
+node dist/cli.js key   --site <site> --file <key.asc> [--json]
+```
+
+`relay` into a directory of its own writes the whole relay (`send.php`, `counters/.htaccess`,
+`config.generated.php`, `config.php`). With the owner's values as JSON in the environment variable
+`QF_RELAY_OPERATOR` (secret, origins, sender, mailer, recipients, captcha secrets, counter
+directory) it writes `config.php` from them on every run; secrets never go through argv. With
+`--json` stdout holds one object, among others a `hash` of the generated rules that stays the same
+as long as they do. This is what QuartzControl runs.
 
 The relay answers only requests from the site's origin. A site with `Referrer-Policy:
 no-referrer` hides that origin from a plain form post without JavaScript (the browser sends

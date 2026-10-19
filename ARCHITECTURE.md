@@ -26,5 +26,7 @@ commit history for what is coming.
 - `src/components/styles/forms.scss`, `src/scripts/forms.inline.ts`.
 - `src/i18n/`: plugin UI strings (`en-US`, `de-DE`).
 - `src/util/warn.ts` (`warnOnce`), `src/build/validate-manifest.ts`.
+- `src/relay/generate.ts`, `src/cli.ts`: relay config and the command line (`dist/cli.js`, with
+  `yaml` bundled so an installed copy runs it).
 - `relay/php/`: the reference relay.
 - `test/`: vitest tests. `dist/`: build output (committed).

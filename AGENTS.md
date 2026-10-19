@@ -29,7 +29,10 @@ map, `README.md` for user-facing options.
 - `src/i18n/locales/*.ts`: plugin UI strings; add a locale by copying `en-US.ts`.
 - `relay/php/`: `send.php` (validation level 3 against the definition written into
   `config.php`), `config.example.php`, README.
-- `scripts/relay-config.mjs`: renders `config.php` from a site's `quartz.config.yaml`.
+- `src/relay/generate.ts`: the relay's generated config (`config.generated.php`) and the owner's
+  `config.php` from a site's options; `src/cli.ts`: the command line around it (`relay`,
+  `check`, `key`), bundled into `dist/cli.js` for an installed copy.
+- `scripts/relay-config.mjs`: `npm run relay:config`, a thin wrapper around `dist/cli.js relay`.
 - `test/`: vitest tests. `relay.test.ts` runs `send.php` under `php -S` (skipped, with a
   warning, when there is no `php`); every relay fix comes with a case there.
 

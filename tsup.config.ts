@@ -96,6 +96,9 @@ export default defineConfig({
     index: "src/index.ts",
     types: "src/types.ts",
     "components/index": "src/components/index.ts",
+    // The command line (relay config, checks, keys) for an installed copy: `yaml` is a dev
+    // dependency and is bundled into it, so it runs without `npm install`.
+    cli: "src/cli.ts",
   },
   format: ["esm"],
   dts: true,

@@ -1,6 +1,6 @@
 {
   "name": "quartz-forms",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Quartz v5 plugin for web forms: contact, feedback, sign-up and survey forms rendered at build time, validated in the browser, encrypted with OpenPGP before they leave the page, and sent through a configurable transport (own relay, generic endpoint, mailto).",
   "type": "module",
   "license": "UNLICENSED",
@@ -20,6 +20,10 @@
   ],
   "files": [
     "dist",
+    "relay/php/send.php",
+    "relay/php/config.example.php",
+    "relay/php/counters/.htaccess",
+    "relay/php/README.md",
     "README.md",
     "CHANGELOG.md"
   ],
@@ -98,7 +102,7 @@
       "emitter",
       "component"
     ],
-    "version": "0.1.2",
+    "version": "0.2.0",
     "quartzVersion": ">=5.0.0",
     "dependencies": [],
     "defaultEnabled": true,
@@ -402,10 +406,10 @@
             },
             "pageContext": {
               "type": "boolean",
-              "description": "Send the page's title, slug and URL along (for a feedback form).",
+              "description": "Send the page's title and slug along (for a feedback form).",
               "x-quartz-l10n": {
                 "de": {
-                  "description": "Titel, Slug und URL der Seite mitschicken (für ein Feedback-Formular)."
+                  "description": "Titel und Slug der Seite mitschicken (für ein Feedback-Formular)."
                 }
               },
               "x-quartz-order": 110

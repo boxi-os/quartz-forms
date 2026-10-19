@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-19
+
+For QuartzControl's forms tab, which runs the plugin in a child process instead of copying it:
+
+- `dist/cli.js`, a command line that runs from an installed copy without `npm install` (`yaml` is
+  bundled): `relay` writes the whole relay into a directory of its own, `check` reports the
+  problems and hints of the options and every key with fingerprint and expiry date, `key` reads
+  one key. `--json` puts one object on stdout. The relay generator moved from
+  `scripts/relay-config.mjs` into `src/relay/generate.ts`; `npm run relay:config` is a wrapper.
+- `relay` takes the owner's values (secret, origins, sender, mailer, recipient addresses, captcha
+  secrets, counter directory) as JSON from the environment variable `QF_RELAY_OPERATOR` and
+  writes `config.php` from them, mode 0600, on every run; it says which recipient names have no
+  address. Without the variable `config.php` is created once from the example, as before.
+- The key report carries the expiry date.
+- `relay/php` is in the package's `files`.
+- `send.php` named 0.1.1 in its `X-Mailer` in 0.1.2; a test now holds it to the package version.
+- The schema's `pageContext` description said the URL is sent along; it is title and slug. The
+  README's default subject is the title, then the form id, as the relay does.
+
 ## [0.1.2] - 2026-10-19
 
 Two independent reviews of 0.1.1 (another model, fresh context each), 26 and 10 findings, all

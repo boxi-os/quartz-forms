@@ -4,6 +4,8 @@ export interface KeyReport {
   name: string;
   fingerprint: string;
   userIds: string[];
+  /** The day the key expires (`YYYY-MM-DD`); missing when it never does or could not be read. */
+  expires?: string;
   problem?: string;
 }
 
@@ -34,6 +36,8 @@ export async function checkKey(name: string, armored: string): Promise<KeyReport
     return { ...report, problem: "this is a private key; the site needs the public key" };
   if (await key.isRevoked()) return { ...report, problem: "this key is revoked" };
   const expires = await key.getExpirationTime();
+  if (expires instanceof Date && Number.isFinite(expires.getTime()))
+    report.expires = expires.toISOString().slice(0, 10);
   if (expires instanceof Date && expires.getTime() < Date.now())
     return { ...report, problem: `this key expired on ${expires.toISOString().slice(0, 10)}` };
   try {

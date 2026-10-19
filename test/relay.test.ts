@@ -263,6 +263,9 @@ beforeAll(async () => {
       "function qf_now(): int\n{\n    return time() + (int) ($_SERVER['HTTP_X_SHIFT'] ?? 0);\n}",
     ),
   );
+  // The generator copies counters/ with its .htaccess; the suite starts without them, so the
+  // case below sees the relay write the .htaccess itself.
+  fs.rmSync(path.join(dir, "counters"), { recursive: true, force: true });
   fs.mkdirSync(path.join(dir, "counters"));
   // Stands in for the provider's siteverify endpoint: success for one secret and one token.
   fs.writeFileSync(

@@ -84,22 +84,22 @@ ein Record nach Sprachcode (`{ de: "Name", en: "Name" }`); die Seitensprache wä
 
 ### Formular
 
-| Schlüssel     | Typ                                           | Vorgabe        | Beschreibung                                                                                                                                                             |
-| ------------- | --------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `template`    | `contact` \| `feedback` \| `rsvp` \| `survey` | –              | Mit einem mitgelieferten Feldsatz beginnen. Eigene `fields` ersetzen ihn ganz.                                                                                           |
-| `title`       | Text                                          | –              | Überschrift über dem Formular.                                                                                                                                           |
-| `description` | Text                                          | –              | Ein Satz unter der Überschrift.                                                                                                                                          |
-| `submitLabel` | Text                                          | Plugin-Text    | Text des Senden-Buttons.                                                                                                                                                 |
-| `fields`      | `Feld[]`                                      | –              | Die Felder, in Reihenfolge. Pflicht, wenn keine Vorlage gesetzt ist.                                                                                                     |
-| `recipient`   | `string`                                      | –              | Relay: ein _Name_, den das Relay in seiner Konfiguration auf eine Adresse abbildet. `mailto`: die Adresse.                                                               |
-| `subject`     | Text                                          | Kennung        | Fester Betreff.                                                                                                                                                          |
-| `transport`   | Teil von Transport                            | global         | Überschreibt einzelne Felder des Versandwegs.                                                                                                                            |
-| `encryption`  | `{mode, keys?, showFingerprint?}`             | `mode: off`    | `required`: nichts geht unverschlüsselt (braucht JavaScript). `optional`: ein gesetztes Häkchen, das der Besucher abwählen kann. `keys`: Namen aus `keys`, Vorgabe alle. |
-| `anonymous`   | `boolean`                                     | `false`        | Siehe [Anonym](#anonym).                                                                                                                                                 |
-| `pageContext` | `boolean`                                     | `false`        | Titel und Slug der Seite mitschicken (Feedback). Nie bei anonymen Formularen.                                                                                            |
-| `spam`        | Teil von Spam                                 | global         | Überschreibt einzelne Spam-Felder.                                                                                                                                       |
-| `success`     | `{mode, text?, slug?}`                        | `mode: inline` | `inline`: ein Satz ersetzt das Formular. `redirect`: zur Seite `slug` wechseln (beim Bau geprüft).                                                                       |
-| `className`   | `string`                                      | –              | Zusätzliche Klasse(n) neben `quartz-form`.                                                                                                                               |
+| Schlüssel     | Typ                                           | Vorgabe              | Beschreibung                                                                                                                                                             |
+| ------------- | --------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `template`    | `contact` \| `feedback` \| `rsvp` \| `survey` | –                    | Mit einem mitgelieferten Feldsatz beginnen. Eigene `fields` ersetzen ihn ganz.                                                                                           |
+| `title`       | Text                                          | –                    | Überschrift über dem Formular.                                                                                                                                           |
+| `description` | Text                                          | –                    | Ein Satz unter der Überschrift.                                                                                                                                          |
+| `submitLabel` | Text                                          | Plugin-Text          | Text des Senden-Buttons.                                                                                                                                                 |
+| `fields`      | `Feld[]`                                      | –                    | Die Felder, in Reihenfolge. Pflicht, wenn keine Vorlage gesetzt ist.                                                                                                     |
+| `recipient`   | `string`                                      | –                    | Relay: ein _Name_, den das Relay in seiner Konfiguration auf eine Adresse abbildet. `mailto`: die Adresse.                                                               |
+| `subject`     | Text                                          | Titel, sonst Kennung | Fester Betreff.                                                                                                                                                          |
+| `transport`   | Teil von Transport                            | global               | Überschreibt einzelne Felder des Versandwegs.                                                                                                                            |
+| `encryption`  | `{mode, keys?, showFingerprint?}`             | `mode: off`          | `required`: nichts geht unverschlüsselt (braucht JavaScript). `optional`: ein gesetztes Häkchen, das der Besucher abwählen kann. `keys`: Namen aus `keys`, Vorgabe alle. |
+| `anonymous`   | `boolean`                                     | `false`              | Siehe [Anonym](#anonym).                                                                                                                                                 |
+| `pageContext` | `boolean`                                     | `false`              | Titel und Slug der Seite mitschicken (Feedback). Nie bei anonymen Formularen.                                                                                            |
+| `spam`        | Teil von Spam                                 | global               | Überschreibt einzelne Spam-Felder.                                                                                                                                       |
+| `success`     | `{mode, text?, slug?}`                        | `mode: inline`       | `inline`: ein Satz ersetzt das Formular. `redirect`: zur Seite `slug` wechseln (beim Bau geprüft).                                                                       |
+| `className`   | `string`                                      | –                    | Zusätzliche Klasse(n) neben `quartz-form`.                                                                                                                               |
 
 ### Felder
 
@@ -222,6 +222,22 @@ dessen Erweiterung mbstring (fehlt sie, sagt das Relay es). `npm run relay:confi
 /pfad/zur/site` schreibt seine erzeugte Konfiguration aus der `quartz.config.yaml`
 der Website; Empfängeradressen kommen von Hand in `config.php` und gelangen nie auf die Website.
 Siehe [relay/php/README.md](relay/php/README.md) (englisch).
+
+Derselbe Generator liegt als Kommandozeile bei und läuft aus einer installierten Kopie
+(`.quartz/plugins/quartz-forms` in einer Website), ohne `npm install`:
+
+```bash
+node dist/cli.js relay --site <site> --out <ordner> [--skip-pattern-check] [--json]
+node dist/cli.js check --site <site> [--json]   # Probleme, Hinweise, jeder Schlüssel mit Fingerabdruck
+node dist/cli.js key   --site <site> --file <key.asc> [--json]
+```
+
+`relay` in einen eigenen Ordner schreibt das ganze Relay (`send.php`, `counters/.htaccess`,
+`config.generated.php`, `config.php`). Mit den Werten des Betreibers als JSON in der
+Umgebungsvariable `QF_RELAY_OPERATOR` (Secret, Origins, Absender, Mailer, Empfänger,
+Captcha-Secrets, Zählerordner) schreibt es `config.php` bei jedem Lauf daraus; Geheimnisse gehen nie
+über argv. Mit `--json` steht auf stdout ein Objekt, darin unter anderem ein `hash` der erzeugten
+Regeln, der gleich bleibt, solange sie es tun. Das ruft QuartzControl auf.
 
 Das Relay antwortet nur Anfragen vom Origin der Website. Eine Website mit `Referrer-Policy:
 no-referrer` verbirgt diesen Origin bei einem einfachen Formular-Post ohne JavaScript (der
