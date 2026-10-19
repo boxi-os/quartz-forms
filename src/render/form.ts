@@ -556,6 +556,9 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
   const encryptionRow: ElementContent[] = [];
   if (form.encryption.mode === "optional") {
     const id = `${ctx.idPrefix}-${ENCRYPT_TOGGLE_NAME}`;
+    // Only the script can encrypt, so only the script ticks and enables this box. Rendered
+    // ticked, a browser without JavaScript showed "Send encrypted" and posted plaintext
+    // (review finding, 2026-10-19); the <noscript> note below says what happens instead.
     encryptionRow.push(
       h("div", { className: ["quartz-form__field", "quartz-form__field--encrypt"] }, [
         h("div", { className: ["quartz-form__option"] }, [
@@ -564,7 +567,8 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
             id,
             name: ENCRYPT_TOGGLE_NAME,
             value: "yes",
-            checked: true,
+            disabled: true,
+            dataEnableWithJs: "true",
           }),
           h("label", { className: ["quartz-form__label"], for: id }, t.encryptToggle),
         ]),
@@ -612,12 +616,12 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
       title ? h("h3", { className: ["quartz-form__title"] }, title) : null,
       description ? h("p", { className: ["quartz-form__description"] }, description) : null,
       ...notes,
-      scriptOnly
+      scriptOnly || form.encryption.mode === "optional"
         ? h("noscript", {}, [
             h(
               "p",
               { className: ["quartz-form__note", "quartz-form__note--noscript"] },
-              required ? t.noScript : t.needsScript,
+              required ? t.noScript : scriptOnly ? t.needsScript : t.noScriptPlain,
             ),
           ])
         : null,

@@ -211,15 +211,22 @@ describe("renderForm", () => {
     );
   });
 
-  it("with encryption optional: a checked toggle, and the plaintext action stays", () => {
+  it("with encryption optional: the plaintext action stays, the toggle waits for the script", () => {
     const { tree, html } = render(contact({ encryption: { mode: "optional" } }), {
       keys: { k: { armored: ARMORED } },
     });
     expect(tree.properties.action).toBe("https://example.org/forms/send.php");
+    // Not ticked and not enabled: without the script the post is plaintext, and the box must not
+    // claim otherwise. The script ticks it (client test).
     expect(html).toContain(
-      '<input type="checkbox" id="qf-f-_encrypt" name="_encrypt" value="yes" checked>',
+      '<input type="checkbox" id="qf-f-_encrypt" name="_encrypt" value="yes" disabled data-enable-with-js="true">',
     );
+    expect(html).not.toContain('value="yes" checked');
     expect(html).toContain(">Send encrypted</label>");
+    expect(html).toContain(
+      '<noscript><p class="quartz-form__note quartz-form__note--noscript">Without JavaScript this form sends unencrypted.</p></noscript>',
+    );
+    expect(render(contact()).html).not.toContain("<noscript>");
   });
 
   it("reads a key from a file", () => {

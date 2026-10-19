@@ -9,11 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10-19):
 
-- A key source that held a private key block behind the public one (`gpg --export-secret-keys
-  > > owner.asc`) passed every build check, and the whole file went into the page: the private
-key was published on every form page. A source must now hold exactly one public key block
-(`src/pgp/armor.ts`), checked at build time and again whenever the file is read, and the page
-gets that block alone. The emitter reports a file that went bad during `--serve`.
+- A key source that held a private key block behind the public one (the secret key appended to
+  `owner.asc` with `gpg --export-secret-keys`) passed every build check, and the whole file went
+  into the page: the private key was published on every form page. A source must now hold
+  exactly one public key block (`src/pgp/armor.ts`), checked at build time and again whenever
+  the file is read, and the page gets that block alone. The emitter reports a file that went bad
+  during `--serve`.
+- With `encryption: optional` the "send encrypted" box was rendered ticked, so a browser without
+  JavaScript showed it ticked and posted plaintext, which the relay mailed. The box is now
+  disabled and unticked until the script enables it, a `<noscript>` note says the form sends
+  unencrypted without JavaScript (`noScriptPlain`), and the relay refuses a plain post that
+  carries the box.
 
 ## [0.1.1] - 2026-10-19
 

@@ -602,6 +602,12 @@ function qfBind(form: HTMLFormElement): void {
 
   const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
   if (button?.dataset.enableWithJs === "true") button.disabled = false;
+  // The "send encrypted" box of an optional form: ticked only now that encrypting is possible.
+  const encryptToggle = form.elements.namedItem(QF_ENCRYPT_TOGGLE) as HTMLInputElement | null;
+  if (encryptToggle?.dataset.enableWithJs === "true") {
+    encryptToggle.disabled = false;
+    encryptToggle.checked = true;
+  }
   if (cfg.encryption.mode !== "off") void qfShowFingerprint(form, cfg);
   if (cfg.spam.captcha !== "none" && !cfg.anonymous) qfLoadCaptcha(cfg.spam.captcha);
 

@@ -147,7 +147,10 @@ Ohne JavaScript schickt ein Formular mit `encryption: off` oder `optional` einen
 Formular-Post ans Relay, das mit der Weiterleitung oder einer kurzen Seite antwortet. Ein solcher
 Post trägt weder Zeitstempel noch Proof of Work; das Relay prüft daran nur Honeypot,
 Ratenbegrenzung und Felder. `noScript: false` weist diese Posts ab und rendert das Formular ohne
-Ziel, bis das Skript läuft, mit einem `<noscript>`-Hinweis.
+Ziel, bis das Skript läuft, mit einem `<noscript>`-Hinweis. Bei `optional` bleibt das Häkchen
+„Verschlüsselt senden“ leer und deaktiviert, bis das Skript es setzt, und ein `<noscript>`-Hinweis
+sagt, dass das Formular unverschlüsselt sendet; einen einfachen Post, der das Häkchen trotzdem
+trägt, weist das Relay ab.
 
 ## Anonym
 

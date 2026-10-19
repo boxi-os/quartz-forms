@@ -440,8 +440,14 @@ describe("encryption", () => {
     const form = mount(contact({ ...quick, encryption: { mode: "optional" } }), {
       keys: { owner: { armored: pair.publicKey } },
     });
+    const toggle = form.elements.namedItem("_encrypt") as HTMLInputElement;
+    expect(toggle.disabled).toBe(true);
+    expect(toggle.checked).toBe(false);
     await nav();
-    (form.elements.namedItem("_encrypt") as HTMLInputElement).checked = false;
+    // The script enables and ticks the box; the visitor may untick it.
+    expect(toggle.disabled).toBe(false);
+    expect(toggle.checked).toBe(true);
+    toggle.checked = false;
     fetchMock.mockResolvedValueOnce(ok());
     fill(form, "message", "plain");
     await submit(form);

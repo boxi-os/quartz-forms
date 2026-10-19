@@ -572,6 +572,11 @@ if (!qf_origin_allowed($config)) {
 if ($isForm && empty($spam['noScript'])) {
     qf_fail(400, 'javascript', 'this form needs JavaScript');
 }
+// The page renders the "send encrypted" box disabled until the script ticks it, so a plain post
+// that carries it asked for encryption and sent plaintext: refused, never mailed.
+if ($isForm && ($envelope['fields']['_encrypt'] ?? '') !== '') {
+    qf_fail(400, 'javascript', 'sending encrypted needs JavaScript');
+}
 
 // Honeypot: a filled field means a bot. It is told "sent"; nothing is sent.
 if (!empty($spam['honeypot'])) {
