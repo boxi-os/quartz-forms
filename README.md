@@ -209,7 +209,8 @@ replaced per locale: `texts: { de: { submit: "Abschicken" } }`. Keys are those o
 
 ## The relay
 
-`relay/php/` holds a single `send.php` for classic web hosting with PHP. `npm run relay:config --
+`relay/php/` holds a single `send.php` for classic web hosting with PHP 8.1 or newer and its
+mbstring extension (the relay says so when that is missing). `npm run relay:config --
 /path/to/site` writes its generated configuration from the site's `quartz.config.yaml`; recipient
 addresses go into `config.php` by hand and never reach the site. See
 [relay/php/README.md](relay/php/README.md).

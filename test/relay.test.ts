@@ -1222,6 +1222,38 @@ describe.skipIf(!php)("relay: captcha verification on a host without allow_url_f
   });
 });
 
+describe.skipIf(!php)("relay: a PHP without mbstring", () => {
+  // Second review, aside 2 (2026-10-19): the README said "no dependencies", but five calls need
+  // the mbstring extension, which a PHP built from source has only with --enable-mbstring and
+  // Debian ships as its own package. Without it a post died with "Call to undefined function
+  // mb_check_encoding()" in the middle of the field checks (a bare 500 with display_errors off).
+  // Simulated with disable_functions: the functions are undefined the same way.
+  let noMb = "";
+  let proc: ChildProcess | undefined;
+  beforeAll(async () => {
+    const port = await freePort();
+    proc = spawnRelay(port, [
+      "disable_functions=mb_check_encoding,mb_convert_encoding,mb_encode_mimeheader,mb_substr",
+    ]);
+    noMb = `http://127.0.0.1:${port}`;
+    await untilUp(noMb);
+  }, 30_000);
+  afterAll(() => proc?.kill());
+
+  it("tells the owner that mbstring is missing, on the ticket GET and on a post alike", async () => {
+    const ticket = await fetch(`${noMb}/send.php?challenge=contact`, {
+      headers: { Origin: ORIGIN },
+    });
+    const ticketJson = (await ticket.json()) as { error?: string; message?: string };
+    expect([ticket.status, ticketJson.error]).toEqual([500, "mbstring_config"]);
+    const sent = mails().length;
+    const r = await post(env("feedback", { rating: "4" }), { at: noMb });
+    expect([r.status, r.json?.error]).toEqual([500, "mbstring_config"]);
+    expect(String(r.json?.message)).toContain("mbstring");
+    expect(mails().length).toBe(sent);
+  });
+});
+
 describe.skipIf(!php)("relay: a host without PCRE JIT", () => {
   // Second review, finding 2 (2026-10-19): qf_trim was `^\s+|\s+$`, and without the JIT PCRE
   // retries `\s+$` at every position of a whitespace run, each try walking to the run's end:

@@ -1,7 +1,8 @@
 # quartz-forms relay (PHP)
 
 A single `send.php` that receives what the plugin's forms post and mails it. For classic web
-hosting with PHP ≥ 8.1; no dependencies.
+hosting with PHP ≥ 8.1 and its mbstring extension (nearly every host has it; without it every
+request is answered `500 mbstring_config` and says so); no packages to install.
 
 ## Install
 

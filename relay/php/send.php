@@ -976,6 +976,16 @@ if ($method === 'OPTIONS') {
     exit;
 }
 
+// The one PHP extension this file needs beyond the core: mb_check_encoding, mb_convert_encoding,
+// mb_encode_mimeheader and mb_substr. A PHP built from source has it only with --enable-mbstring,
+// Debian ships it as its own package. Without it the first post died with "Call to undefined
+// function" in the middle of the field checks, while the ticket GET still answered 200, so the
+// owner's first test passed (second review, aside 2, 2026-10-19). Said here, before anything else.
+if (!function_exists('mb_check_encoding')) {
+    qf_fail(500, 'mbstring_config', 'this relay needs the mbstring extension of PHP, which this host '
+        . 'has not installed or has switched off; ask the hoster to enable it');
+}
+
 $forms = $config['forms'] ?? [];
 
 if ($method === 'GET') {
