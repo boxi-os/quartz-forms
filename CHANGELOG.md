@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-10-19
+
 - Fixed: Quartz lays the site's options over the manifest's `defaultOptions` one level deep, so a
   site without a `spam` block handed over the whole default one, and the build read every
   default as written. Every form without the relay said "rateLimitPerHour: has no effect without
