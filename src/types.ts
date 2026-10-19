@@ -78,7 +78,10 @@ export interface FormDefinition {
    * captcha, and the relay logs nothing. What this cannot promise is in the README.
    */
   anonymous?: boolean;
-  /** Send the page's title, slug and URL along (for a feedback form). Default: false. */
+  /**
+   * Send the page's title and slug along, as a line `Page: Title (slug)` of the message (for a
+   * feedback form). Inside the ciphertext when the message is encrypted. Default: false.
+   */
   pageContext?: boolean;
   /** Overrides single fields of the global spam settings. */
   spam?: Partial<SpamConfig>;

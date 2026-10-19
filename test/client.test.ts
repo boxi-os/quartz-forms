@@ -236,9 +236,8 @@ describe("sending", () => {
     fetchMock.mockResolvedValueOnce(ok());
     fill(form, "message", "x");
     await submit(form);
-    expect(
-      JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body)).page,
-    ).toBe("docs/page");
+    const body = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
+    expect([body.page, body.pageTitle]).toEqual(["docs/page", "Page"]);
   });
 
   it("pretends to send when the honeypot is filled, and sends nothing", async () => {
@@ -592,7 +591,10 @@ describe("encryption", () => {
     const body = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
     expect(body.encrypted).toBe(true);
     expect(body.fields).toBeUndefined();
-    expect(body.page).toBe("docs/page");
+    // Review finding 23 (2026-10-19): the slug travelled beside the ciphertext in the clear and
+    // the relay wrote it under the armor; the page is part of the encrypted text and stays there.
+    expect(body.page).toBeUndefined();
+    expect(body.pageTitle).toBeUndefined();
     expect(body.ciphertext).toMatch(/^-----BEGIN PGP MESSAGE-----/);
     expect(JSON.stringify(body)).not.toContain("Top secret");
     expect(await decrypt(body.ciphertext, pair.privateKey)).toBe(

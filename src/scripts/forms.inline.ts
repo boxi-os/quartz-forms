@@ -588,11 +588,16 @@ async function qfSend(
   let fresh = opened;
   if (cfg.spam.pow && tr.kind === "relay" && (!fresh?.data || Date.now() - fresh.at > 30 * 60_000))
     fresh = await qfFetchTicket(cfg);
+  // The page goes along in the clear only with a plaintext message; an encrypted one has it in
+  // the serialized text, and the relay used to write the slug beside the armor a second time,
+  // unencrypted (review finding 23, 2026-10-19).
+  const page = cfg.page && !ciphertext ? cfg.page : undefined;
   const common = {
     form: cfg.id,
     lang: cfg.lang,
     ts: opened?.data?.stamp ?? fresh?.data?.stamp ?? "",
-    page: cfg.page?.slug,
+    page: page?.slug,
+    pageTitle: page?.title,
     pow: await qfProofOfWork(cfg, fresh?.data ?? null),
     captcha: captchaToken || undefined,
   };

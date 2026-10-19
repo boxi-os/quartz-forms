@@ -126,6 +126,12 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   likes, possibly inside a UTF-8 sequence, or refuses the mail. The body is now quoted-printable,
   no line longer than 76 octets; mail programs undo the encoding, an armored block stays
   decryptable, and the outbox file of the test mailer holds the encoded form.
+- With `pageContext` an encrypted message carried the page inside the ciphertext and, a second
+  time, as the slug in the clear beside it: the envelope sent it, the relay wrote `Page: <slug>`
+  under the armor. The script now sends the page only with a plaintext message, and the relay
+  mails nothing of the envelope on the encrypted path. The plaintext mail showed the slug alone
+  where the encrypted text reads `Page: Title (slug)`; the title now travels with the slug
+  (`pageTitle`, also as a hidden field of the no-script form) and both paths read the same line.
 
 ## [0.1.1] - 2026-10-19
 

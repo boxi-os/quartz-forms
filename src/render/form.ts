@@ -645,9 +645,14 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
       h("input", { type: "hidden", name: "form", value: form.id }),
       h("input", { type: "hidden", name: "lang", value: ctx.lang }),
       h("input", { type: "hidden", name: "ts", value: "" }),
-      form.pageContext && ctx.page
-        ? h("input", { type: "hidden", name: "page", value: ctx.page.slug })
-        : null,
+      // Slug and title, flat, as the script sends them on the plain path; an encrypted message
+      // carries the page inside the ciphertext instead (the script drops both fields then).
+      ...(form.pageContext && ctx.page
+        ? [
+            h("input", { type: "hidden", name: "page", value: ctx.page.slug }),
+            h("input", { type: "hidden", name: "pageTitle", value: ctx.page.title }),
+          ]
+        : []),
       ...Object.entries(hidden).map(([k, v]) => h("input", { type: "hidden", name: k, value: v })),
       ...encryptionRow,
       captcha,

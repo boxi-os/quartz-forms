@@ -120,6 +120,12 @@ const siteOptions = {
         { type: "pgpKey", name: "key", label: "Key" },
       ],
     },
+    encpage: {
+      recipient: "owner",
+      encryption: { mode: "required" },
+      pageContext: true,
+      fields: [{ type: "text", name: "a", label: "A" }],
+    },
   },
 };
 
@@ -674,6 +680,36 @@ describe.skipIf(!php)("relay: accepted submissions and their mail", () => {
     expect(body).toContain("Page: site/feedback");
     expect(body).toContain("Gute Seite");
     expect(headers).not.toContain("Reply-To");
+  });
+  it("the page line reads as in an encrypted message: title and slug, control characters dropped", async () => {
+    // Review finding 23 (2026-10-19): the plain mail showed "Page: <slug>", the encrypted text
+    // "Page: <title> (<slug>)"; the title now travels with the slug, flat, on both paths.
+    const r = await post(
+      env(
+        "feedback",
+        { rating: "4", comment: "Mit Titel" },
+        { page: "site/feedback", pageTitle: "Feed\r\nback\x00 page" },
+      ),
+    );
+    expect(r.json).toEqual({ ok: true });
+    expect(lastMail().body).toContain("Page: Feed back page (site/feedback)");
+    const noScript = await plain({
+      form: "feedback",
+      lang: "de-DE",
+      rating: "5",
+      page: "site/feedback",
+      pageTitle: "Feedback",
+    });
+    expect(noScript.status).toBe(200); // no success slug: the relay's own "sent" page
+    expect(lastMail().body).toContain("Page: Feedback (site/feedback)");
+    expect(lastMail().body).not.toContain("pageTitle");
+  });
+  it("an encrypted message carries its page inside the ciphertext only: nothing is written beside the armor", async () => {
+    const r = await post(
+      env("encpage", {}, { encrypted: true, ciphertext: ARMOR, page: "site/x", pageTitle: "X" }),
+    );
+    expect(r.json).toEqual({ ok: true });
+    expect(lastMail().body.replace(/\r\n/g, "\n").trim()).toBe(ARMOR);
   });
   it("an anonymous form: neither Reply-To nor the page line, although a page was sent", async () => {
     const r = await post(

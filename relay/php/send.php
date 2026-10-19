@@ -688,7 +688,7 @@ function qf_serialize(array $formCfg, array $fields, string $lang, ?array $page)
     }
     if ($page !== null) {
         $lines[] = '';
-        $lines[] = 'Page: ' . $page['slug'];
+        $lines[] = 'Page: ' . ($page['title'] !== '' ? $page['title'] . ' (' . $page['slug'] . ')' : $page['slug']);
     }
     if ($key !== null) {
         $lines[] = '';
@@ -804,13 +804,14 @@ if ($isForm) {
         'lang' => $data['lang'] ?? '',
         'ts' => $data['ts'] ?? '',
         'page' => $data['page'] ?? null,
+        'pageTitle' => $data['pageTitle'] ?? null,
         'encrypted' => false,
         'fields' => $data,
         'pow' => null,
         'captcha' => $data['cf-turnstile-response'] ?? ($data['h-captcha-response'] ?? null),
         QF_HONEYPOT => $data[QF_HONEYPOT] ?? '',
     ];
-    foreach (['form', 'lang', 'ts', 'page', QF_HONEYPOT, 'cf-turnstile-response', 'h-captcha-response'] as $k) {
+    foreach (['form', 'lang', 'ts', 'page', 'pageTitle', QF_HONEYPOT, 'cf-turnstile-response', 'h-captcha-response'] as $k) {
         unset($envelope['fields'][$k]);
     }
 } else {
@@ -907,16 +908,22 @@ if ($captchaProvider !== 'none' && empty($formCfg['anonymous'])) {
     }
 }
 
-$page = null;
-if (!empty($formCfg['pageContext']) && empty($formCfg['anonymous']) && is_string($envelope['page'] ?? null)) {
-    $slug = preg_replace('/[^A-Za-z0-9\/._-]/', '', $envelope['page']);
-    if ($slug !== '') {
-        $page = ['slug' => $slug];
-    }
-}
-
 $encrypted = !empty($envelope['encrypted']);
 $replyTo = null;
+
+// The page a plaintext message refers to: slug and title, read as "Title (slug)" like the line
+// the script writes into an encrypted text. An encrypted message carries its page inside the
+// ciphertext; the relay used to write the slug beside the armor a second time, in the clear
+// (review finding 23, 2026-10-19), so nothing of the envelope is mailed on that path.
+$page = null;
+if (!$encrypted && !empty($formCfg['pageContext']) && empty($formCfg['anonymous']) && is_string($envelope['page'] ?? null)) {
+    $slug = preg_replace('/[^A-Za-z0-9\/._-]/', '', $envelope['page']);
+    $title = $envelope['pageTitle'] ?? '';
+    $title = is_string($title) ? trim(preg_replace('/[\x00-\x20\x7F]+/', ' ', $title) ?? '') : '';
+    if ($slug !== '') {
+        $page = ['slug' => $slug, 'title' => mb_substr($title, 0, 200)];
+    }
+}
 
 if ($encrypted) {
     if (($formCfg['encryption'] ?? 'off') === 'off') {
@@ -932,9 +939,6 @@ if ($encrypted) {
         qf_fail(400, 'ciphertext', 'the ciphertext is not an armored PGP message');
     }
     $body = trim($cipher) . "\n";
-    if ($page !== null) {
-        $body .= "\nPage: " . $page['slug'] . "\n";
-    }
 } else {
     if (($formCfg['encryption'] ?? 'off') === 'required') {
         qf_fail(400, 'encryption', 'this form accepts encrypted messages only');
