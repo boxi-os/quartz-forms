@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-19
+
 Fixes from a third review, of 0.4.0 as a whole (another model, fresh context, 2026-10-19):
 
 - Fixed: a `consent` field in a step with a `showIf` took the step's condition, so a skipped step
