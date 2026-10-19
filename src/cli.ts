@@ -315,8 +315,11 @@ async function commandRelay(args: Args, say: Say, warn: Say): Promise<Record<str
   const configFile = path.join(outDir, "config.php");
   let configPhp: "written" | "created" | "kept";
   let missingRecipients: string[] = [];
+  // config.php holds the secret: readable by its owner only, whichever branch writes it. A mode
+  // given to writeFileSync applies to a file it creates, not to one it overwrites.
   if (operator) {
     fs.writeFileSync(configFile, operatorPhp(operator), { mode: 0o600 });
+    fs.chmodSync(configFile, 0o600);
     configPhp = "written";
     missingRecipients = recipients.filter((r) => !operator.recipients[r]?.trim());
     for (const r of missingRecipients)
@@ -324,7 +327,7 @@ async function commandRelay(args: Args, say: Say, warn: Say): Promise<Record<str
     say(`wrote ${shown(configFile)} from the operator values`);
   } else if (!fs.existsSync(configFile)) {
     const example = fs.readFileSync(path.join(relayDir, "config.example.php"), "utf8");
-    fs.writeFileSync(configFile, examplePhp(example, recipients));
+    fs.writeFileSync(configFile, examplePhp(example, recipients), { mode: 0o600 });
     configPhp = "created";
     say(
       `created ${shown(configFile)} with a fresh secret; fill in origins, from and the ${recipients.length} recipient address(es)`,

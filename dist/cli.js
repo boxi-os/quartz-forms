@@ -7734,6 +7734,7 @@ async function commandRelay(args, say, warn) {
   let missingRecipients = [];
   if (operator) {
     fs.writeFileSync(configFile, operatorPhp(operator), { mode: 384 });
+    fs.chmodSync(configFile, 384);
     configPhp = "written";
     missingRecipients = recipients.filter((r) => !operator.recipients[r]?.trim());
     for (const r of missingRecipients)
@@ -7741,7 +7742,7 @@ async function commandRelay(args, say, warn) {
     say(`wrote ${shown(configFile)} from the operator values`);
   } else if (!fs.existsSync(configFile)) {
     const example = fs.readFileSync(path.join(relayDir, "config.example.php"), "utf8");
-    fs.writeFileSync(configFile, examplePhp(example, recipients));
+    fs.writeFileSync(configFile, examplePhp(example, recipients), { mode: 384 });
     configPhp = "created";
     say(
       `created ${shown(configFile)} with a fresh secret; fill in origins, from and the ${recipients.length} recipient address(es)`

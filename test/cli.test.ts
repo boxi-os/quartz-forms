@@ -106,6 +106,24 @@ describe("cli relay", () => {
     expect(fs.statSync(path.join(out, "config.php")).mode & 0o777).toBe(0o600);
   });
 
+  it("keeps config.php to its owner, created from the example or overwritten by the operator", () => {
+    const created = tmpDir("cli-relay-created");
+    expect(run(["relay", "--site", site(relayOptions), "--out", created]).json.configPhp).toBe(
+      "created",
+    );
+    expect(fs.statSync(path.join(created, "config.php")).mode & 0o777).toBe(0o600);
+
+    // a config.php someone else wrote readable for all keeps no such mode once it holds the secret
+    const over = tmpDir("cli-relay-over");
+    fs.writeFileSync(path.join(over, "config.php"), "<?php return [];\n", { mode: 0o644 });
+    fs.chmodSync(path.join(over, "config.php"), 0o644);
+    const r = run(["relay", "--site", site(relayOptions), "--out", over], {
+      QF_RELAY_OPERATOR: JSON.stringify(operator),
+    });
+    expect(r.json.configPhp).toBe("written");
+    expect(fs.statSync(path.join(over, "config.php")).mode & 0o777).toBe(0o600);
+  });
+
   it.skipIf(!php)("writes PHP that PHP reads, with the values the relay looks up", () => {
     const out = tmpDir("cli-relay-php");
     const r = run(["relay", "--site", site(relayOptions), "--out", out], {

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed: `relay` created `config.php` with a fresh secret readable for everyone (0644) when no
+  operator values were given, and an existing `config.php` kept its mode when the operator values
+  overwrote it. Both now end at 0600, as the README already said.
+
 ## [0.5.3] - 2026-10-19
 
 - Fixed (a regression of 0.5.2): with the whole stylesheet in `@layer quartz-base`, the rule that
