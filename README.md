@@ -132,7 +132,7 @@ except `hidden` and `consent`, a `label` (Text). Optional on most: `required`, `
 | `pow`               | `false` | Proof of work the relay checks (`relay` only).                                   |
 | `powDifficulty`     | `16`    | Leading zero bits; 16 takes a fraction of a second.                              |
 | `captcha`           | `none`  | `turnstile` or `hcaptcha`; loads that provider's script. Ignored when anonymous. |
-| `captchaSiteKey`    | `""`    | The provider's site key.                                                         |
+| `captchaSiteKey`    | `""`    | The provider's site key; the secret key goes into the relay's `config.php`.      |
 | `rateLimitPerHour`  | `60`    | Submissions per form and hour the relay accepts; counted without addresses.      |
 | `maxFieldLength`    | `2000`  | Default length limit of a single-line field.                                     |
 | `maxTextareaLength` | `20000` | Default length limit of a textarea.                                              |

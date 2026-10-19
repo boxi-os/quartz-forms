@@ -103,6 +103,11 @@ describe("relay-config", () => {
       /'survey' => \[[\s\S]*?'anonymous' => true,\n\s+'pageContext' => false,[\s\S]*?'captcha' => 'none'/,
     );
     expect(generated).not.toContain("x@example.org");
+    // the secret is the owner's, in config.php; the generated file is rewritten on every run
+    expect(generated).not.toContain("captchaSecret");
+    expect(fs.readFileSync(path.join(out, "config.php"), "utf8")).toContain(
+      "'captchaSecret' => ''",
+    );
 
     const config = fs.readFileSync(path.join(out, "config.php"), "utf8");
     expect(config).toMatch(/'secret' => '[A-Za-z0-9_-]{40,}'/);

@@ -8,7 +8,8 @@ hosting with PHP ≥ 8.1; no dependencies.
 1. Run `npm run relay:config -- /path/to/site` in the plugin repo. It writes
    `relay/php/config.generated.php` (forms, fields, spam settings from the site's
    `quartz.config.yaml`) and, once, `relay/php/config.php` with a fresh secret.
-2. Edit `config.php`: your origin(s), the `from` address, the recipient addresses.
+2. Edit `config.php`: your origin(s), the `from` address, the recipient addresses, and the
+   captcha provider's secret key (`captchaSecret`) when a form uses `spam.captcha`.
 3. Upload `send.php`, `config.php`, `config.generated.php` and an empty, writable `counters/`
    directory to your web space, e.g. `https://example.org/forms/`.
 4. Set `transport.url` in the site to that `send.php` URL and rebuild the site.

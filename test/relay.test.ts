@@ -80,6 +80,11 @@ const siteOptions = {
         { type: "text", name: "note", label: "Note" },
       ],
     },
+    captcha: {
+      recipient: "owner",
+      spam: { captcha: "turnstile", captchaSiteKey: "site-key" },
+      fields: [{ type: "text", name: "a", label: "A" }],
+    },
     limited: {
       recipient: "owner",
       spam: { rateLimitPerHour: 3 },
@@ -101,6 +106,28 @@ async function freePort(): Promise<number> {
 
 let dir = "";
 let base = "";
+const relaySecret = `test-secret-${crypto.randomBytes(16).toString("hex")}`;
+/** The hand-written config.php; PHP reads it per request, so a test may rewrite it. */
+function writeConfig(extra = `'captchaSecret' => 'cap-secret',`): void {
+  fs.writeFileSync(
+    path.join(dir, "config.php"),
+    `<?php
+declare(strict_types=1);
+$generated = require __DIR__ . '/config.generated.php';
+return $generated + [
+    'secret' => '${relaySecret}',
+    'allowedOrigins' => ['${ORIGIN}'],
+    'from' => 'forms@relay.test',
+    'subjectPrefix' => '',
+    'mailer' => ['file' => __DIR__ . '/outbox.txt'],
+    'recipients' => ['owner' => 'owner@relay.test'],
+    'counterDir' => __DIR__ . '/counters',
+    'captchaVerifyUrls' => ['turnstile' => '${base}/verify.php'],
+    ${extra}
+];
+`,
+  );
+}
 let server: ChildProcess | undefined;
 let challenge = "";
 
@@ -122,26 +149,23 @@ beforeAll(async () => {
   });
   fs.copyFileSync(path.join(root, "relay", "php", "send.php"), path.join(dir, "send.php"));
   fs.mkdirSync(path.join(dir, "counters"));
+  // Stands in for the provider's siteverify endpoint: success for one secret and one token.
   fs.writeFileSync(
-    path.join(dir, "config.php"),
+    path.join(dir, "verify.php"),
     `<?php
-declare(strict_types=1);
-$generated = require __DIR__ . '/config.generated.php';
-return $generated + [
-    'secret' => 'test-secret-${crypto.randomBytes(16).toString("hex")}',
-    'allowedOrigins' => ['${ORIGIN}'],
-    'from' => 'forms@relay.test',
-    'subjectPrefix' => '',
-    'mailer' => ['file' => __DIR__ . '/outbox.txt'],
-    'recipients' => ['owner' => 'owner@relay.test'],
-    'counterDir' => __DIR__ . '/counters',
-];
+header('Content-Type: application/json');
+echo json_encode(['success' => ($_POST['secret'] ?? '') === 'cap-secret' && ($_POST['response'] ?? '') === 'good']);
 `,
   );
   const port = await freePort();
   base = `http://127.0.0.1:${port}`;
+  writeConfig();
   const log = fs.openSync(path.join(dir, "php.log"), "w");
-  server = spawn("php", ["-S", `127.0.0.1:${port}`, "-t", dir], { stdio: ["ignore", log, log] });
+  // More than one worker: the captcha check calls verify.php on this same server.
+  server = spawn("php", ["-S", `127.0.0.1:${port}`, "-t", dir], {
+    stdio: ["ignore", log, log],
+    env: { ...process.env, PHP_CLI_SERVER_WORKERS: "4" },
+  });
   const until = Date.now() + 10_000;
   for (;;) {
     try {
@@ -350,6 +374,29 @@ describe.skipIf(!php)("relay: refusals", () => {
     expect(cipherToOff.json?.error).toBe("encryption");
     const noArmor = await post(env("enc", {}, { encrypted: true, ciphertext: "hello" }));
     expect(noArmor.json?.error).toBe("ciphertext");
+  });
+  it("captcha: the secret from config.php is sent to the provider; without one the owner is told", async () => {
+    const good = await post(env("captcha", { a: "x" }, { captcha: "good" }));
+    expect(good.json).toEqual({ ok: true });
+    const bad = await post(env("captcha", { a: "x" }, { captcha: "bad" }));
+    expect([bad.status, bad.json?.error]).toEqual([400, "captcha"]);
+    const none = await post(env("captcha", { a: "x" }));
+    expect([none.status, none.json?.error]).toEqual([400, "captcha"]);
+    writeConfig("");
+    try {
+      const unset = await post(env("captcha", { a: "x" }, { captcha: "good" }));
+      expect([unset.status, unset.json?.error]).toEqual([500, "captcha_config"]);
+    } finally {
+      writeConfig();
+    }
+    writeConfig(`'captchaSecrets' => ['captcha' => 'cap-secret'],`);
+    try {
+      expect((await post(env("captcha", { a: "x" }, { captcha: "good" }))).json).toEqual({
+        ok: true,
+      });
+    } finally {
+      writeConfig();
+    }
   });
   it("size: a submission above maxBytes is 413", async () => {
     const r = await post(

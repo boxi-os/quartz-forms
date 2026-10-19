@@ -107,10 +107,8 @@ for (const form of Object.values(opts.forms)) {
       noScript: form.spam.noScript,
       pow: form.spam.pow,
       powDifficulty: form.spam.powDifficulty,
+      // The provider's secret key never comes from the site: `captchaSecret` in config.php.
       captcha: form.anonymous ? "none" : form.spam.captcha,
-      // The provider's secret key is yours; set it in config.php under forms.<id>.spam.captchaSecret
-      // or here once you have it. It never comes from the site.
-      captchaSecret: "",
       rateLimitPerHour: form.spam.rateLimitPerHour,
       maxBytes: form.spam.maxBytes,
     },

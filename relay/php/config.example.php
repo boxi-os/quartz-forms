@@ -24,6 +24,10 @@ return $generated + [
     // Optional prefix for every subject, e.g. '[Website]'.
     'subjectPrefix' => '',
 
+    // Secret key of the captcha provider (Turnstile or hCaptcha) for forms with `spam.captcha`.
+    // Per form under 'captchaSecrets' => ['contact' => '…'] when they differ.
+    'captchaSecret' => '',
+
     // 'mail' uses PHP's mail(); ['sendmail' => '/usr/sbin/sendmail -t -i'] pipes to sendmail;
     // ['file' => __DIR__ . '/outbox.txt'] appends to a file (testing only).
     'mailer' => 'mail',

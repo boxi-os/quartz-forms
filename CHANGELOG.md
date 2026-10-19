@@ -29,6 +29,12 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   share the field's name, and `parse_str` kept only the last value as a string. The relay parses
   the body itself now, collecting repeated names into a list, and takes a single tick as a list
   of one. The `survey` template works without JavaScript again.
+- The captcha secret could not be set anywhere that lasted: the generated config carried an
+  empty `captchaSecret` under each form, `config.php` could not override it (array union keeps
+  the left side), and editing the generated file lost it on the next `relay:config` run. Every
+  captcha form was refused. The secret now lives in `config.php` as `captchaSecret` (or per form
+  under `captchaSecrets`), a captcha form without one answers `500 captcha_config` instead of a
+  silent `400 captcha`, and `captchaVerifyUrls` can point the verification elsewhere (tests).
 
 ## [0.1.1] - 2026-10-19
 

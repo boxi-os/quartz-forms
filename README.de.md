@@ -128,20 +128,20 @@ Formular) und, außer `hidden` und `consent`, ein `label` (Text). Optional bei d
 
 ### Spam
 
-| Schlüssel           | Vorgabe | Beschreibung                                                                      |
-| ------------------- | ------- | --------------------------------------------------------------------------------- |
-| `honeypot`          | `true`  | Ein unsichtbares Feld, das leer bleiben muss.                                     |
-| `minSeconds`        | `3`     | Sekunden zwischen Öffnen der Seite und Senden; `0` schaltet es ab.                |
-| `noScript`          | `true`  | Einfache Formular-Posts aus Browsern ohne JavaScript annehmen; siehe unten.       |
-| `pow`               | `false` | Proof-of-Work, das das Relay prüft (nur `relay`).                                 |
-| `powDifficulty`     | `16`    | Führende Nullbits; 16 dauert einen Sekundenbruchteil.                             |
-| `captcha`           | `none`  | `turnstile` oder `hcaptcha`; lädt das Skript des Anbieters. Bei anonym ignoriert. |
-| `captchaSiteKey`    | `""`    | Der Site-Schlüssel des Anbieters.                                                 |
-| `rateLimitPerHour`  | `60`    | Sendungen je Formular und Stunde, die das Relay annimmt; gezählt ohne Adressen.   |
-| `maxFieldLength`    | `2000`  | Vorgabe für die Höchstlänge eines einzeiligen Felds.                              |
-| `maxTextareaLength` | `20000` | Vorgabe für die Höchstlänge eines Textfelds.                                      |
-| `maxKeyLength`      | `16384` | Höchstlänge eines eingefügten öffentlichen Schlüssels.                            |
-| `maxBytes`          | `65536` | Höchstgröße einer ganzen Sendung.                                                 |
+| Schlüssel           | Vorgabe | Beschreibung                                                                                  |
+| ------------------- | ------- | --------------------------------------------------------------------------------------------- |
+| `honeypot`          | `true`  | Ein unsichtbares Feld, das leer bleiben muss.                                                 |
+| `minSeconds`        | `3`     | Sekunden zwischen Öffnen der Seite und Senden; `0` schaltet es ab.                            |
+| `noScript`          | `true`  | Einfache Formular-Posts aus Browsern ohne JavaScript annehmen; siehe unten.                   |
+| `pow`               | `false` | Proof-of-Work, das das Relay prüft (nur `relay`).                                             |
+| `powDifficulty`     | `16`    | Führende Nullbits; 16 dauert einen Sekundenbruchteil.                                         |
+| `captcha`           | `none`  | `turnstile` oder `hcaptcha`; lädt das Skript des Anbieters. Bei anonym ignoriert.             |
+| `captchaSiteKey`    | `""`    | Der Site-Schlüssel des Anbieters; der geheime Schlüssel steht in der `config.php` des Relays. |
+| `rateLimitPerHour`  | `60`    | Sendungen je Formular und Stunde, die das Relay annimmt; gezählt ohne Adressen.               |
+| `maxFieldLength`    | `2000`  | Vorgabe für die Höchstlänge eines einzeiligen Felds.                                          |
+| `maxTextareaLength` | `20000` | Vorgabe für die Höchstlänge eines Textfelds.                                                  |
+| `maxKeyLength`      | `16384` | Höchstlänge eines eingefügten öffentlichen Schlüssels.                                        |
+| `maxBytes`          | `65536` | Höchstgröße einer ganzen Sendung.                                                             |
 
 Ohne JavaScript schickt ein Formular mit `encryption: off` oder `optional` einen einfachen
 Formular-Post ans Relay, das mit der Weiterleitung oder einer kurzen Seite antwortet. Ein solcher

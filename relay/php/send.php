@@ -252,22 +252,39 @@ function qf_parse_form(string $raw): array
     return $out;
 }
 
-function qf_captcha_valid(array $spam, mixed $token): bool
+/**
+ * The provider's secret key: `captchaSecrets[<form>]` in config.php, else `captchaSecret`. It
+ * lives in the hand-written file only; the generated one is rewritten by every `relay:config`
+ * run, and a key under `forms.<id>.spam` there could not be overridden from config.php (array
+ * union keeps the left side; review finding, 2026-10-19).
+ */
+function qf_captcha_secret(array $config, string $formId): string
 {
-    $provider = $spam['captcha'] ?? 'none';
-    if ($provider === 'none') {
-        return true;
-    }
-    if (!is_string($token) || $token === '' || ($spam['captchaSecret'] ?? '') === '') {
-        return false;
-    }
-    $url = $provider === 'turnstile'
+    $secret = $config['captchaSecrets'][$formId] ?? ($config['captchaSecret'] ?? '');
+    return is_string($secret) ? $secret : '';
+}
+
+/** Where a token is verified; `captchaVerifyUrls` in config.php overrides it (tests, proxies). */
+function qf_captcha_verify_url(array $config, string $provider): string
+{
+    $default = $provider === 'turnstile'
         ? 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
         : 'https://api.hcaptcha.com/siteverify';
+    $url = $config['captchaVerifyUrls'][$provider] ?? $default;
+    return is_string($url) && $url !== '' ? $url : $default;
+}
+
+function qf_captcha_valid(array $config, string $formId, string $provider, mixed $token): bool
+{
+    $secret = qf_captcha_secret($config, $formId);
+    if (!is_string($token) || $token === '' || $secret === '') {
+        return false;
+    }
+    $url = qf_captcha_verify_url($config, $provider);
     $ctx = stream_context_create(['http' => [
         'method' => 'POST',
         'header' => "Content-Type: application/x-www-form-urlencoded\r\n",
-        'content' => http_build_query(['secret' => $spam['captchaSecret'], 'response' => $token]),
+        'content' => http_build_query(['secret' => $secret, 'response' => $token]),
         'timeout' => 8,
     ]]);
     $res = @file_get_contents($url, false, $ctx);
@@ -637,8 +654,13 @@ if (!empty($spam['pow']) && !$isForm) {
     }
 }
 
-if (($spam['captcha'] ?? 'none') !== 'none' && empty($formCfg['anonymous'])) {
-    if (!qf_captcha_valid($spam, $envelope['captcha'] ?? null)) {
+$captchaProvider = (string) ($spam['captcha'] ?? 'none');
+if ($captchaProvider !== 'none' && empty($formCfg['anonymous'])) {
+    if (qf_captcha_secret($config, $formId) === '') {
+        // The owner's mistake, not the visitor's: said as such, and never a silent 400.
+        qf_fail(500, 'captcha_config', 'captchaSecret is not set in config.php');
+    }
+    if (!qf_captcha_valid($config, $formId, $captchaProvider, $envelope['captcha'] ?? null)) {
         qf_fail(400, 'captcha', 'the captcha was not solved');
     }
 }
