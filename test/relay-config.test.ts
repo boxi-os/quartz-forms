@@ -213,6 +213,53 @@ describe("relay-config", () => {
     expect(fs.existsSync(path.join(out, "config.generated.php"))).toBe(true);
   });
 
+  it("hands the php of the pattern check none of the QF_ variables", () => {
+    // Third review, N5 (2026-10-19): the probe inherited QF_RELAY_OPERATOR, the operator's secret
+    // and addresses, which it does not need. A php in front of the PATH that writes what it got.
+    const bin = tmpDir("relay-env-bin");
+    const dump = path.join(bin, "env.txt");
+    const out = tmpDir("relay-env-out");
+    fs.writeFileSync(
+      path.join(bin, "php"),
+      `#!/bin/sh\ncat > /dev/null\nenv > "${dump}"\necho '{"pcre":"10.42","php":"8.3.0","errors":[]}'\n`,
+      { mode: 0o755 },
+    );
+    const r = runWith(
+      site({
+        transport: { kind: "relay", url: "https://example.org/forms/send.php" },
+        forms: {
+          f: {
+            recipient: "owner",
+            fields: [{ type: "text", name: "any", label: "Any", pattern: "[a-z]+" }],
+          },
+        },
+      }),
+      out,
+      [],
+      {
+        ...process.env,
+        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+        QF_RELAY_OPERATOR: JSON.stringify({
+          secret: "operator-secret-marker-0123456789abcdef",
+          allowedOrigins: ["https://example.org"],
+          from: "forms@example.org",
+          mailer: "mail",
+          recipients: { owner: "owner@example.org" },
+        }),
+        QF_KEY_ARMORED: "key-marker",
+        QF_PROBE_SEES: "plain-marker",
+      },
+    );
+    expect([r.status, r.out]).toEqual([0, r.out]);
+    // the operator values did reach the command line: config.php has the secret
+    expect(fs.readFileSync(path.join(out, "config.php"), "utf8")).toContain(
+      "operator-secret-marker",
+    );
+    const seen = fs.readFileSync(dump, "utf8");
+    expect(seen).toContain("PATH=");
+    expect(seen).not.toMatch(/operator-secret-marker|key-marker|plain-marker|^QF_/m);
+  });
+
   it("refuses a site without the plugin, and a definition with problems", () => {
     const none = tmpDir("relay-none");
     fs.writeFileSync(path.join(none, "quartz.config.yaml"), "plugins: []\n");

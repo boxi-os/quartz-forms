@@ -7488,7 +7488,14 @@ function checkPatterns(data) {
     }
     echo json_encode(['pcre' => explode(' ', PCRE_VERSION)[0], 'php' => PHP_VERSION, 'errors' => $errors]);
   `;
-  const r = spawnSync("php", ["-r", probe], { input: JSON.stringify(patterns), encoding: "utf8" });
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([name]) => !name.startsWith("QF_"))
+  );
+  const r = spawnSync("php", ["-r", probe], {
+    input: JSON.stringify(patterns),
+    encoding: "utf8",
+    env
+  });
   if (r.error?.code === "ENOENT")
     return { status: "no-php", count: patterns.length };
   if (r.status !== 0)

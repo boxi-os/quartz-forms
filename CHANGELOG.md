@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fields cannot be conditional. It now takes no step's condition and always arrives.
 - Fixed: a mail the relay could not hand over (`502 mail`) stayed counted against the hour's
   quota and kept its proof of work spent. Both are given back now.
+- The php that checks the patterns no longer inherits the `QF_` variables: the operator's
+  secret, addresses and captcha secrets stay with the command line.
 
 ## [0.4.0] - 2026-10-19
 

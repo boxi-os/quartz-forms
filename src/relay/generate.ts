@@ -335,7 +335,17 @@ export function checkPatterns(data: RelayData): PatternCheck {
     }
     echo json_encode(['pcre' => explode(' ', PCRE_VERSION)[0], 'php' => PHP_VERSION, 'errors' => $errors]);
   `;
-  const r = spawnSync("php", ["-r", probe], { input: JSON.stringify(patterns), encoding: "utf8" });
+  // The probe needs nothing the command line was handed in its environment: the operator's
+  // secret, addresses and captcha secrets (QF_RELAY_OPERATOR) stay in this process (third review,
+  // N5, 2026-10-19: the php child inherited them).
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([name]) => !name.startsWith("QF_")),
+  );
+  const r = spawnSync("php", ["-r", probe], {
+    input: JSON.stringify(patterns),
+    encoding: "utf8",
+    env,
+  });
   if ((r.error as NodeJS.ErrnoException | undefined)?.code === "ENOENT")
     return { status: "no-php", count: patterns.length };
   if (r.status !== 0)
