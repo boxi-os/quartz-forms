@@ -541,6 +541,7 @@ function checkForm(
       // Sends nothing, so a target is a sign the owner meant another kind.
       if (tr.url) hint(out, `${at}.transport.url`, "demoNoEffect");
       if (form.success.mode === "redirect") hint(out, `${at}.success`, "demoRedirect");
+      if (form.success.text !== undefined) hint(out, `${at}.success.text`, "demoNoEffect");
       if (form.spam.captcha !== "none" && !form.anonymous)
         hint(out, `${at}.spam.captcha`, "demoCaptcha", { provider: form.spam.captcha });
       break;

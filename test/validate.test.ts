@@ -496,6 +496,15 @@ describe("validate: transport, encryption, spam, success", () => {
       "forms.contact.spam.captcha: with demo the turnstile widget is not loaded: nothing is sent that it could protect",
       "forms.contact.transport.extra: has no effect with demo, which sends nothing",
     ]);
+    // the owner's thank-you is not the demo's sentence (fiftieth review, N1)
+    expect(
+      resolveOptions(
+        options({
+          forms: { contact: contact({ success: { mode: "inline", text: "Danke!" } }) },
+          transport: { kind: "demo" },
+        }),
+      ).hints,
+    ).toContain("forms.contact.success.text: has no effect with demo, which sends nothing");
     expect(problemsOf({ spam: { captcha: "turnstile" } as never })).toEqual([
       "forms.contact.spam.captchaSiteKey: turnstile needs the site key",
     ]);

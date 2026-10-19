@@ -582,14 +582,14 @@ export function clientConfig(form: ResolvedForm, ctx: RenderContext): ClientConf
     page: form.pageContext && ctx.page ? { title: ctx.page.title, slug: ctx.page.slug } : undefined,
     success: {
       mode: form.success.mode,
-      // The demo picks its sentence when it knows whether it encrypted (forms.inline.ts).
+      // The demo picks its sentence when it knows whether it encrypted (forms.inline.ts), and
+      // never the owner's: a thank-you would read as if something had been sent (fiftieth
+      // review, N1).
       text:
-        resolveText(form.success.text, ctx.lang) ??
-        (form.transport.kind === "demo"
+        form.transport.kind === "demo"
           ? ""
-          : form.encryption.mode === "required"
-            ? t.sentEncrypted
-            : t.sent),
+          : (resolveText(form.success.text, ctx.lang) ??
+            (form.encryption.mode === "required" ? t.sentEncrypted : t.sent)),
       slug: form.success.slug,
     },
     texts: {

@@ -710,6 +710,24 @@ describe("sending", () => {
     expect(form.querySelectorAll(".quartz-form__demo")).toHaveLength(1);
   });
 
+  it("says that nothing was sent even where the form has a thank-you of its own", async () => {
+    // Fiftieth review, N1: the owner's success.text stood in the live region of a demo.
+    const form = mount(
+      contact({ ...quick, success: { mode: "inline", text: "Danke, wir melden uns bald." } }),
+      { transport: { kind: "demo" } },
+      "de",
+    );
+    await nav();
+    fill(form, "name", "Ada");
+    fill(form, "message", "Hallo");
+    await submit(form);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(status(form)).toEqual({
+      state: "success",
+      text: "Nichts wurde gesendet. So wäre die Nachricht angekommen:",
+    });
+  });
+
   it("posts flat fields to an endpoint, as JSON or as a form body, with the extra fields", async () => {
     const json = mount(contact(quick), {
       transport: { kind: "endpoint", url: "https://e.example/x", extra: { to: "sales" } },

@@ -1133,6 +1133,7 @@ function checkForm(form, raw, rawSpam, keyNames, out) {
     case "demo":
       if (tr.url) hint(out, `${at}.transport.url`, "demoNoEffect");
       if (form.success.mode === "redirect") hint(out, `${at}.success`, "demoRedirect");
+      if (form.success.text !== void 0) hint(out, `${at}.success.text`, "demoNoEffect");
       if (form.spam.captcha !== "none" && !form.anonymous)
         hint(out, `${at}.spam.captcha`, "demoCaptcha", { provider: form.spam.captcha });
       break;
@@ -1379,5 +1380,5 @@ function logHints(opts) {
 }
 
 export { __commonJS, __export, __require, __toESM, conditionOf, conditionsOf, defaultOptions, formatMessage, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-G3CCDTOV.js.map
-//# sourceMappingURL=chunk-G3CCDTOV.js.map
+//# sourceMappingURL=chunk-F2XJM37R.js.map
+//# sourceMappingURL=chunk-F2XJM37R.js.map

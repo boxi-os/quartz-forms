@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed: a form with `transport: demo` loads no captcha, like an anonymous one. It loaded the
   provider's script and made the visitor solve the check before showing what would have been sent;
   the hint `demoCaptcha` now says the widget is not loaded.
+- Fixed: a demo form with its own `success.text` showed that thank-you after "sending"; it now
+  always says that nothing was sent, and the build hints that `success.text` has no effect.
 
 ## [0.5.4] - 2026-10-19
 

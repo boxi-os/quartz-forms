@@ -1,5 +1,5 @@
 import { createRequire } from 'module';
-import { __commonJS, __export, __toESM, publicKeyBlock, resolveOrThrow, logHints, warnOnce, wording, conditionsOf, stepsOf, conditionOf, isNamed } from './chunk-G3CCDTOV.js';
+import { __commonJS, __export, __toESM, publicKeyBlock, resolveOrThrow, logHints, warnOnce, wording, conditionsOf, stepsOf, conditionOf, isNamed } from './chunk-F2XJM37R.js';
 import fs from 'fs';
 import path from 'path';
 import { jsx, jsxs, Fragment } from 'preact/jsx-runtime';
@@ -2479,8 +2479,10 @@ function clientConfig(form, ctx) {
     page: form.pageContext && ctx.page ? { title: ctx.page.title, slug: ctx.page.slug } : void 0,
     success: {
       mode: form.success.mode,
-      // The demo picks its sentence when it knows whether it encrypted (forms.inline.ts).
-      text: resolveText(form.success.text, ctx.lang) ?? (form.transport.kind === "demo" ? "" : form.encryption.mode === "required" ? t.sentEncrypted : t.sent),
+      // The demo picks its sentence when it knows whether it encrypted (forms.inline.ts), and
+      // never the owner's: a thank-you would read as if something had been sent (fiftieth
+      // review, N1).
+      text: form.transport.kind === "demo" ? "" : resolveText(form.success.text, ctx.lang) ?? (form.encryption.mode === "required" ? t.sentEncrypted : t.sent),
       slug: form.success.slug
     },
     texts: {
@@ -3566,5 +3568,5 @@ var FormBox_default = ((userOpts) => {
 });
 
 export { FormBox_default, Forms, loadKeySources, resolveText };
-//# sourceMappingURL=chunk-2WJWHRGK.js.map
-//# sourceMappingURL=chunk-2WJWHRGK.js.map
+//# sourceMappingURL=chunk-DZGYADOQ.js.map
+//# sourceMappingURL=chunk-DZGYADOQ.js.map
