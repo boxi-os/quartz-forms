@@ -84,7 +84,13 @@ export function jsOnlyPattern(pattern: string): string | undefined {
   return undefined;
 }
 
-/** Names the submission envelope uses itself; a field may not take them. */
+/**
+ * Names the submission envelope uses itself; a field may not take them. The last three travel
+ * flat beside the fields on the plain path (the hidden page title, the captcha widgets' tokens),
+ * and the relay lifts them out of the fields, so a field of that name would arrive empty
+ * (second review, finding 9, 2026-10-19). The honeypot's name starts with "_", which FIELD_NAME
+ * does not allow.
+ */
 export const RESERVED_NAMES = new Set([
   "form",
   "lang",
@@ -95,6 +101,9 @@ export const RESERVED_NAMES = new Set([
   "encrypted",
   "ciphertext",
   "fields",
+  "pageTitle",
+  "cf-turnstile-response",
+  "h-captcha-response",
 ]);
 
 /** Autocomplete tokens that name a person; required fields with them break `anonymous`. */

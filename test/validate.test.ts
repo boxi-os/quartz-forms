@@ -43,6 +43,12 @@ describe("validate: forms and fields", () => {
     expect(fieldProblems({ type: "text", name: "form", label: "x" })[0]).toMatch(/reserved/);
     expect(fieldProblems({ type: "text", name: "_hp", label: "x" })[0]).toMatch(/must match/);
     expect(fieldProblems({ type: "text", name: "ciphertext", label: "x" })[0]).toMatch(/reserved/);
+    // Second review, finding 9 (2026-10-19): the plain path lifts these three out of the fields
+    // as well, so a field of that name arrived empty (measured against the code before: a required
+    // field "pageTitle" built without objection, a plain post got 400 "pageTitle: required").
+    for (const name of ["pageTitle", "cf-turnstile-response", "h-captcha-response"]) {
+      expect(fieldProblems({ type: "text", name, label: "x" })[0]).toMatch(/reserved/);
+    }
     expect(
       formProblems(
         contact({

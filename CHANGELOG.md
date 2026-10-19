@@ -236,6 +236,12 @@ Fixes from a second review of the changes above (another model, fresh context, 2
   capacity hint fits both. The page for a body too large to read at all was English whatever the
   form's language, because the body had not been parsed yet; it now speaks the browser's
   language (`Accept-Language`) until the body names one.
+- A field named `pageTitle`, `cf-turnstile-response` or `h-captcha-response` built without
+  objection, but on the plain path without JavaScript the relay lifts these names out of the
+  fields (the hidden page title, the captcha widgets' tokens), so the field arrived empty: a
+  required one was refused as missing, an optional one was silently absent from the mail (the JSON
+  path, which nests the fields, was unaffected). The three names are reserved now, like `form`,
+  `lang` and `ts` already were, and the build refuses them.
 
 ## [0.1.1] - 2026-10-19
 

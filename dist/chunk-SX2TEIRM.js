@@ -621,7 +621,10 @@ var RESERVED_NAMES = /* @__PURE__ */ new Set([
   "captcha",
   "encrypted",
   "ciphertext",
-  "fields"
+  "fields",
+  "pageTitle",
+  "cf-turnstile-response",
+  "h-captcha-response"
 ]);
 var PERSONAL_AUTOCOMPLETE = /* @__PURE__ */ new Set([
   "name",
@@ -4277,5 +4280,5 @@ var FormBox_default = ((userOpts) => {
 });
 
 export { FormBox_default, Forms, defaultOptions, loadKeySources, logHints, resolveOptions, resolveOrThrow, resolveText, templateNames, templateOf, warnOnce };
-//# sourceMappingURL=chunk-KIVP73YE.js.map
-//# sourceMappingURL=chunk-KIVP73YE.js.map
+//# sourceMappingURL=chunk-SX2TEIRM.js.map
+//# sourceMappingURL=chunk-SX2TEIRM.js.map
