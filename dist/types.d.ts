@@ -1,3 +1,140 @@
+type Params = Record<string, string | number | boolean | undefined>;
+type Translate = (code: string, params?: Params) => string;
+
+/**
+ * The plugin's own messages about a definition - the problems that stop the build, the hints it
+ * logs, what a key or the command line refuses - in English, word for word what the build log has
+ * always said (the build log stays English; tests hold these strings). The German catalog must
+ * have every key (de.ts is typed against this one).
+ */
+declare const en: {
+    textEmpty: () => string;
+    textShape: () => string;
+    textRecordEmpty: () => string;
+    fieldShape: () => string;
+    fieldNamePattern: (p: Params) => string;
+    fieldNameReserved: (p: Params) => string;
+    minAboveMax: (p: Params) => string;
+    maxLengthMin: () => string;
+    patternJsU: () => string;
+    patternJsNegClass: () => string;
+    patternJsEmptyClass: () => string;
+    patternJsLookbehind: () => string;
+    patternInvalid: (p: Params) => string;
+    optionsNeeded: (p: Params) => string;
+    optionShape: () => string;
+    optionTwice: (p: Params) => string;
+    scaleInteger: () => string;
+    scaleOrder: (p: Params) => string;
+    scaleSpan: () => string;
+    consentText: () => string;
+    hiddenValue: () => string;
+    fieldTypeUnknown: (p: Params) => string;
+    labelNeeded: (p: Params) => string;
+    keyShape: () => string;
+    keyExactlyOne: () => string;
+    keyOutside: (p: Params) => string;
+    keyUnreadable: (p: Params) => string;
+    keyFileBlock: (p: Params, t: Translate) => string;
+    armorPrivate: () => string;
+    armorNone: () => string;
+    armorIncomplete: () => string;
+    armorOther: (p: Params) => string;
+    armorMany: (p: Params) => string;
+    pgpUnreadable: (p: Params) => string;
+    pgpPrivate: () => string;
+    pgpRevoked: () => string;
+    pgpExpired: (p: Params) => string;
+    pgpNoEncrypt: () => string;
+    keyMissingSource: () => string;
+    keyFileUnreadable: () => string;
+    formIdPattern: (p: Params) => string;
+    templateUnknown: (p: Params) => string;
+    noFields: () => string;
+    fieldNameTwice: (p: Params) => string;
+    onePgpKey: () => string;
+    urlNeeded: (p: Params) => string;
+    urlNotHttp: (p: Params) => string;
+    urlPlainHttp: (p: Params) => string;
+    relayRecipient: () => string;
+    presetUrl: (p: Params) => string;
+    anonymousService: (p: Params) => string;
+    mailtoRecipient: () => string;
+    kindUnknown: (p: Params) => string;
+    extraRelay: () => string;
+    extraMailto: () => string;
+    formatValue: () => string;
+    modeValue: () => string;
+    noKeys: () => string;
+    keyUnknown: (p: Params) => string;
+    mailtoEncrypted: () => string;
+    minSecondsValue: () => string;
+    powDifficultyValue: () => string;
+    captchaValue: () => string;
+    siteKeyNeeded: (p: Params) => string;
+    anonymousCaptcha: (p: Params) => string;
+    noRelayEffect: () => string;
+    powNoScript: () => string;
+    minSecondsNoScript: () => string;
+    powSlow: (p: Params) => string;
+    positiveInteger: () => string;
+    maxBytesLow: (p: Params) => string;
+    pageContextAnonymous: () => string;
+    personalOptional: (p: Params) => string;
+    successMode: () => string;
+    successSlug: () => string;
+    languageValue: (p: Params) => string;
+    frontmatterKeyEmpty: () => string;
+    layoutFormUnknown: (p: Params) => string;
+    codeBlockLangValue: () => string;
+    textsLocaleUnknown: () => string;
+    textsShape: () => string;
+    textsKeyUnknown: () => string;
+    cliNeedsValue: (p: Params) => string;
+    cliUnknownArgument: (p: Params) => string;
+    cliNoSite: () => string;
+    cliConfigMissing: (p: Params) => string;
+    cliNoEntry: (p: Params) => string;
+    cliEntries: (p: Params) => string;
+    cliNoOut: () => string;
+    cliUnknownCommand: (p: Params) => string;
+    cliNoKey: () => string;
+    cliKeyUnreadable: (p: Params) => string;
+    cliOperatorJson: () => string;
+    cliOperatorProblems: (p: Params) => string;
+    cliOptionProblems: (p: Params) => string;
+    cliNoPhp: (p: Params) => string;
+    cliPhpFailed: (p: Params) => string;
+    cliPhpFailedShort: () => string;
+    cliPatternUnreadable: (p: Params) => string;
+    cliPatternRefusal: () => string;
+    cliNothingWritten: () => string;
+    cliWrittenAnyway: () => string;
+    cliMissingRecipient: (p: Params) => string;
+    operatorNotObject: () => string;
+    operatorSecret: () => string;
+    operatorOrigins: () => string;
+    operatorFrom: () => string;
+    operatorMailer: () => string;
+    operatorRecord: (p: Params) => string;
+    operatorText: (p: Params) => string;
+    operatorCounterDir: () => string;
+};
+
+type MessageCode = keyof typeof en;
+
+/**
+ * A message of the plugin about a definition: where (the option's path, as it stands in
+ * quartz.config.yaml), what (a code) and with what (the values the sentence names). The sentence
+ * is made from it per language; the build log takes English, the command line `--lang`.
+ * QuartzControl reads the path to put a message at its form, field or section.
+ */
+interface Message {
+    path: string;
+    code: MessageCode;
+    params?: Params;
+}
+
 /**
  * Options of quartz-forms. This file is the single source of truth for the data model:
  * `quartz.configSchema` in package.json is checked against it member by member
@@ -291,6 +428,9 @@ interface ResolvedOptions {
     problems: string[];
     /** Things worth a line in the log, once. */
     hints: string[];
+    /** The problems and hints as path, code and values, for another language (src/messages). */
+    problemMessages: Message[];
+    hintMessages: Message[];
 }
 
 export type { CheckboxField, ChoiceField, ChoiceOption, ConsentField, EncryptionConfig, EncryptionMode, FormDefinition, FormField, FormTemplate, HiddenField, InputField, InputFieldType, PgpKeyField, PgpKeySource, QuartzFormsOptions, ResolvedForm, ResolvedOptions, ScaleField, SpamConfig, SuccessConfig, Text, TransportConfig, TransportKind };

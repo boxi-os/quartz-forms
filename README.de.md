@@ -232,6 +232,9 @@ node dist/cli.js check --site <site> [--json]   # Probleme, Hinweise, jeder Schl
 node dist/cli.js key   --site <site> --file <key.asc> [--json]
 ```
 
+`--lang de` gibt Probleme, Hinweise, Schlüsselprobleme und Ablehnungen auf Deutsch aus (ohne
+Angabe englisch; das Build-Log bleibt englisch).
+
 `relay` in einen eigenen Ordner schreibt das ganze Relay (`send.php`, `counters/.htaccess`,
 `config.generated.php`, `config.php`). Mit den Werten des Betreibers als JSON in der
 Umgebungsvariable `QF_RELAY_OPERATOR` (Secret, Origins, Absender, Mailer, Empfänger,

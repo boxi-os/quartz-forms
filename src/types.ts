@@ -317,4 +317,7 @@ export interface ResolvedOptions {
   problems: string[];
   /** Things worth a line in the log, once. */
   hints: string[];
+  /** The problems and hints as path, code and values, for another language (src/messages). */
+  problemMessages: import("./messages").Message[];
+  hintMessages: import("./messages").Message[];
 }

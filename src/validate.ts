@@ -12,6 +12,13 @@ import type {
 import { availableLocales, textKeys } from "./i18n";
 import { isTemplateName, templateOf } from "./templates";
 import { publicKeyBlock } from "./pgp/armor";
+import {
+  formatMessage,
+  messageText,
+  type Message,
+  type MessageCode,
+  type Params,
+} from "./messages";
 
 /**
  * Validation level 1 of three: the form definitions, at build time. The rules come from the
@@ -19,8 +26,24 @@ import { publicKeyBlock } from "./pgp/armor";
  * theirs from the same fields. A problem stops the build; a hint is logged once.
  */
 export interface Validation {
+  /** The problems as the build log prints them (English). */
   problems: string[];
   hints: string[];
+  /** The same, as path, code and values, for another language (src/messages). */
+  problemMessages: Message[];
+  hintMessages: Message[];
+}
+
+function problem(out: Validation, path: string, code: MessageCode, params?: Params): void {
+  const m: Message = { path, code, ...(params ? { params } : {}) };
+  out.problemMessages.push(m);
+  out.problems.push(formatMessage(m));
+}
+
+function hint(out: Validation, path: string, code: MessageCode, params?: Params): void {
+  const m: Message = { path, code, ...(params ? { params } : {}) };
+  out.hintMessages.push(m);
+  out.hints.push(formatMessage(m));
 }
 
 export const FORM_ID = /^[a-z0-9][a-z0-9-]*$/;
@@ -41,14 +64,19 @@ export const LANGUAGE_OPTION = /^[A-Za-z]{2,3}([-_][A-Za-z0-9]+)*$|^auto$/;
  * opens a class, so the walk needs no more than escapes, classes and the group depth.
  */
 export function jsOnlyPattern(pattern: string): string | undefined {
+  const code = jsOnlyPatternCode(pattern);
+  return code ? messageText(code) : undefined;
+}
+
+/** jsOnlyPattern's answer as a message code. */
+export function jsOnlyPatternCode(pattern: string): MessageCode | undefined {
   const lookbehinds: number[] = []; // the depth at which each open lookbehind began
   let depth = 0;
   let inClass = false;
   for (let i = 0; i < pattern.length; i++) {
     const c = pattern[i];
     if (c === "\\") {
-      if (pattern[i + 1] === "u")
-        return "`\\u` escapes are JavaScript only, the relay's PCRE cannot read them: write the character itself, or `\\xHH` below U+0100";
+      if (pattern[i + 1] === "u") return "patternJsU";
       i++;
       continue;
     }
@@ -58,10 +86,8 @@ export function jsOnlyPattern(pattern: string): string | undefined {
     }
     switch (c) {
       case "[":
-        if (pattern.startsWith("[^]", i))
-          return "`[^]` is JavaScript only, the relay's PCRE cannot read it: write `[\\s\\S]`";
-        if (pattern[i + 1] === "]")
-          return "`[]` is JavaScript only (it matches nothing), the relay's PCRE cannot read it";
+        if (pattern.startsWith("[^]", i)) return "patternJsNegClass";
+        if (pattern[i + 1] === "]") return "patternJsEmptyClass";
         inClass = true;
         break;
       case "(":
@@ -77,7 +103,7 @@ export function jsOnlyPattern(pattern: string): string | undefined {
       case "+":
       case "{":
         if (lookbehinds.length > 0 && (c !== "{" || /^\{\d+,\}/.test(pattern.slice(i))))
-          return "a lookbehind of unlimited length is JavaScript only, the relay's PCRE cannot read it";
+          return "patternJsLookbehind";
         break;
     }
   }
@@ -129,29 +155,33 @@ const PERSONAL_AUTOCOMPLETE = new Set([
 const isObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
 
-function textProblem(text: Text | undefined, at: string): string | undefined {
-  if (text === undefined) return undefined;
-  if (typeof text === "string") return text.trim() ? undefined : `${at}: empty text`;
-  if (!isObject(text)) return `${at}: a text is a string or a record of language → string`;
-  const entries = Object.entries(text);
-  if (entries.length === 0) return `${at}: empty text record`;
-  for (const [lang, value] of entries) {
-    if (typeof value !== "string" || !value.trim()) return `${at}.${lang}: empty text`;
+function checkText(text: Text | undefined, at: string, out: Validation): void {
+  if (text === undefined) return;
+  if (typeof text === "string") {
+    if (!text.trim()) problem(out, at, "textEmpty");
+    return;
   }
-  return undefined;
+  if (!isObject(text)) return problem(out, at, "textShape");
+  const entries = Object.entries(text);
+  if (entries.length === 0) return problem(out, at, "textRecordEmpty");
+  for (const [lang, value] of entries) {
+    if (typeof value !== "string" || !value.trim())
+      return problem(out, `${at}.${lang}`, "textEmpty");
+  }
 }
 
 function checkField(field: FormField, at: string, out: Validation): void {
   if (!isObject(field)) {
-    out.problems.push(`${at}: a field is an object with a type and a name`);
+    problem(out, at, "fieldShape");
     return;
   }
   if (typeof field.name !== "string" || !FIELD_NAME.test(field.name)) {
-    out.problems.push(
-      `${at}: field name ${JSON.stringify(field.name)} must match ${FIELD_NAME} (a letter, then letters, digits, _ or -)`,
-    );
+    problem(out, at, "fieldNamePattern", {
+      name: JSON.stringify(field.name),
+      pattern: String(FIELD_NAME),
+    });
   } else if (RESERVED_NAMES.has(field.name) || field.name.startsWith("_")) {
-    out.problems.push(`${at}: field name "${field.name}" is reserved by the submission envelope`);
+    problem(out, at, "fieldNameReserved", { name: field.name });
   }
 
   const texts: [string, Text | undefined][] = [];
@@ -165,16 +195,15 @@ function checkField(field: FormField, at: string, out: Validation): void {
     case "textarea":
       texts.push(["label", field.label], ["placeholder", field.placeholder], ["hint", field.hint]);
       if (field.min !== undefined && field.max !== undefined && field.min > field.max)
-        out.problems.push(`${at}: min ${field.min} is above max ${field.max}`);
-      if (field.maxLength !== undefined && field.maxLength < 1)
-        out.problems.push(`${at}: maxLength must be at least 1`);
+        problem(out, at, "minAboveMax", { min: field.min, max: field.max });
+      if (field.maxLength !== undefined && field.maxLength < 1) problem(out, at, "maxLengthMin");
       if (field.pattern !== undefined) {
         try {
           new RegExp(field.pattern, "u");
-          const jsOnly = jsOnlyPattern(field.pattern);
-          if (jsOnly) out.problems.push(`${at}.pattern: ${jsOnly}`);
+          const jsOnly = jsOnlyPatternCode(field.pattern);
+          if (jsOnly) problem(out, `${at}.pattern`, jsOnly);
         } catch (e) {
-          out.problems.push(`${at}: pattern is not a regular expression (${(e as Error).message})`);
+          problem(out, at, "patternInvalid", { error: (e as Error).message });
         }
       }
       break;
@@ -183,17 +212,17 @@ function checkField(field: FormField, at: string, out: Validation): void {
     case "checkboxes": {
       texts.push(["label", field.label], ["hint", field.hint]);
       if (!Array.isArray(field.options) || field.options.length === 0) {
-        out.problems.push(`${at}: a ${field.type} field needs at least one option`);
+        problem(out, at, "optionsNeeded", { type: field.type });
         break;
       }
       const seen = new Set<string>();
       field.options.forEach((opt, i) => {
         if (!isObject(opt) || typeof opt.value !== "string" || !opt.value.length) {
-          out.problems.push(`${at}.options[${i}]: an option is { value, label } with a value`);
+          problem(out, `${at}.options[${i}]`, "optionShape");
           return;
         }
         if (seen.has(opt.value))
-          out.problems.push(`${at}.options[${i}]: value "${opt.value}" twice`);
+          problem(out, `${at}.options[${i}]`, "optionTwice", { value: opt.value });
         seen.add(opt.value);
         texts.push([`options[${i}].label`, opt.label]);
       });
@@ -210,34 +239,30 @@ function checkField(field: FormField, at: string, out: Validation): void {
         ["maxLabel", field.maxLabel],
       );
       if (!Number.isInteger(field.min) || !Number.isInteger(field.max))
-        out.problems.push(`${at}: a scale has integer min and max`);
+        problem(out, at, "scaleInteger");
       else if (field.min >= field.max)
-        out.problems.push(`${at}: scale min ${field.min} must be below max ${field.max}`);
-      else if (field.max - field.min > 20)
-        out.problems.push(`${at}: a scale spans at most 21 steps`);
+        problem(out, at, "scaleOrder", { min: field.min, max: field.max });
+      else if (field.max - field.min > 20) problem(out, at, "scaleSpan");
       break;
     case "consent":
       texts.push(["text", field.text], ["linkLabel", field.linkLabel]);
-      if (field.text === undefined) out.problems.push(`${at}: a consent field needs a text`);
+      if (field.text === undefined) problem(out, at, "consentText");
       break;
     case "pgpKey":
       texts.push(["label", field.label], ["hint", field.hint]);
       break;
     case "hidden":
-      if (typeof field.value !== "string") out.problems.push(`${at}: a hidden field needs a value`);
+      if (typeof field.value !== "string") problem(out, at, "hiddenValue");
       break;
     default:
-      out.problems.push(
-        `${at}: unknown field type ${JSON.stringify((field as { type?: unknown }).type)}`,
-      );
+      problem(out, at, "fieldTypeUnknown", {
+        type: JSON.stringify((field as { type?: unknown }).type),
+      });
       return;
   }
   if (field.type !== "hidden" && field.type !== "consent" && field.label === undefined)
-    out.problems.push(`${at}: a ${field.type} field needs a label`);
-  for (const [key, text] of texts) {
-    const p = textProblem(text, `${at}.${key}`);
-    if (p) out.problems.push(p);
-  }
+    problem(out, at, "labelNeeded", { type: field.type });
+  for (const [key, text] of texts) checkText(text, `${at}.${key}`, out);
 }
 
 /** Does this field, as written, ask for something that identifies a person? */
@@ -262,35 +287,40 @@ export function isPersonalField(field: FormField): boolean {
 function checkKeySource(name: string, src: PgpKeySource, out: Validation): void {
   const at = `keys.${name}`;
   if (!isObject(src)) {
-    out.problems.push(`${at}: a key is { file } or { armored }`);
+    problem(out, at, "keyShape");
     return;
   }
   const file = typeof src.file === "string" && src.file.trim() !== "" ? src.file : undefined;
   const armored =
     typeof src.armored === "string" && src.armored.trim() !== "" ? src.armored : undefined;
   if ((file === undefined) === (armored === undefined)) {
-    out.problems.push(`${at}: exactly one of file or armored`);
+    problem(out, at, "keyExactlyOne");
     return;
   }
   if (armored !== undefined) {
     const block = publicKeyBlock(armored);
-    if (block.problem) out.problems.push(`${at}.armored: ${block.problem}`);
+    if (block.problem) problem(out, `${at}.armored`, block.code, block.params);
     return;
   }
   const abs = path.resolve(process.cwd(), file!);
   if (!abs.startsWith(process.cwd() + path.sep)) {
-    out.problems.push(`${at}.file: ${src.file} lies outside the site`);
+    problem(out, `${at}.file`, "keyOutside", { file: String(src.file) });
     return;
   }
   let text: string;
   try {
     text = fs.readFileSync(abs, "utf8");
   } catch {
-    out.problems.push(`${at}.file: ${src.file} not found or not readable`);
+    problem(out, `${at}.file`, "keyUnreadable", { file: String(src.file) });
     return;
   }
   const block = publicKeyBlock(text);
-  if (block.problem) out.problems.push(`${at}.file: ${src.file}: ${block.problem}`);
+  if (block.problem)
+    problem(out, `${at}.file`, "keyFileBlock", {
+      file: String(src.file),
+      problem: block.code,
+      ...block.params,
+    });
 }
 
 /**
@@ -333,11 +363,10 @@ function checkForm(
   out: Validation,
 ) {
   const at = `forms.${form.id}`;
-  if (!FORM_ID.test(form.id))
-    out.problems.push(`${at}: form id must match ${FORM_ID} (lower-case letters, digits, -)`);
+  if (!FORM_ID.test(form.id)) problem(out, at, "formIdPattern", { pattern: String(FORM_ID) });
 
   if (raw.template !== undefined && !isTemplateName(raw.template))
-    out.problems.push(`${at}.template: unknown template ${JSON.stringify(raw.template)}`);
+    problem(out, `${at}.template`, "templateUnknown", { name: JSON.stringify(raw.template) });
 
   for (const [key, text] of [
     ["title", form.title],
@@ -345,13 +374,11 @@ function checkForm(
     ["submitLabel", form.submitLabel],
     ["subject", form.subject],
     ["success.text", form.success.text],
-  ] as [string, Text | undefined][]) {
-    const p = textProblem(text, `${at}.${key}`);
-    if (p) out.problems.push(p);
-  }
+  ] as [string, Text | undefined][])
+    checkText(text, `${at}.${key}`, out);
 
   if (!Array.isArray(form.fields) || form.fields.length === 0) {
-    out.problems.push(`${at}: no fields (write fields or choose a template)`);
+    problem(out, at, "noFields");
   } else {
     const names = new Set<string>();
     let keyFields = 0;
@@ -359,12 +386,12 @@ function checkForm(
       checkField(field, `${at}.fields[${i}]`, out);
       if (isObject(field) && typeof field.name === "string") {
         if (names.has(field.name))
-          out.problems.push(`${at}.fields[${i}]: field name "${field.name}" twice`);
+          problem(out, `${at}.fields[${i}]`, "fieldNameTwice", { name: field.name });
         names.add(field.name);
       }
       if (isObject(field) && field.type === "pgpKey") keyFields++;
     });
-    if (keyFields > 1) out.problems.push(`${at}: at most one pgpKey field`);
+    if (keyFields > 1) problem(out, at, "onePgpKey");
   }
 
   // Transport
@@ -373,55 +400,44 @@ function checkForm(
     case "relay":
     case "endpoint": {
       if (!tr.url) {
-        out.problems.push(`${at}.transport.url: ${tr.kind} needs a URL`);
+        problem(out, `${at}.transport.url`, "urlNeeded", { kind: tr.kind });
       } else if (!/^https?:\/\//.test(tr.url)) {
-        out.problems.push(`${at}.transport.url: ${tr.url} is not an http(s) URL`);
+        problem(out, `${at}.transport.url`, "urlNotHttp", { url: tr.url });
       } else if (
         /^http:\/\//.test(tr.url) &&
         !/^http:\/\/(localhost|127\.0\.0\.1)[:/]/.test(tr.url)
       ) {
-        out.hints.push(
-          `${at}.transport.url: ${tr.url} sends submissions unencrypted in transit (http)`,
-        );
+        hint(out, `${at}.transport.url`, "urlPlainHttp", { url: tr.url });
       }
-      if (tr.kind === "relay" && !form.recipient)
-        out.problems.push(`${at}.recipient: the relay needs the recipient's name`);
+      if (tr.kind === "relay" && !form.recipient) problem(out, `${at}.recipient`, "relayRecipient");
       break;
     }
     case "formspree":
     case "web3forms":
-      if (!tr.url)
-        out.problems.push(`${at}.transport.url: ${tr.kind} needs the form id or access key`);
-      if (form.anonymous)
-        out.hints.push(
-          `${at}: anonymous, but ${tr.kind} sees the sender's address; see the README`,
-        );
+      if (!tr.url) problem(out, `${at}.transport.url`, "presetUrl", { kind: tr.kind });
+      if (form.anonymous) hint(out, at, "anonymousService", { kind: tr.kind });
       break;
     case "mailto":
       if (!form.recipient || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.recipient))
-        out.problems.push(`${at}.recipient: mailto needs an e-mail address`);
+        problem(out, `${at}.recipient`, "mailtoRecipient");
       break;
     default:
-      out.problems.push(`${at}.transport.kind: unknown kind ${JSON.stringify(tr.kind)}`);
+      problem(out, `${at}.transport.kind`, "kindUnknown", { kind: JSON.stringify(tr.kind) });
   }
   if ((tr.kind === "relay" || tr.kind === "mailto") && Object.keys(tr.extra ?? {}).length > 0)
-    out.hints.push(
-      `${at}.transport.extra: has no effect with ${tr.kind === "relay" ? "the relay" : "mailto"}`,
-    );
+    hint(out, `${at}.transport.extra`, tr.kind === "relay" ? "extraRelay" : "extraMailto");
   if (tr.format !== undefined && tr.format !== "json" && tr.format !== "form")
-    out.problems.push(`${at}.transport.format: json or form`);
+    problem(out, `${at}.transport.format`, "formatValue");
 
   // Encryption
   const enc = form.encryption;
   if (!["required", "optional", "off"].includes(enc.mode))
-    out.problems.push(`${at}.encryption.mode: required, optional or off`);
+    problem(out, `${at}.encryption.mode`, "modeValue");
   if (enc.mode !== "off") {
-    if (enc.keys.length === 0) out.problems.push(`${at}.encryption: no keys to encrypt to`);
+    if (enc.keys.length === 0) problem(out, `${at}.encryption`, "noKeys");
     for (const name of enc.keys)
-      if (!keyNames.includes(name))
-        out.problems.push(`${at}.encryption.keys: unknown key "${name}"`);
-    if (tr.kind === "mailto")
-      out.hints.push(`${at}: encrypted mailto puts the whole ciphertext into the mail body`);
+      if (!keyNames.includes(name)) problem(out, `${at}.encryption.keys`, "keyUnknown", { name });
+    if (tr.kind === "mailto") hint(out, at, "mailtoEncrypted");
   }
 
   // Spam
@@ -429,77 +445,68 @@ function checkForm(
   // The relay measures the stamp's age in whole seconds and casts the value to int, so 0.5 was
   // half a second in the browser and no trap at all there (second review, aside 5, 2026-10-19).
   if (!Number.isInteger(sp.minSeconds) || sp.minSeconds < 0)
-    out.problems.push(`${at}.spam.minSeconds: a whole number of seconds, 0 or more`);
+    problem(out, `${at}.spam.minSeconds`, "minSecondsValue");
   // 20 bits take about 2 s in a Worker on a desktop and several times that on a phone; 24 bits
   // took minutes (review finding 18, measured in Chrome, 2026-10-19).
   if (!Number.isInteger(sp.powDifficulty) || sp.powDifficulty < 8 || sp.powDifficulty > 20)
-    out.problems.push(`${at}.spam.powDifficulty: an integer from 8 to 20`);
+    problem(out, `${at}.spam.powDifficulty`, "powDifficultyValue");
   if (!["none", "turnstile", "hcaptcha"].includes(sp.captcha))
-    out.problems.push(`${at}.spam.captcha: none, turnstile or hcaptcha`);
+    problem(out, `${at}.spam.captcha`, "captchaValue");
   if (sp.captcha !== "none" && !sp.captchaSiteKey && !form.anonymous)
-    out.problems.push(`${at}.spam.captchaSiteKey: ${sp.captcha} needs the site key`);
+    problem(out, `${at}.spam.captchaSiteKey`, "siteKeyNeeded", { provider: sp.captcha });
   if (sp.captcha !== "none" && form.anonymous)
-    out.hints.push(`${at}: anonymous, so the ${sp.captcha} captcha is not loaded`);
+    hint(out, at, "anonymousCaptcha", { provider: sp.captcha });
   if (tr.kind !== "relay") {
-    if (sp.pow) out.hints.push(`${at}.spam.pow: has no effect without the relay`);
+    if (sp.pow) hint(out, `${at}.spam.pow`, "noRelayEffect");
     // Written by the owner, globally or for the form; the default of 60 says nothing.
     if (
       sp.rateLimitPerHour > 0 &&
       (raw.spam?.rateLimitPerHour !== undefined || rawSpam.rateLimitPerHour !== undefined)
     )
-      out.hints.push(`${at}.spam.rateLimitPerHour: has no effect without the relay`);
+      hint(out, `${at}.spam.rateLimitPerHour`, "noRelayEffect");
   } else if (sp.noScript) {
     // Only the script supplies a proof and a stamp, so a plain post walks past both (review
     // finding 5c; finding 4 of the second review, 2026-10-19). The default time trap is
     // documented and says nothing; a minSeconds the owner wrote, globally or here, is said.
-    if (sp.pow)
-      out.hints.push(
-        `${at}.spam.pow: a plain post without JavaScript (noScript: true) skips it; noScript: false requires the script`,
-      );
+    if (sp.pow) hint(out, `${at}.spam.pow`, "powNoScript");
     if (
       sp.minSeconds > 0 &&
       (raw.spam?.minSeconds !== undefined || rawSpam.minSeconds !== undefined)
     )
-      out.hints.push(
-        `${at}.spam.minSeconds: a plain post without JavaScript (noScript: true) carries no stamp and skips it; noScript: false requires the script`,
-      );
+      hint(out, `${at}.spam.minSeconds`, "minSecondsNoScript");
   }
   if (sp.pow && tr.kind === "relay" && sp.powDifficulty >= 18 && sp.powDifficulty <= 20)
-    out.hints.push(
-      `${at}.spam.powDifficulty: ${sp.powDifficulty} bits take seconds on a phone before every message`,
-    );
+    hint(out, `${at}.spam.powDifficulty`, "powSlow", { bits: sp.powDifficulty });
   for (const key of ["maxFieldLength", "maxTextareaLength", "maxKeyLength", "maxBytes"] as const)
     if (!Number.isInteger(sp[key]) || sp[key] < 1)
-      out.problems.push(`${at}.spam.${key}: a positive integer`);
+      problem(out, `${at}.spam.${key}`, "positiveInteger");
   if (Number.isInteger(sp.maxBytes) && sp.maxBytes >= 1) {
     const capacity = submissionCapacity(form);
     if (capacity > sp.maxBytes)
-      out.hints.push(
-        `${at}.spam.maxBytes: ${sp.maxBytes} is below what the fields may hold (about ${capacity} bytes` +
-          `${enc.mode === "off" ? "" : " once encrypted"}); a long message would be refused as too large`,
-      );
+      hint(out, `${at}.spam.maxBytes`, "maxBytesLow", {
+        maxBytes: sp.maxBytes,
+        capacity,
+        encrypted: enc.mode !== "off",
+      });
   }
 
   // Anonymous: judged on the fields as written (template + definition), because resolveForm
   // has already made the personal ones optional.
   if (form.anonymous) {
-    if (raw.pageContext === true)
-      out.hints.push(`${at}.pageContext: anonymous, so the page is not sent along`);
+    if (raw.pageContext === true) hint(out, `${at}.pageContext`, "pageContextAnonymous");
     const written =
       raw.fields ?? (isTemplateName(raw.template) ? templateOf(raw.template).fields : undefined);
     written?.forEach((field, i) => {
       if (isObject(field) && "required" in field && field.required && isPersonalField(field))
-        out.hints.push(
-          `${at}.fields[${i}]: anonymous, so "${field.name}" (${field.type}) cannot be required and is made optional`,
-        );
+        hint(out, `${at}.fields[${i}]`, "personalOptional", { name: field.name, type: field.type });
     });
   }
 
   // Success
   if (form.success.mode !== "inline" && form.success.mode !== "redirect")
-    out.problems.push(`${at}.success.mode: inline or redirect`);
+    problem(out, `${at}.success.mode`, "successMode");
   if (form.success.mode === "redirect" && !form.success.slug)
-    out.problems.push(`${at}.success.slug: redirect needs the slug of a page`);
+    problem(out, `${at}.success.slug`, "successSlug");
 }
 
 export function validate(
@@ -507,7 +514,7 @@ export function validate(
   rawForms: Record<string, unknown>,
   rawSpam: Partial<SpamConfig> = {},
 ): Validation {
-  const out: Validation = { problems: [], hints: [] };
+  const out: Validation = { problems: [], hints: [], problemMessages: [], hintMessages: [] };
   const keyNames = Object.keys(opts.keys);
 
   for (const [name, src] of Object.entries(opts.keys)) checkKeySource(name, src, out);
@@ -518,26 +525,24 @@ export function validate(
   }
 
   if (!LANGUAGE_OPTION.test(opts.language))
-    out.problems.push(`language: "${opts.language}" is neither auto nor a language code`);
-  if (!opts.frontmatterKey.trim()) out.problems.push("frontmatterKey: empty");
+    problem(out, "language", "languageValue", { value: opts.language });
+  if (!opts.frontmatterKey.trim()) problem(out, "frontmatterKey", "frontmatterKeyEmpty");
   if (opts.layoutForm && !(opts.layoutForm in opts.forms))
-    out.problems.push(`layoutForm: no form "${opts.layoutForm}"`);
+    problem(out, "layoutForm", "layoutFormUnknown", { id: opts.layoutForm });
   if (!opts.codeBlockLang.trim() || /\s/.test(opts.codeBlockLang))
-    out.problems.push("codeBlockLang: one word without spaces");
+    problem(out, "codeBlockLang", "codeBlockLangValue");
 
   const known = new Set<string>(textKeys());
   const locales = availableLocales().map((l) => l.toLowerCase().split("-")[0]);
   for (const [locale, entries] of Object.entries(opts.texts)) {
     if (!locales.includes(locale.toLowerCase().split(/[-_]/)[0]!))
-      out.hints.push(
-        `texts.${locale}: the plugin has no texts in this language; they are used as written`,
-      );
+      hint(out, `texts.${locale}`, "textsLocaleUnknown");
     if (!isObject(entries)) {
-      out.problems.push(`texts.${locale}: a record of text key → wording`);
+      problem(out, `texts.${locale}`, "textsShape");
       continue;
     }
     for (const key of Object.keys(entries))
-      if (!known.has(key)) out.hints.push(`texts.${locale}.${key}: no such text key`);
+      if (!known.has(key)) hint(out, `texts.${locale}.${key}`, "textsKeyUnknown");
   }
 
   return out;

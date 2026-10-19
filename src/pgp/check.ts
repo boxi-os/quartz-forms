@@ -1,4 +1,5 @@
 import { formatFingerprint, loadOpenpgp } from "./load";
+import { messageText, type MessageCode, type Params } from "../messages";
 
 export interface KeyReport {
   name: string;
@@ -6,7 +7,15 @@ export interface KeyReport {
   userIds: string[];
   /** The day the key expires (`YYYY-MM-DD`); missing when it never does or could not be read. */
   expires?: string;
+  /** In English, for the build log. */
   problem?: string;
+  /** The same as a message code, for another language. */
+  code?: MessageCode;
+  params?: Params;
+}
+
+function withProblem(report: KeyReport, code: MessageCode, params?: Params): KeyReport {
+  return { ...report, problem: messageText(code, params), code, ...(params ? { params } : {}) };
 }
 
 /**
@@ -20,30 +29,26 @@ export async function checkKey(name: string, armored: string): Promise<KeyReport
   try {
     key = await openpgp.readKey({ armoredKey: armored });
   } catch (e) {
-    return {
-      name,
-      fingerprint: "",
-      userIds: [],
-      problem: `not a readable PGP key (${(e as Error).message})`,
-    };
+    return withProblem({ name, fingerprint: "", userIds: [] }, "pgpUnreadable", {
+      error: (e as Error).message,
+    });
   }
   const report: KeyReport = {
     name,
     fingerprint: formatFingerprint(key.getFingerprint()),
     userIds: key.getUserIDs(),
   };
-  if (key.isPrivate())
-    return { ...report, problem: "this is a private key; the site needs the public key" };
-  if (await key.isRevoked()) return { ...report, problem: "this key is revoked" };
+  if (key.isPrivate()) return withProblem(report, "pgpPrivate");
+  if (await key.isRevoked()) return withProblem(report, "pgpRevoked");
   const expires = await key.getExpirationTime();
   if (expires instanceof Date && Number.isFinite(expires.getTime()))
     report.expires = expires.toISOString().slice(0, 10);
   if (expires instanceof Date && expires.getTime() < Date.now())
-    return { ...report, problem: `this key expired on ${expires.toISOString().slice(0, 10)}` };
+    return withProblem(report, "pgpExpired", { date: expires.toISOString().slice(0, 10) });
   try {
     await key.getEncryptionKey();
   } catch {
-    return { ...report, problem: "this key cannot encrypt (no encryption subkey)" };
+    return withProblem(report, "pgpNoEncrypt");
   }
   return report;
 }

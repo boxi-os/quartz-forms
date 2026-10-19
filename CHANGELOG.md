@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-19
+
+- The plugin's messages about a definition - the problems that stop the build, the hints, what
+  a key or the command line refuses - are now path, code and values (`src/messages/`), made into
+  a sentence per language. English is word for word what the build log said before and stays the
+  build log's language; German is new. `dist/cli.js --lang de` answers in German, which is what
+  QuartzControl asks for. `ResolvedOptions` carries `problemMessages`/`hintMessages` beside the
+  English strings; a key report and a refused key block carry their code.
+
 ## [0.2.0] - 2026-10-19
 
 For QuartzControl's forms tab, which runs the plugin in a child process instead of copying it:

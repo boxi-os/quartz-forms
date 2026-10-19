@@ -1,5 +1,5 @@
 import { createRequire } from 'module';
-import { __commonJS, __export, __toESM, publicKeyBlock, resolveOrThrow, logHints, warnOnce, wording } from './chunk-XAPO2LDI.js';
+import { __commonJS, __export, __toESM, publicKeyBlock, resolveOrThrow, logHints, warnOnce, wording } from './chunk-ISHKQPHX.js';
 import fs from 'fs';
 import path from 'path';
 import { jsx, jsxs, Fragment } from 'preact/jsx-runtime';
@@ -3399,5 +3399,5 @@ var FormBox_default = ((userOpts) => {
 });
 
 export { FormBox_default, Forms, loadKeySources, resolveText };
-//# sourceMappingURL=chunk-F3HV3JMY.js.map
-//# sourceMappingURL=chunk-F3HV3JMY.js.map
+//# sourceMappingURL=chunk-WGZY5X7F.js.map
+//# sourceMappingURL=chunk-WGZY5X7F.js.map

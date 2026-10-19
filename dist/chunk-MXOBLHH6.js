@@ -1,4 +1,5 @@
 import { createRequire } from 'module';
+import { messageText } from './chunk-ISHKQPHX.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
@@ -49,40 +50,39 @@ function formatFingerprint(hex) {
 }
 
 // src/pgp/check.ts
+function withProblem(report, code, params) {
+  return { ...report, problem: messageText(code, params), code, ...params ? { params } : {} };
+}
 async function checkKey(name, armored) {
   const openpgp = await loadOpenpgp();
   let key;
   try {
     key = await openpgp.readKey({ armoredKey: armored });
   } catch (e) {
-    return {
-      name,
-      fingerprint: "",
-      userIds: [],
-      problem: `not a readable PGP key (${e.message})`
-    };
+    return withProblem({ name, fingerprint: "", userIds: [] }, "pgpUnreadable", {
+      error: e.message
+    });
   }
   const report = {
     name,
     fingerprint: formatFingerprint(key.getFingerprint()),
     userIds: key.getUserIDs()
   };
-  if (key.isPrivate())
-    return { ...report, problem: "this is a private key; the site needs the public key" };
-  if (await key.isRevoked()) return { ...report, problem: "this key is revoked" };
+  if (key.isPrivate()) return withProblem(report, "pgpPrivate");
+  if (await key.isRevoked()) return withProblem(report, "pgpRevoked");
   const expires = await key.getExpirationTime();
   if (expires instanceof Date && Number.isFinite(expires.getTime()))
     report.expires = expires.toISOString().slice(0, 10);
   if (expires instanceof Date && expires.getTime() < Date.now())
-    return { ...report, problem: `this key expired on ${expires.toISOString().slice(0, 10)}` };
+    return withProblem(report, "pgpExpired", { date: expires.toISOString().slice(0, 10) });
   try {
     await key.getEncryptionKey();
   } catch {
-    return { ...report, problem: "this key cannot encrypt (no encryption subkey)" };
+    return withProblem(report, "pgpNoEncrypt");
   }
   return report;
 }
 
 export { BROWSER_FILES, checkKey, pluginRoot, vendorDir };
-//# sourceMappingURL=chunk-MCDXYOMA.js.map
-//# sourceMappingURL=chunk-MCDXYOMA.js.map
+//# sourceMappingURL=chunk-MXOBLHH6.js.map
+//# sourceMappingURL=chunk-MXOBLHH6.js.map

@@ -225,6 +225,9 @@ node dist/cli.js check --site <site> [--json]   # problems, hints, every key wit
 node dist/cli.js key   --site <site> --file <key.asc> [--json]
 ```
 
+`--lang de` gives the problems, hints, key problems and refusals in German (English without it;
+the build log stays English).
+
 `relay` into a directory of its own writes the whole relay (`send.php`, `counters/.htaccess`,
 `config.generated.php`, `config.php`). With the owner's values as JSON in the environment variable
 `QF_RELAY_OPERATOR` (secret, origins, sender, mailer, recipients, captcha secrets, counter

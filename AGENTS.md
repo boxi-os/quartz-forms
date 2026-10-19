@@ -32,6 +32,10 @@ map, `README.md` for user-facing options.
 - `src/relay/generate.ts`: the relay's generated config (`config.generated.php`) and the owner's
   `config.php` from a site's options; `src/cli.ts`: the command line around it (`relay`,
   `check`, `key`), bundled into `dist/cli.js` for an installed copy.
+- `src/messages/`: the plugin's messages about a definition as path, code and values, with an
+  English (`en.ts`, word for word the build log) and a German catalog (`de.ts`, typed against
+  it). A new message gets a code in both; `test/messages.test.ts` holds the German one to every
+  value the English one names.
 - `scripts/relay-config.mjs`: `npm run relay:config`, a thin wrapper around `dist/cli.js relay`.
 - `test/`: vitest tests. `relay.test.ts` runs `send.php` under `php -S` (skipped, with a
   warning, when there is no `php`); every relay fix comes with a case there.

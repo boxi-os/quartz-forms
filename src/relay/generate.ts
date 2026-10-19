@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import type { ResolvedOptions, Text } from "../types";
+import type { Message, MessageCode, Params } from "../messages";
 
 /**
  * What the relay is told about the site: its origin and, for every form that sends through the
@@ -190,17 +191,21 @@ return [
 `;
 }
 
-/** Why an operator record cannot become a config.php, one sentence per problem. */
-export function operatorProblems(op: unknown): string[] {
-  const out: string[] = [];
-  if (!op || typeof op !== "object" || Array.isArray(op)) return ["operator: not an object"];
+/** Why an operator record cannot become a config.php, one message per problem. */
+export function operatorProblems(op: unknown): Message[] {
+  const out: Message[] = [];
+  const add = (code: MessageCode, params?: Params): void => {
+    out.push({ path: "", code, ...(params ? { params } : {}) });
+  };
+  if (!op || typeof op !== "object" || Array.isArray(op)) {
+    add("operatorNotObject");
+    return out;
+  }
   const o = op as Record<string, unknown>;
-  if (typeof o.secret !== "string" || o.secret.length < 32)
-    out.push("operator.secret: at least 32 characters");
+  if (typeof o.secret !== "string" || o.secret.length < 32) add("operatorSecret");
   if (!Array.isArray(o.allowedOrigins) || o.allowedOrigins.some((x) => typeof x !== "string"))
-    out.push("operator.allowedOrigins: a list of origins");
-  if (typeof o.from !== "string" || !o.from.includes("@"))
-    out.push("operator.from: the sender's e-mail address");
+    add("operatorOrigins");
+  if (typeof o.from !== "string" || !o.from.includes("@")) add("operatorFrom");
   const mailer = o.mailer;
   const filled = (v: unknown): boolean => typeof v === "string" && v.trim() !== "";
   const mailerOk =
@@ -209,7 +214,7 @@ export function operatorProblems(op: unknown): string[] {
       typeof mailer === "object" &&
       (filled((mailer as Record<string, unknown>).sendmail) ||
         filled((mailer as Record<string, unknown>).file)));
-  if (!mailerOk) out.push('operator.mailer: "mail", { sendmail } or { file }');
+  if (!mailerOk) add("operatorMailer");
   for (const key of ["recipients", "captchaSecrets"] as const) {
     const v = o[key];
     if (v === undefined && key === "captchaSecrets") continue;
@@ -219,12 +224,12 @@ export function operatorProblems(op: unknown): string[] {
       Array.isArray(v) ||
       Object.values(v).some((x) => typeof x !== "string")
     )
-      out.push(`operator.${key}: a record of name → text`);
+      add("operatorRecord", { key });
   }
   for (const key of ["subjectPrefix", "captchaSecret", "counterDir"] as const)
-    if (o[key] !== undefined && typeof o[key] !== "string") out.push(`operator.${key}: a text`);
+    if (o[key] !== undefined && typeof o[key] !== "string") add("operatorText", { key });
   if (typeof o.counterDir === "string" && o.counterDir && !o.counterDir.startsWith("/"))
-    out.push("operator.counterDir: an absolute path on the server");
+    add("operatorCounterDir");
   return out;
 }
 

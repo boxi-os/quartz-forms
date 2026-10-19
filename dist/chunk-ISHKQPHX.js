@@ -40,7 +40,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 
 // src/templates/index.ts
-var t = (en, de) => ({ en, de });
+var t = (en2, de2) => ({ en: en2, de: de2 });
 var templates = {
   contact: {
     title: t("Contact", "Kontakt"),
@@ -176,23 +176,291 @@ function isTemplateName(name) {
   return typeof name === "string" && name in templates;
 }
 
+// src/messages/en.ts
+var s = (p, key) => String(p[key] ?? "");
+var en = {
+  // texts
+  textEmpty: () => "empty text",
+  textShape: () => "a text is a string or a record of language \u2192 string",
+  textRecordEmpty: () => "empty text record",
+  // fields
+  fieldShape: () => "a field is an object with a type and a name",
+  fieldNamePattern: (p) => `field name ${s(p, "name")} must match ${s(p, "pattern")} (a letter, then letters, digits, _ or -)`,
+  fieldNameReserved: (p) => `field name "${s(p, "name")}" is reserved by the submission envelope`,
+  minAboveMax: (p) => `min ${s(p, "min")} is above max ${s(p, "max")}`,
+  maxLengthMin: () => "maxLength must be at least 1",
+  patternJsU: () => "`\\u` escapes are JavaScript only, the relay's PCRE cannot read them: write the character itself, or `\\xHH` below U+0100",
+  patternJsNegClass: () => "`[^]` is JavaScript only, the relay's PCRE cannot read it: write `[\\s\\S]`",
+  patternJsEmptyClass: () => "`[]` is JavaScript only (it matches nothing), the relay's PCRE cannot read it",
+  patternJsLookbehind: () => "a lookbehind of unlimited length is JavaScript only, the relay's PCRE cannot read it",
+  patternInvalid: (p) => `pattern is not a regular expression (${s(p, "error")})`,
+  optionsNeeded: (p) => `a ${s(p, "type")} field needs at least one option`,
+  optionShape: () => "an option is { value, label } with a value",
+  optionTwice: (p) => `value "${s(p, "value")}" twice`,
+  scaleInteger: () => "a scale has integer min and max",
+  scaleOrder: (p) => `scale min ${s(p, "min")} must be below max ${s(p, "max")}`,
+  scaleSpan: () => "a scale spans at most 21 steps",
+  consentText: () => "a consent field needs a text",
+  hiddenValue: () => "a hidden field needs a value",
+  fieldTypeUnknown: (p) => `unknown field type ${s(p, "type")}`,
+  labelNeeded: (p) => `a ${s(p, "type")} field needs a label`,
+  // keys in the options
+  keyShape: () => "a key is { file } or { armored }",
+  keyExactlyOne: () => "exactly one of file or armored",
+  keyOutside: (p) => `${s(p, "file")} lies outside the site`,
+  keyUnreadable: (p) => `${s(p, "file")} not found or not readable`,
+  keyFileBlock: (p, t2) => `${s(p, "file")}: ${t2(s(p, "problem"), p)}`,
+  // armor (src/pgp/armor.ts)
+  armorPrivate: () => "holds a private key block; export only the public key (gpg --export --armor)",
+  armorNone: () => "not an armored PGP public key block",
+  armorIncomplete: () => "holds an incomplete armor block",
+  armorOther: (p) => `holds a PGP ${s(p, "kind")} besides the public key`,
+  armorMany: (p) => `holds ${s(p, "count")} key blocks; one public key per source`,
+  // a key as OpenPGP.js reads it (src/pgp/check.ts)
+  pgpUnreadable: (p) => `not a readable PGP key (${s(p, "error")})`,
+  pgpPrivate: () => "this is a private key; the site needs the public key",
+  pgpRevoked: () => "this key is revoked",
+  pgpExpired: (p) => `this key expired on ${s(p, "date")}`,
+  pgpNoEncrypt: () => "this key cannot encrypt (no encryption subkey)",
+  keyMissingSource: () => "neither file nor armored",
+  keyFileUnreadable: () => "not found or not readable",
+  // a form
+  formIdPattern: (p) => `form id must match ${s(p, "pattern")} (lower-case letters, digits, -)`,
+  templateUnknown: (p) => `unknown template ${s(p, "name")}`,
+  noFields: () => "no fields (write fields or choose a template)",
+  fieldNameTwice: (p) => `field name "${s(p, "name")}" twice`,
+  onePgpKey: () => "at most one pgpKey field",
+  // transport
+  urlNeeded: (p) => `${s(p, "kind")} needs a URL`,
+  urlNotHttp: (p) => `${s(p, "url")} is not an http(s) URL`,
+  urlPlainHttp: (p) => `${s(p, "url")} sends submissions unencrypted in transit (http)`,
+  relayRecipient: () => "the relay needs the recipient's name",
+  presetUrl: (p) => `${s(p, "kind")} needs the form id or access key`,
+  anonymousService: (p) => `anonymous, but ${s(p, "kind")} sees the sender's address; see the README`,
+  mailtoRecipient: () => "mailto needs an e-mail address",
+  kindUnknown: (p) => `unknown kind ${s(p, "kind")}`,
+  extraRelay: () => "has no effect with the relay",
+  extraMailto: () => "has no effect with mailto",
+  formatValue: () => "json or form",
+  // encryption
+  modeValue: () => "required, optional or off",
+  noKeys: () => "no keys to encrypt to",
+  keyUnknown: (p) => `unknown key "${s(p, "name")}"`,
+  mailtoEncrypted: () => "encrypted mailto puts the whole ciphertext into the mail body",
+  // spam
+  minSecondsValue: () => "a whole number of seconds, 0 or more",
+  powDifficultyValue: () => "an integer from 8 to 20",
+  captchaValue: () => "none, turnstile or hcaptcha",
+  siteKeyNeeded: (p) => `${s(p, "provider")} needs the site key`,
+  anonymousCaptcha: (p) => `anonymous, so the ${s(p, "provider")} captcha is not loaded`,
+  noRelayEffect: () => "has no effect without the relay",
+  powNoScript: () => "a plain post without JavaScript (noScript: true) skips it; noScript: false requires the script",
+  minSecondsNoScript: () => "a plain post without JavaScript (noScript: true) carries no stamp and skips it; noScript: false requires the script",
+  powSlow: (p) => `${s(p, "bits")} bits take seconds on a phone before every message`,
+  positiveInteger: () => "a positive integer",
+  maxBytesLow: (p) => `${s(p, "maxBytes")} is below what the fields may hold (about ${s(p, "capacity")} bytes${p.encrypted ? " once encrypted" : ""}); a long message would be refused as too large`,
+  // anonymous
+  pageContextAnonymous: () => "anonymous, so the page is not sent along",
+  personalOptional: (p) => `anonymous, so "${s(p, "name")}" (${s(p, "type")}) cannot be required and is made optional`,
+  // success
+  successMode: () => "inline or redirect",
+  successSlug: () => "redirect needs the slug of a page",
+  // the entry
+  languageValue: (p) => `"${s(p, "value")}" is neither auto nor a language code`,
+  frontmatterKeyEmpty: () => "empty",
+  layoutFormUnknown: (p) => `no form "${s(p, "id")}"`,
+  codeBlockLangValue: () => "one word without spaces",
+  textsLocaleUnknown: () => "the plugin has no texts in this language; they are used as written",
+  textsShape: () => "a record of text key \u2192 wording",
+  textsKeyUnknown: () => "no such text key",
+  // the command line (src/cli.ts) and the relay generator (src/relay/generate.ts)
+  cliNeedsValue: (p) => `${s(p, "arg")} needs a value`,
+  cliUnknownArgument: (p) => `unknown argument ${s(p, "arg")}`,
+  cliNoSite: () => "no site directory given (--site)",
+  cliConfigMissing: (p) => `${s(p, "path")} not found`,
+  cliNoEntry: (p) => `no quartz-forms entry in ${s(p, "path")}`,
+  cliEntries: (p) => `${s(p, "count")} quartz-forms entries; taking the first`,
+  cliNoOut: () => "no output directory given (--out)",
+  cliUnknownCommand: (p) => `unknown command "${s(p, "command")}" (relay, check, key)`,
+  cliNoKey: () => "no key given (--file, or the armored text in QF_KEY_ARMORED)",
+  cliKeyUnreadable: (p) => `${s(p, "file")}: not found or not readable`,
+  cliOperatorJson: () => "QF_RELAY_OPERATOR: not JSON",
+  cliOperatorProblems: (p) => `${s(p, "count")} problem(s) in the operator values`,
+  cliOptionProblems: (p) => `[forms] ${s(p, "count")} problem(s) in the quartz-forms options:`,
+  cliNoPhp: (p) => `${s(p, "count")} pattern(s) not checked against PCRE: no php on the PATH. The relay refuses every value of a field whose pattern its PCRE cannot read.`,
+  cliPhpFailed: (p) => `php could not check the patterns:
+${s(p, "message")}`,
+  cliPhpFailedShort: () => "php could not check the patterns",
+  cliPatternUnreadable: (p) => `forms.${s(p, "form")} field "${s(p, "field")}": PCRE cannot read the pattern "${s(p, "pattern")}" (${s(p, "why")}); the relay would refuse every value of this field`,
+  cliPatternRefusal: () => "a pattern PCRE cannot read",
+  cliNothingWritten: () => "nothing written; fix the pattern, or pass --skip-pattern-check when the host's PCRE is newer than this machine's",
+  cliWrittenAnyway: () => "written anyway (--skip-pattern-check)",
+  cliMissingRecipient: (p) => `no address for the recipient "${s(p, "name")}"; the relay refuses its forms`,
+  operatorNotObject: () => "operator: not an object",
+  operatorSecret: () => "operator.secret: at least 32 characters",
+  operatorOrigins: () => "operator.allowedOrigins: a list of origins",
+  operatorFrom: () => "operator.from: the sender's e-mail address",
+  operatorMailer: () => 'operator.mailer: "mail", { sendmail } or { file }',
+  operatorRecord: (p) => `operator.${s(p, "key")}: a record of name \u2192 text`,
+  operatorText: (p) => `operator.${s(p, "key")}: a text`,
+  operatorCounterDir: () => "operator.counterDir: an absolute path on the server"
+};
+var en_default = en;
+
+// src/messages/de.ts
+var s2 = (p, key) => String(p[key] ?? "");
+var de = {
+  textEmpty: () => "leerer Text",
+  textShape: () => "ein Text ist ein String oder ein Record Sprache \u2192 String",
+  textRecordEmpty: () => "leerer Text-Record",
+  fieldShape: () => "ein Feld ist ein Objekt mit type und name",
+  fieldNamePattern: (p) => `der Feldname ${s2(p, "name")} muss ${s2(p, "pattern")} entsprechen (ein Buchstabe, dann Buchstaben, Ziffern, _ oder -)`,
+  fieldNameReserved: (p) => `der Feldname \u201E${s2(p, "name")}\u201C ist f\xFCr die Sendung selbst reserviert`,
+  minAboveMax: (p) => `min ${s2(p, "min")} liegt \xFCber max ${s2(p, "max")}`,
+  maxLengthMin: () => "maxLength muss mindestens 1 sein",
+  patternJsU: () => "`\\u`-Escapes gibt es nur in JavaScript, das PCRE des Relays kann sie nicht lesen: schreib das Zeichen selbst oder `\\xHH` unter U+0100",
+  patternJsNegClass: () => "`[^]` gibt es nur in JavaScript, das PCRE des Relays kann es nicht lesen: schreib `[\\s\\S]`",
+  patternJsEmptyClass: () => "`[]` gibt es nur in JavaScript (es trifft nichts), das PCRE des Relays kann es nicht lesen",
+  patternJsLookbehind: () => "ein Lookbehind unbegrenzter L\xE4nge gibt es nur in JavaScript, das PCRE des Relays kann ihn nicht lesen",
+  patternInvalid: (p) => `pattern ist kein regul\xE4rer Ausdruck (${s2(p, "error")})`,
+  optionsNeeded: (p) => `ein Feld vom Typ ${s2(p, "type")} braucht mindestens eine Option`,
+  optionShape: () => "eine Option ist { value, label } mit einem Wert",
+  optionTwice: (p) => `Wert \u201E${s2(p, "value")}\u201C doppelt`,
+  scaleInteger: () => "eine Skala hat ganzzahlige min und max",
+  scaleOrder: (p) => `min ${s2(p, "min")} der Skala muss unter max ${s2(p, "max")} liegen`,
+  scaleSpan: () => "eine Skala umfasst h\xF6chstens 21 Stufen",
+  consentText: () => "ein Einwilligungsfeld braucht einen Text",
+  hiddenValue: () => "ein verborgenes Feld braucht einen Wert",
+  fieldTypeUnknown: (p) => `unbekannter Feldtyp ${s2(p, "type")}`,
+  labelNeeded: (p) => `ein Feld vom Typ ${s2(p, "type")} braucht eine Beschriftung (label)`,
+  keyShape: () => "ein Schl\xFCssel ist { file } oder { armored }",
+  keyExactlyOne: () => "genau eines von file oder armored",
+  keyOutside: (p) => `${s2(p, "file")} liegt au\xDFerhalb der Website`,
+  keyUnreadable: (p) => `${s2(p, "file")} fehlt oder ist nicht lesbar`,
+  keyFileBlock: (p, t2) => `${s2(p, "file")}: ${t2(s2(p, "problem"), p)}`,
+  armorPrivate: () => "enth\xE4lt einen privaten Schl\xFCssel; exportiere nur den \xF6ffentlichen (gpg --export --armor)",
+  armorNone: () => "kein \xF6ffentlicher PGP-Schl\xFCssel im Textformat",
+  armorIncomplete: () => "enth\xE4lt einen unvollst\xE4ndigen Armor-Block",
+  armorOther: (p) => `enth\xE4lt neben dem \xF6ffentlichen Schl\xFCssel einen PGP ${s2(p, "kind")}`,
+  armorMany: (p) => `enth\xE4lt ${s2(p, "count")} Schl\xFCsselbl\xF6cke; ein \xF6ffentlicher Schl\xFCssel je Quelle`,
+  pgpUnreadable: (p) => `kein lesbarer PGP-Schl\xFCssel (${s2(p, "error")})`,
+  pgpPrivate: () => "das ist ein privater Schl\xFCssel; die Website braucht den \xF6ffentlichen",
+  pgpRevoked: () => "dieser Schl\xFCssel ist widerrufen",
+  pgpExpired: (p) => `dieser Schl\xFCssel ist am ${s2(p, "date")} abgelaufen`,
+  pgpNoEncrypt: () => "dieser Schl\xFCssel kann nicht verschl\xFCsseln (kein Verschl\xFCsselungs-Unterschl\xFCssel)",
+  keyMissingSource: () => "weder file noch armored",
+  keyFileUnreadable: () => "fehlt oder ist nicht lesbar",
+  formIdPattern: (p) => `die Kennung des Formulars muss ${s2(p, "pattern")} entsprechen (Kleinbuchstaben, Ziffern, -)`,
+  templateUnknown: (p) => `unbekannte Vorlage ${s2(p, "name")}`,
+  noFields: () => "keine Felder (schreib Felder oder w\xE4hle eine Vorlage)",
+  fieldNameTwice: (p) => `Feldname \u201E${s2(p, "name")}\u201C doppelt`,
+  onePgpKey: () => "h\xF6chstens ein Feld vom Typ pgpKey",
+  urlNeeded: (p) => `${s2(p, "kind")} braucht eine Adresse`,
+  urlNotHttp: (p) => `${s2(p, "url")} ist keine http(s)-Adresse`,
+  urlPlainHttp: (p) => `${s2(p, "url")} \xFCbertr\xE4gt Sendungen unverschl\xFCsselt (http)`,
+  relayRecipient: () => "das Relay braucht den Namen des Empf\xE4ngers",
+  presetUrl: (p) => `${s2(p, "kind")} braucht die Formular-ID oder den Zugangsschl\xFCssel`,
+  anonymousService: (p) => `anonym, aber ${s2(p, "kind")} sieht die Adresse des Absenders; siehe README`,
+  mailtoRecipient: () => "mailto braucht eine E-Mail-Adresse",
+  kindUnknown: (p) => `unbekannter Versandweg ${s2(p, "kind")}`,
+  extraRelay: () => "wirkt nicht beim Relay",
+  extraMailto: () => "wirkt nicht bei mailto",
+  formatValue: () => "json oder form",
+  modeValue: () => "required, optional oder off",
+  noKeys: () => "keine Schl\xFCssel, an die verschl\xFCsselt werden kann",
+  keyUnknown: (p) => `unbekannter Schl\xFCssel \u201E${s2(p, "name")}\u201C`,
+  mailtoEncrypted: () => "ein verschl\xFCsseltes mailto schreibt das ganze Chiffrat in die Mail",
+  minSecondsValue: () => "eine ganze Zahl Sekunden, 0 oder mehr",
+  powDifficultyValue: () => "eine ganze Zahl von 8 bis 20",
+  captchaValue: () => "none, turnstile oder hcaptcha",
+  siteKeyNeeded: (p) => `${s2(p, "provider")} braucht den Site-Key`,
+  anonymousCaptcha: (p) => `anonym, deshalb wird das Captcha von ${s2(p, "provider")} nicht geladen`,
+  noRelayEffect: () => "wirkt nur mit dem Relay",
+  powNoScript: () => "ein einfacher Post ohne JavaScript (noScript: true) umgeht es; noScript: false verlangt das Skript",
+  minSecondsNoScript: () => "ein einfacher Post ohne JavaScript (noScript: true) tr\xE4gt keinen Stempel und umgeht es; noScript: false verlangt das Skript",
+  powSlow: (p) => `${s2(p, "bits")} Bit dauern auf einem Telefon vor jeder Nachricht Sekunden`,
+  positiveInteger: () => "eine positive ganze Zahl",
+  maxBytesLow: (p) => `${s2(p, "maxBytes")} ist kleiner als das, was die Felder fassen (etwa ${s2(p, "capacity")} Bytes${p.encrypted ? " verschl\xFCsselt" : ""}); eine lange Nachricht w\xFCrde als zu gro\xDF abgewiesen`,
+  pageContextAnonymous: () => "anonym, deshalb wird die Seite nicht mitgeschickt",
+  personalOptional: (p) => `anonym, deshalb kann \u201E${s2(p, "name")}\u201C (${s2(p, "type")}) kein Pflichtfeld sein und wird optional`,
+  successMode: () => "inline oder redirect",
+  successSlug: () => "redirect braucht den Slug einer Seite",
+  languageValue: (p) => `\u201E${s2(p, "value")}\u201C ist weder auto noch ein Sprachcode`,
+  frontmatterKeyEmpty: () => "leer",
+  layoutFormUnknown: (p) => `kein Formular \u201E${s2(p, "id")}\u201C`,
+  codeBlockLangValue: () => "ein Wort ohne Leerzeichen",
+  textsLocaleUnknown: () => "das Plugin hat keine Texte in dieser Sprache; sie gelten, wie sie dastehen",
+  textsShape: () => "ein Record Textschl\xFCssel \u2192 Wortlaut",
+  textsKeyUnknown: () => "diesen Textschl\xFCssel gibt es nicht",
+  cliNeedsValue: (p) => `${s2(p, "arg")} braucht einen Wert`,
+  cliUnknownArgument: (p) => `unbekanntes Argument ${s2(p, "arg")}`,
+  cliNoSite: () => "kein Website-Ordner angegeben (--site)",
+  cliConfigMissing: (p) => `${s2(p, "path")} fehlt`,
+  cliNoEntry: (p) => `kein quartz-forms-Eintrag in ${s2(p, "path")}`,
+  cliEntries: (p) => `${s2(p, "count")} Eintr\xE4ge von quartz-forms; es gilt der erste`,
+  cliNoOut: () => "kein Ausgabeordner angegeben (--out)",
+  cliUnknownCommand: (p) => `unbekannter Befehl \u201E${s2(p, "command")}\u201C (relay, check, key)`,
+  cliNoKey: () => "kein Schl\xFCssel angegeben (--file oder der Text in QF_KEY_ARMORED)",
+  cliKeyUnreadable: (p) => `${s2(p, "file")}: fehlt oder ist nicht lesbar`,
+  cliOperatorJson: () => "QF_RELAY_OPERATOR: kein JSON",
+  cliOperatorProblems: (p) => `${s2(p, "count")} Problem(e) in den Werten des Betreibers`,
+  cliOptionProblems: (p) => `[forms] ${s2(p, "count")} Problem(e) in den Optionen von quartz-forms:`,
+  cliNoPhp: (p) => `${s2(p, "count")} Muster nicht gegen PCRE gepr\xFCft: kein php im PATH. Das Relay weist jeden Wert eines Felds ab, dessen Muster sein PCRE nicht lesen kann.`,
+  cliPhpFailed: (p) => `php konnte die Muster nicht pr\xFCfen:
+${s2(p, "message")}`,
+  cliPhpFailedShort: () => "php konnte die Muster nicht pr\xFCfen",
+  cliPatternUnreadable: (p) => `forms.${s2(p, "form")} Feld \u201E${s2(p, "field")}\u201C: PCRE kann das Muster \u201E${s2(p, "pattern")}\u201C nicht lesen (${s2(p, "why")}); das Relay w\xFCrde jeden Wert dieses Felds abweisen`,
+  cliPatternRefusal: () => "ein Muster, das PCRE nicht lesen kann",
+  cliNothingWritten: () => "nichts geschrieben; korrigiere das Muster oder gib --skip-pattern-check an, wenn das PCRE des Hosts neuer ist als das dieses Rechners",
+  cliWrittenAnyway: () => "trotzdem geschrieben (--skip-pattern-check)",
+  cliMissingRecipient: (p) => `keine Adresse f\xFCr den Empf\xE4nger \u201E${s2(p, "name")}\u201C; das Relay weist seine Formulare ab`,
+  operatorNotObject: () => "operator: kein Objekt",
+  operatorSecret: () => "operator.secret: mindestens 32 Zeichen",
+  operatorOrigins: () => "operator.allowedOrigins: eine Liste von Origins",
+  operatorFrom: () => "operator.from: die E-Mail-Adresse des Absenders",
+  operatorMailer: () => 'operator.mailer: "mail", { sendmail } oder { file }',
+  operatorRecord: (p) => `operator.${s2(p, "key")}: ein Record Name \u2192 Text`,
+  operatorText: (p) => `operator.${s2(p, "key")}: ein Text`,
+  operatorCounterDir: () => "operator.counterDir: ein absoluter Pfad auf dem Server"
+};
+var de_default = de;
+
+// src/messages/index.ts
+var MESSAGE_LANGS = ["en", "de"];
+var catalogs = {
+  en: en_default,
+  de: de_default
+};
+function messageLang(code) {
+  const primary = (code ?? "").toLowerCase().split(/[-_]/)[0];
+  return MESSAGE_LANGS.includes(primary ?? "") ? primary : "en";
+}
+function messageText(code, params = {}, lang = "en") {
+  const catalog = catalogs[lang];
+  const t2 = (c, p) => c in catalog ? catalog[c](p ?? {}, t2) : c;
+  return catalog[code](params, t2);
+}
+function formatMessage(message, lang = "en") {
+  const text = messageText(message.code, message.params, lang);
+  return message.path ? `${message.path}: ${text}` : text;
+}
+
 // src/pgp/armor.ts
 var BLOCK = /-----BEGIN PGP ([A-Z ]+?)-----[\s\S]*?-----END PGP \1-----/g;
 var PUBLIC = "PUBLIC KEY BLOCK";
+function refused(code, params) {
+  return { problem: messageText(code, params), code, ...params ? { params } : {} };
+}
 function publicKeyBlock(text) {
-  if (/-----BEGIN PGP PRIVATE KEY BLOCK-----/.test(text))
-    return {
-      problem: "holds a private key block; export only the public key (gpg --export --armor)"
-    };
+  if (/-----BEGIN PGP PRIVATE KEY BLOCK-----/.test(text)) return refused("armorPrivate");
   const blocks = [...text.matchAll(BLOCK)];
   const begins = text.match(/-----BEGIN PGP /g)?.length ?? 0;
   const first = blocks[0];
-  if (!first) return { problem: "not an armored PGP public key block" };
-  if (begins > blocks.length) return { problem: "holds an incomplete armor block" };
+  if (!first) return refused("armorNone");
+  if (begins > blocks.length) return refused("armorIncomplete");
   const other = blocks.find((b) => b[1] !== PUBLIC);
-  if (other) return { problem: `holds a PGP ${other[1]} besides the public key` };
-  if (blocks.length > 1)
-    return { problem: `holds ${blocks.length} key blocks; one public key per source` };
+  if (other) return refused("armorOther", { kind: other[1] });
+  if (blocks.length > 1) return refused("armorMany", { count: blocks.length });
   return { armored: first[0] };
 }
 
@@ -338,18 +606,27 @@ function textKeys() {
 }
 
 // src/validate.ts
+function problem(out, path2, code, params) {
+  const m = { path: path2, code, ...params ? { params } : {} };
+  out.problemMessages.push(m);
+  out.problems.push(formatMessage(m));
+}
+function hint(out, path2, code, params) {
+  const m = { path: path2, code, ...params ? { params } : {} };
+  out.hintMessages.push(m);
+  out.hints.push(formatMessage(m));
+}
 var FORM_ID = /^[a-z0-9][a-z0-9-]*$/;
 var FIELD_NAME = /^[A-Za-z][A-Za-z0-9_-]*$/;
 var LANGUAGE_OPTION = /^[A-Za-z]{2,3}([-_][A-Za-z0-9]+)*$|^auto$/;
-function jsOnlyPattern(pattern) {
+function jsOnlyPatternCode(pattern) {
   const lookbehinds = [];
   let depth = 0;
   let inClass = false;
   for (let i = 0; i < pattern.length; i++) {
     const c = pattern[i];
     if (c === "\\") {
-      if (pattern[i + 1] === "u")
-        return "`\\u` escapes are JavaScript only, the relay's PCRE cannot read them: write the character itself, or `\\xHH` below U+0100";
+      if (pattern[i + 1] === "u") return "patternJsU";
       i++;
       continue;
     }
@@ -359,10 +636,8 @@ function jsOnlyPattern(pattern) {
     }
     switch (c) {
       case "[":
-        if (pattern.startsWith("[^]", i))
-          return "`[^]` is JavaScript only, the relay's PCRE cannot read it: write `[\\s\\S]`";
-        if (pattern[i + 1] === "]")
-          return "`[]` is JavaScript only (it matches nothing), the relay's PCRE cannot read it";
+        if (pattern.startsWith("[^]", i)) return "patternJsNegClass";
+        if (pattern[i + 1] === "]") return "patternJsEmptyClass";
         inClass = true;
         break;
       case "(":
@@ -378,7 +653,7 @@ function jsOnlyPattern(pattern) {
       case "+":
       case "{":
         if (lookbehinds.length > 0 && (c !== "{" || /^\{\d+,\}/.test(pattern.slice(i))))
-          return "a lookbehind of unlimited length is JavaScript only, the relay's PCRE cannot read it";
+          return "patternJsLookbehind";
         break;
     }
   }
@@ -417,28 +692,32 @@ var PERSONAL_AUTOCOMPLETE = /* @__PURE__ */ new Set([
   "organization"
 ]);
 var isObject = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
-function textProblem(text, at) {
-  if (text === void 0) return void 0;
-  if (typeof text === "string") return text.trim() ? void 0 : `${at}: empty text`;
-  if (!isObject(text)) return `${at}: a text is a string or a record of language \u2192 string`;
-  const entries = Object.entries(text);
-  if (entries.length === 0) return `${at}: empty text record`;
-  for (const [lang, value] of entries) {
-    if (typeof value !== "string" || !value.trim()) return `${at}.${lang}: empty text`;
+function checkText(text, at, out) {
+  if (text === void 0) return;
+  if (typeof text === "string") {
+    if (!text.trim()) problem(out, at, "textEmpty");
+    return;
   }
-  return void 0;
+  if (!isObject(text)) return problem(out, at, "textShape");
+  const entries = Object.entries(text);
+  if (entries.length === 0) return problem(out, at, "textRecordEmpty");
+  for (const [lang, value] of entries) {
+    if (typeof value !== "string" || !value.trim())
+      return problem(out, `${at}.${lang}`, "textEmpty");
+  }
 }
 function checkField(field, at, out) {
   if (!isObject(field)) {
-    out.problems.push(`${at}: a field is an object with a type and a name`);
+    problem(out, at, "fieldShape");
     return;
   }
   if (typeof field.name !== "string" || !FIELD_NAME.test(field.name)) {
-    out.problems.push(
-      `${at}: field name ${JSON.stringify(field.name)} must match ${FIELD_NAME} (a letter, then letters, digits, _ or -)`
-    );
+    problem(out, at, "fieldNamePattern", {
+      name: JSON.stringify(field.name),
+      pattern: String(FIELD_NAME)
+    });
   } else if (RESERVED_NAMES.has(field.name) || field.name.startsWith("_")) {
-    out.problems.push(`${at}: field name "${field.name}" is reserved by the submission envelope`);
+    problem(out, at, "fieldNameReserved", { name: field.name });
   }
   const texts = [];
   switch (field.type) {
@@ -451,16 +730,15 @@ function checkField(field, at, out) {
     case "textarea":
       texts.push(["label", field.label], ["placeholder", field.placeholder], ["hint", field.hint]);
       if (field.min !== void 0 && field.max !== void 0 && field.min > field.max)
-        out.problems.push(`${at}: min ${field.min} is above max ${field.max}`);
-      if (field.maxLength !== void 0 && field.maxLength < 1)
-        out.problems.push(`${at}: maxLength must be at least 1`);
+        problem(out, at, "minAboveMax", { min: field.min, max: field.max });
+      if (field.maxLength !== void 0 && field.maxLength < 1) problem(out, at, "maxLengthMin");
       if (field.pattern !== void 0) {
         try {
           new RegExp(field.pattern, "u");
-          const jsOnly = jsOnlyPattern(field.pattern);
-          if (jsOnly) out.problems.push(`${at}.pattern: ${jsOnly}`);
+          const jsOnly = jsOnlyPatternCode(field.pattern);
+          if (jsOnly) problem(out, `${at}.pattern`, jsOnly);
         } catch (e) {
-          out.problems.push(`${at}: pattern is not a regular expression (${e.message})`);
+          problem(out, at, "patternInvalid", { error: e.message });
         }
       }
       break;
@@ -469,17 +747,17 @@ function checkField(field, at, out) {
     case "checkboxes": {
       texts.push(["label", field.label], ["hint", field.hint]);
       if (!Array.isArray(field.options) || field.options.length === 0) {
-        out.problems.push(`${at}: a ${field.type} field needs at least one option`);
+        problem(out, at, "optionsNeeded", { type: field.type });
         break;
       }
       const seen = /* @__PURE__ */ new Set();
       field.options.forEach((opt, i) => {
         if (!isObject(opt) || typeof opt.value !== "string" || !opt.value.length) {
-          out.problems.push(`${at}.options[${i}]: an option is { value, label } with a value`);
+          problem(out, `${at}.options[${i}]`, "optionShape");
           return;
         }
         if (seen.has(opt.value))
-          out.problems.push(`${at}.options[${i}]: value "${opt.value}" twice`);
+          problem(out, `${at}.options[${i}]`, "optionTwice", { value: opt.value });
         seen.add(opt.value);
         texts.push([`options[${i}].label`, opt.label]);
       });
@@ -496,34 +774,30 @@ function checkField(field, at, out) {
         ["maxLabel", field.maxLabel]
       );
       if (!Number.isInteger(field.min) || !Number.isInteger(field.max))
-        out.problems.push(`${at}: a scale has integer min and max`);
+        problem(out, at, "scaleInteger");
       else if (field.min >= field.max)
-        out.problems.push(`${at}: scale min ${field.min} must be below max ${field.max}`);
-      else if (field.max - field.min > 20)
-        out.problems.push(`${at}: a scale spans at most 21 steps`);
+        problem(out, at, "scaleOrder", { min: field.min, max: field.max });
+      else if (field.max - field.min > 20) problem(out, at, "scaleSpan");
       break;
     case "consent":
       texts.push(["text", field.text], ["linkLabel", field.linkLabel]);
-      if (field.text === void 0) out.problems.push(`${at}: a consent field needs a text`);
+      if (field.text === void 0) problem(out, at, "consentText");
       break;
     case "pgpKey":
       texts.push(["label", field.label], ["hint", field.hint]);
       break;
     case "hidden":
-      if (typeof field.value !== "string") out.problems.push(`${at}: a hidden field needs a value`);
+      if (typeof field.value !== "string") problem(out, at, "hiddenValue");
       break;
     default:
-      out.problems.push(
-        `${at}: unknown field type ${JSON.stringify(field.type)}`
-      );
+      problem(out, at, "fieldTypeUnknown", {
+        type: JSON.stringify(field.type)
+      });
       return;
   }
   if (field.type !== "hidden" && field.type !== "consent" && field.label === void 0)
-    out.problems.push(`${at}: a ${field.type} field needs a label`);
-  for (const [key, text] of texts) {
-    const p = textProblem(text, `${at}.${key}`);
-    if (p) out.problems.push(p);
-  }
+    problem(out, at, "labelNeeded", { type: field.type });
+  for (const [key, text] of texts) checkText(text, `${at}.${key}`, out);
 }
 function isPersonalField(field) {
   switch (field.type) {
@@ -545,34 +819,39 @@ function isPersonalField(field) {
 function checkKeySource(name, src, out) {
   const at = `keys.${name}`;
   if (!isObject(src)) {
-    out.problems.push(`${at}: a key is { file } or { armored }`);
+    problem(out, at, "keyShape");
     return;
   }
   const file = typeof src.file === "string" && src.file.trim() !== "" ? src.file : void 0;
   const armored = typeof src.armored === "string" && src.armored.trim() !== "" ? src.armored : void 0;
   if (file === void 0 === (armored === void 0)) {
-    out.problems.push(`${at}: exactly one of file or armored`);
+    problem(out, at, "keyExactlyOne");
     return;
   }
   if (armored !== void 0) {
     const block2 = publicKeyBlock(armored);
-    if (block2.problem) out.problems.push(`${at}.armored: ${block2.problem}`);
+    if (block2.problem) problem(out, `${at}.armored`, block2.code, block2.params);
     return;
   }
   const abs = path.resolve(process.cwd(), file);
   if (!abs.startsWith(process.cwd() + path.sep)) {
-    out.problems.push(`${at}.file: ${src.file} lies outside the site`);
+    problem(out, `${at}.file`, "keyOutside", { file: String(src.file) });
     return;
   }
   let text;
   try {
     text = fs.readFileSync(abs, "utf8");
   } catch {
-    out.problems.push(`${at}.file: ${src.file} not found or not readable`);
+    problem(out, `${at}.file`, "keyUnreadable", { file: String(src.file) });
     return;
   }
   const block = publicKeyBlock(text);
-  if (block.problem) out.problems.push(`${at}.file: ${src.file}: ${block.problem}`);
+  if (block.problem)
+    problem(out, `${at}.file`, "keyFileBlock", {
+      file: String(src.file),
+      problem: block.code,
+      ...block.params
+    });
 }
 function submissionCapacity(form) {
   let chars = 0;
@@ -601,22 +880,19 @@ function submissionCapacity(form) {
 }
 function checkForm(form, raw, rawSpam, keyNames, out) {
   const at = `forms.${form.id}`;
-  if (!FORM_ID.test(form.id))
-    out.problems.push(`${at}: form id must match ${FORM_ID} (lower-case letters, digits, -)`);
+  if (!FORM_ID.test(form.id)) problem(out, at, "formIdPattern", { pattern: String(FORM_ID) });
   if (raw.template !== void 0 && !isTemplateName(raw.template))
-    out.problems.push(`${at}.template: unknown template ${JSON.stringify(raw.template)}`);
+    problem(out, `${at}.template`, "templateUnknown", { name: JSON.stringify(raw.template) });
   for (const [key, text] of [
     ["title", form.title],
     ["description", form.description],
     ["submitLabel", form.submitLabel],
     ["subject", form.subject],
     ["success.text", form.success.text]
-  ]) {
-    const p = textProblem(text, `${at}.${key}`);
-    if (p) out.problems.push(p);
-  }
+  ])
+    checkText(text, `${at}.${key}`, out);
   if (!Array.isArray(form.fields) || form.fields.length === 0) {
-    out.problems.push(`${at}: no fields (write fields or choose a template)`);
+    problem(out, at, "noFields");
   } else {
     const names = /* @__PURE__ */ new Set();
     let keyFields = 0;
@@ -624,120 +900,101 @@ function checkForm(form, raw, rawSpam, keyNames, out) {
       checkField(field, `${at}.fields[${i}]`, out);
       if (isObject(field) && typeof field.name === "string") {
         if (names.has(field.name))
-          out.problems.push(`${at}.fields[${i}]: field name "${field.name}" twice`);
+          problem(out, `${at}.fields[${i}]`, "fieldNameTwice", { name: field.name });
         names.add(field.name);
       }
       if (isObject(field) && field.type === "pgpKey") keyFields++;
     });
-    if (keyFields > 1) out.problems.push(`${at}: at most one pgpKey field`);
+    if (keyFields > 1) problem(out, at, "onePgpKey");
   }
   const tr = form.transport;
   switch (tr.kind) {
     case "relay":
     case "endpoint": {
       if (!tr.url) {
-        out.problems.push(`${at}.transport.url: ${tr.kind} needs a URL`);
+        problem(out, `${at}.transport.url`, "urlNeeded", { kind: tr.kind });
       } else if (!/^https?:\/\//.test(tr.url)) {
-        out.problems.push(`${at}.transport.url: ${tr.url} is not an http(s) URL`);
+        problem(out, `${at}.transport.url`, "urlNotHttp", { url: tr.url });
       } else if (/^http:\/\//.test(tr.url) && !/^http:\/\/(localhost|127\.0\.0\.1)[:/]/.test(tr.url)) {
-        out.hints.push(
-          `${at}.transport.url: ${tr.url} sends submissions unencrypted in transit (http)`
-        );
+        hint(out, `${at}.transport.url`, "urlPlainHttp", { url: tr.url });
       }
-      if (tr.kind === "relay" && !form.recipient)
-        out.problems.push(`${at}.recipient: the relay needs the recipient's name`);
+      if (tr.kind === "relay" && !form.recipient) problem(out, `${at}.recipient`, "relayRecipient");
       break;
     }
     case "formspree":
     case "web3forms":
-      if (!tr.url)
-        out.problems.push(`${at}.transport.url: ${tr.kind} needs the form id or access key`);
-      if (form.anonymous)
-        out.hints.push(
-          `${at}: anonymous, but ${tr.kind} sees the sender's address; see the README`
-        );
+      if (!tr.url) problem(out, `${at}.transport.url`, "presetUrl", { kind: tr.kind });
+      if (form.anonymous) hint(out, at, "anonymousService", { kind: tr.kind });
       break;
     case "mailto":
       if (!form.recipient || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.recipient))
-        out.problems.push(`${at}.recipient: mailto needs an e-mail address`);
+        problem(out, `${at}.recipient`, "mailtoRecipient");
       break;
     default:
-      out.problems.push(`${at}.transport.kind: unknown kind ${JSON.stringify(tr.kind)}`);
+      problem(out, `${at}.transport.kind`, "kindUnknown", { kind: JSON.stringify(tr.kind) });
   }
   if ((tr.kind === "relay" || tr.kind === "mailto") && Object.keys(tr.extra ?? {}).length > 0)
-    out.hints.push(
-      `${at}.transport.extra: has no effect with ${tr.kind === "relay" ? "the relay" : "mailto"}`
-    );
+    hint(out, `${at}.transport.extra`, tr.kind === "relay" ? "extraRelay" : "extraMailto");
   if (tr.format !== void 0 && tr.format !== "json" && tr.format !== "form")
-    out.problems.push(`${at}.transport.format: json or form`);
+    problem(out, `${at}.transport.format`, "formatValue");
   const enc = form.encryption;
   if (!["required", "optional", "off"].includes(enc.mode))
-    out.problems.push(`${at}.encryption.mode: required, optional or off`);
+    problem(out, `${at}.encryption.mode`, "modeValue");
   if (enc.mode !== "off") {
-    if (enc.keys.length === 0) out.problems.push(`${at}.encryption: no keys to encrypt to`);
+    if (enc.keys.length === 0) problem(out, `${at}.encryption`, "noKeys");
     for (const name of enc.keys)
-      if (!keyNames.includes(name))
-        out.problems.push(`${at}.encryption.keys: unknown key "${name}"`);
-    if (tr.kind === "mailto")
-      out.hints.push(`${at}: encrypted mailto puts the whole ciphertext into the mail body`);
+      if (!keyNames.includes(name)) problem(out, `${at}.encryption.keys`, "keyUnknown", { name });
+    if (tr.kind === "mailto") hint(out, at, "mailtoEncrypted");
   }
   const sp = form.spam;
   if (!Number.isInteger(sp.minSeconds) || sp.minSeconds < 0)
-    out.problems.push(`${at}.spam.minSeconds: a whole number of seconds, 0 or more`);
+    problem(out, `${at}.spam.minSeconds`, "minSecondsValue");
   if (!Number.isInteger(sp.powDifficulty) || sp.powDifficulty < 8 || sp.powDifficulty > 20)
-    out.problems.push(`${at}.spam.powDifficulty: an integer from 8 to 20`);
+    problem(out, `${at}.spam.powDifficulty`, "powDifficultyValue");
   if (!["none", "turnstile", "hcaptcha"].includes(sp.captcha))
-    out.problems.push(`${at}.spam.captcha: none, turnstile or hcaptcha`);
+    problem(out, `${at}.spam.captcha`, "captchaValue");
   if (sp.captcha !== "none" && !sp.captchaSiteKey && !form.anonymous)
-    out.problems.push(`${at}.spam.captchaSiteKey: ${sp.captcha} needs the site key`);
+    problem(out, `${at}.spam.captchaSiteKey`, "siteKeyNeeded", { provider: sp.captcha });
   if (sp.captcha !== "none" && form.anonymous)
-    out.hints.push(`${at}: anonymous, so the ${sp.captcha} captcha is not loaded`);
+    hint(out, at, "anonymousCaptcha", { provider: sp.captcha });
   if (tr.kind !== "relay") {
-    if (sp.pow) out.hints.push(`${at}.spam.pow: has no effect without the relay`);
+    if (sp.pow) hint(out, `${at}.spam.pow`, "noRelayEffect");
     if (sp.rateLimitPerHour > 0 && (raw.spam?.rateLimitPerHour !== void 0 || rawSpam.rateLimitPerHour !== void 0))
-      out.hints.push(`${at}.spam.rateLimitPerHour: has no effect without the relay`);
+      hint(out, `${at}.spam.rateLimitPerHour`, "noRelayEffect");
   } else if (sp.noScript) {
-    if (sp.pow)
-      out.hints.push(
-        `${at}.spam.pow: a plain post without JavaScript (noScript: true) skips it; noScript: false requires the script`
-      );
+    if (sp.pow) hint(out, `${at}.spam.pow`, "powNoScript");
     if (sp.minSeconds > 0 && (raw.spam?.minSeconds !== void 0 || rawSpam.minSeconds !== void 0))
-      out.hints.push(
-        `${at}.spam.minSeconds: a plain post without JavaScript (noScript: true) carries no stamp and skips it; noScript: false requires the script`
-      );
+      hint(out, `${at}.spam.minSeconds`, "minSecondsNoScript");
   }
   if (sp.pow && tr.kind === "relay" && sp.powDifficulty >= 18 && sp.powDifficulty <= 20)
-    out.hints.push(
-      `${at}.spam.powDifficulty: ${sp.powDifficulty} bits take seconds on a phone before every message`
-    );
+    hint(out, `${at}.spam.powDifficulty`, "powSlow", { bits: sp.powDifficulty });
   for (const key of ["maxFieldLength", "maxTextareaLength", "maxKeyLength", "maxBytes"])
     if (!Number.isInteger(sp[key]) || sp[key] < 1)
-      out.problems.push(`${at}.spam.${key}: a positive integer`);
+      problem(out, `${at}.spam.${key}`, "positiveInteger");
   if (Number.isInteger(sp.maxBytes) && sp.maxBytes >= 1) {
     const capacity = submissionCapacity(form);
     if (capacity > sp.maxBytes)
-      out.hints.push(
-        `${at}.spam.maxBytes: ${sp.maxBytes} is below what the fields may hold (about ${capacity} bytes${enc.mode === "off" ? "" : " once encrypted"}); a long message would be refused as too large`
-      );
+      hint(out, `${at}.spam.maxBytes`, "maxBytesLow", {
+        maxBytes: sp.maxBytes,
+        capacity,
+        encrypted: enc.mode !== "off"
+      });
   }
   if (form.anonymous) {
-    if (raw.pageContext === true)
-      out.hints.push(`${at}.pageContext: anonymous, so the page is not sent along`);
+    if (raw.pageContext === true) hint(out, `${at}.pageContext`, "pageContextAnonymous");
     const written = raw.fields ?? (isTemplateName(raw.template) ? templateOf(raw.template).fields : void 0);
     written?.forEach((field, i) => {
       if (isObject(field) && "required" in field && field.required && isPersonalField(field))
-        out.hints.push(
-          `${at}.fields[${i}]: anonymous, so "${field.name}" (${field.type}) cannot be required and is made optional`
-        );
+        hint(out, `${at}.fields[${i}]`, "personalOptional", { name: field.name, type: field.type });
     });
   }
   if (form.success.mode !== "inline" && form.success.mode !== "redirect")
-    out.problems.push(`${at}.success.mode: inline or redirect`);
+    problem(out, `${at}.success.mode`, "successMode");
   if (form.success.mode === "redirect" && !form.success.slug)
-    out.problems.push(`${at}.success.slug: redirect needs the slug of a page`);
+    problem(out, `${at}.success.slug`, "successSlug");
 }
 function validate(opts, rawForms, rawSpam = {}) {
-  const out = { problems: [], hints: [] };
+  const out = { problems: [], hints: [], problemMessages: [], hintMessages: [] };
   const keyNames = Object.keys(opts.keys);
   for (const [name, src] of Object.entries(opts.keys)) checkKeySource(name, src, out);
   for (const form of Object.values(opts.forms)) {
@@ -745,25 +1002,23 @@ function validate(opts, rawForms, rawSpam = {}) {
     checkForm(form, isObject(raw) ? raw : {}, rawSpam, keyNames, out);
   }
   if (!LANGUAGE_OPTION.test(opts.language))
-    out.problems.push(`language: "${opts.language}" is neither auto nor a language code`);
-  if (!opts.frontmatterKey.trim()) out.problems.push("frontmatterKey: empty");
+    problem(out, "language", "languageValue", { value: opts.language });
+  if (!opts.frontmatterKey.trim()) problem(out, "frontmatterKey", "frontmatterKeyEmpty");
   if (opts.layoutForm && !(opts.layoutForm in opts.forms))
-    out.problems.push(`layoutForm: no form "${opts.layoutForm}"`);
+    problem(out, "layoutForm", "layoutFormUnknown", { id: opts.layoutForm });
   if (!opts.codeBlockLang.trim() || /\s/.test(opts.codeBlockLang))
-    out.problems.push("codeBlockLang: one word without spaces");
+    problem(out, "codeBlockLang", "codeBlockLangValue");
   const known = new Set(textKeys());
   const locales2 = availableLocales().map((l) => l.toLowerCase().split("-")[0]);
   for (const [locale, entries] of Object.entries(opts.texts)) {
     if (!locales2.includes(locale.toLowerCase().split(/[-_]/)[0]))
-      out.hints.push(
-        `texts.${locale}: the plugin has no texts in this language; they are used as written`
-      );
+      hint(out, `texts.${locale}`, "textsLocaleUnknown");
     if (!isObject(entries)) {
-      out.problems.push(`texts.${locale}: a record of text key \u2192 wording`);
+      problem(out, `texts.${locale}`, "textsShape");
       continue;
     }
     for (const key of Object.keys(entries))
-      if (!known.has(key)) out.hints.push(`texts.${locale}.${key}: no such text key`);
+      if (!known.has(key)) hint(out, `texts.${locale}.${key}`, "textsKeyUnknown");
   }
   return out;
 }
@@ -871,15 +1126,19 @@ function resolveOptions(userOpts) {
     language: typeof user.language === "string" ? user.language : "auto",
     texts: isObject2(user.texts) ? user.texts : {},
     problems: [],
-    hints: []
+    hints: [],
+    problemMessages: [],
+    hintMessages: []
   };
-  const { problems, hints } = validate(
+  const { problems, hints, problemMessages, hintMessages } = validate(
     resolved,
     rawForms,
     isObject2(user.spam) ? withoutNulls(user.spam) : {}
   );
   resolved.problems = problems;
   resolved.hints = hints;
+  resolved.problemMessages = problemMessages;
+  resolved.hintMessages = hintMessages;
   return resolved;
 }
 function resolveOrThrow(userOpts) {
@@ -893,9 +1152,9 @@ function resolveOrThrow(userOpts) {
   return opts;
 }
 function logHints(opts) {
-  for (const hint of opts.hints) warnOnce(hint, hint);
+  for (const hint2 of opts.hints) warnOnce(hint2, hint2);
 }
 
-export { __commonJS, __export, __require, __toESM, defaultOptions, logHints, publicKeyBlock, resolveOptions, resolveOrThrow, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-XAPO2LDI.js.map
-//# sourceMappingURL=chunk-XAPO2LDI.js.map
+export { __commonJS, __export, __require, __toESM, defaultOptions, formatMessage, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, templateNames, templateOf, warnOnce, wording };
+//# sourceMappingURL=chunk-ISHKQPHX.js.map
+//# sourceMappingURL=chunk-ISHKQPHX.js.map

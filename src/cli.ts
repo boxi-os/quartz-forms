@@ -8,6 +8,10 @@
  *   node dist/cli.js check --site <dir> [--json]
  *   node dist/cli.js key   --site <dir> (--file <path> | armored text in QF_KEY_ARMORED) [--json]
  *
+ * `--lang de` gives every message a caller shows (problems, hints, key problems, refusals,
+ * warnings) in German; English without it, as the build log has them. The status lines of a run
+ * in a terminal (`wrote …`, `kept …`) stay English.
+ *
  * `relay` takes the owner's values (secret, origins, sender, addresses, captcha secrets) from the
  * environment variable QF_RELAY_OPERATOR as JSON and then writes config.php from them on every
  * run; without it config.php is created once from the example and kept. Secrets never travel
@@ -36,8 +40,22 @@ import {
   type RelayOperator,
 } from "./relay/generate";
 import type { QuartzFormsOptions, ResolvedOptions } from "./types";
+import {
+  formatMessage,
+  messageLang,
+  messageText,
+  type Message,
+  type MessageCode,
+  type MessageLang,
+  type Params,
+} from "./messages";
 
 const ENTRY = /(^|[/:])quartz-forms(\.git)?(#.*)?$/;
+
+/** The language of the messages this run hands out; set once from `--lang` in main(). */
+let lang: MessageLang = "en";
+const m = (code: MessageCode, params?: Params): string => messageText(code, params, lang);
+const fm = (message: Message): string => formatMessage(message, lang);
 
 class Refusal extends Error {
   constructor(
@@ -56,6 +74,7 @@ interface Args {
   file?: string;
   json: boolean;
   skipPatternCheck: boolean;
+  lang?: string;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -65,12 +84,12 @@ function parseArgs(argv: string[]): Args {
     const a = rest[i]!;
     if (a === "--json") args.json = true;
     else if (a === "--skip-pattern-check") args.skipPatternCheck = true;
-    else if (a === "--site" || a === "--out" || a === "--file") {
+    else if (a === "--site" || a === "--out" || a === "--file" || a === "--lang") {
       const value = rest[++i];
-      if (value === undefined) throw new Refusal(`${a} needs a value`, {}, 2);
-      args[a.slice(2) as "site" | "out" | "file"] = value;
+      if (value === undefined) throw new Refusal(m("cliNeedsValue", { arg: a }), {}, 2);
+      args[a.slice(2) as "site" | "out" | "file" | "lang"] = value;
     } else if (a === "--") continue;
-    else throw new Refusal(`unknown argument ${a}`, {}, 2);
+    else throw new Refusal(m("cliUnknownArgument", { arg: a }), {}, 2);
   }
   return args;
 }
@@ -84,16 +103,17 @@ interface Site {
 }
 
 function readSite(site: string | undefined): Site {
-  if (!site) throw new Refusal("no site directory given (--site)", {}, 2);
+  if (!site) throw new Refusal(m("cliNoSite"), {}, 2);
   const dir = path.resolve(site);
   const configPath = path.join(dir, "quartz.config.yaml");
-  if (!fs.existsSync(configPath)) throw new Refusal(`${configPath} not found`, {}, 2);
+  if (!fs.existsSync(configPath))
+    throw new Refusal(m("cliConfigMissing", { path: configPath }), {}, 2);
   const yaml = (YAML.parse(fs.readFileSync(configPath, "utf8")) ?? {}) as Record<string, unknown>;
   const plugins = Array.isArray(yaml.plugins) ? (yaml.plugins as Record<string, unknown>[]) : [];
   const entries = plugins.filter(
     (p) => ENTRY.test(String(p?.source ?? "")) || p?.name === "quartz-forms",
   );
-  if (entries.length === 0) throw new Refusal(`no quartz-forms entry in ${configPath}`, {}, 2);
+  if (entries.length === 0) throw new Refusal(m("cliNoEntry", { path: configPath }), {}, 2);
   return {
     dir,
     configPath,
@@ -128,6 +148,13 @@ function resolveAt(site: Site): ResolvedOptions {
   return inSite(site.dir, () => resolveOptions(site.rawOptions));
 }
 
+/** A key report with its problem in this run's language. */
+function localized(report: KeyReport): KeyReport {
+  if (!report.code) return report;
+  const { code, params, ...rest } = report;
+  return { ...rest, problem: m(code, params) };
+}
+
 /** Every key the options name, read and checked as the build checks the ones in use. */
 async function keyReports(site: Site, opts: ResolvedOptions): Promise<KeyReport[]> {
   return inSiteAsync(site.dir, async () => {
@@ -139,20 +166,20 @@ async function keyReports(site: Site, opts: ResolvedOptions): Promise<KeyReport[
         try {
           text = fs.readFileSync(path.resolve(src.file), "utf8");
         } catch {
-          out.push({ name, fingerprint: "", userIds: [], problem: "not found or not readable" });
+          out.push({ name, fingerprint: "", userIds: [], problem: m("keyFileUnreadable") });
           continue;
         }
       }
       if (text === undefined) {
-        out.push({ name, fingerprint: "", userIds: [], problem: "neither file nor armored" });
+        out.push({ name, fingerprint: "", userIds: [], problem: m("keyMissingSource") });
         continue;
       }
       const block = publicKeyBlock(text);
       if (block.armored === undefined) {
-        out.push({ name, fingerprint: "", userIds: [], problem: block.problem });
+        out.push({ name, fingerprint: "", userIds: [], problem: m(block.code, block.params) });
         continue;
       }
-      out.push(await checkKey(name, block.armored));
+      out.push(localized(await checkKey(name, block.armored)));
     }
     return out;
   });
@@ -164,7 +191,13 @@ async function commandCheck(args: Args): Promise<Record<string, unknown>> {
   const site = readSite(args.site);
   const opts = resolveAt(site);
   const keys = await keyReports(site, opts);
-  return { ok: true, entries: site.entries, problems: opts.problems, hints: opts.hints, keys };
+  return {
+    ok: true,
+    entries: site.entries,
+    problems: opts.problemMessages.map(fm),
+    hints: opts.hintMessages.map(fm),
+    keys,
+  };
 }
 
 async function commandKey(args: Args): Promise<Record<string, unknown>> {
@@ -174,14 +207,17 @@ async function commandKey(args: Args): Promise<Record<string, unknown>> {
     try {
       text = fs.readFileSync(file, "utf8");
     } catch {
-      throw new Refusal(`${args.file}: not found or not readable`);
+      throw new Refusal(m("cliKeyUnreadable", { file: args.file }));
     }
   } else if (process.env.QF_KEY_ARMORED) text = process.env.QF_KEY_ARMORED;
-  else throw new Refusal("no key given (--file, or the armored text in QF_KEY_ARMORED)", {}, 2);
+  else throw new Refusal(m("cliNoKey"), {}, 2);
   const block = publicKeyBlock(text);
   if (block.armored === undefined)
-    return { ok: true, key: { name: "", fingerprint: "", userIds: [], problem: block.problem } };
-  return { ok: true, key: await checkKey("", block.armored), armored: block.armored };
+    return {
+      ok: true,
+      key: { name: "", fingerprint: "", userIds: [], problem: m(block.code, block.params) },
+    };
+  return { ok: true, key: localized(await checkKey("", block.armored)), armored: block.armored };
 }
 
 function shown(file: string): string {
@@ -194,20 +230,14 @@ function sayPatterns(check: PatternCheck, skip: boolean, warn: Say, say: Say): v
     case "none":
       return;
     case "no-php":
-      warn(
-        `relay-config: ${check.count} pattern(s) not checked against PCRE: no php on the PATH. The relay refuses every value of a field whose pattern its PCRE cannot read.`,
-      );
+      warn(`relay-config: ${m("cliNoPhp", { count: check.count })}`);
       return;
     case "failed":
-      warn(`relay-config: php could not check the patterns:\n${check.message}`);
+      warn(`relay-config: ${m("cliPhpFailed", { message: check.message })}`);
       return;
     case "checked":
-      for (const e of check.errors)
-        warn(
-          `relay-config: forms.${e.form} field "${e.field}": PCRE cannot read the pattern "${e.pattern}" (${e.why}); the relay would refuse every value of this field`,
-        );
-      if (check.errors.length > 0 && skip)
-        warn("relay-config: written anyway (--skip-pattern-check)");
+      for (const e of check.errors) warn(`relay-config: ${m("cliPatternUnreadable", { ...e })}`);
+      if (check.errors.length > 0 && skip) warn(`relay-config: ${m("cliWrittenAnyway")}`);
       else if (check.errors.length === 0)
         say(
           `${check.count} pattern(s) read by PCRE ${check.pcre} (PHP ${check.php} on this machine; the host's may be older)`,
@@ -222,41 +252,41 @@ function readOperator(): RelayOperator | undefined {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    throw new Refusal("QF_RELAY_OPERATOR: not JSON");
+    throw new Refusal(m("cliOperatorJson"));
   }
   const problems = operatorProblems(parsed);
   if (problems.length > 0)
-    throw new Refusal(`${problems.length} problem(s) in the operator values`, { problems });
+    throw new Refusal(m("cliOperatorProblems", { count: problems.length }), {
+      problems: problems.map(fm),
+    });
   return parsed as RelayOperator;
 }
 
 async function commandRelay(args: Args, say: Say, warn: Say): Promise<Record<string, unknown>> {
   const site = readSite(args.site);
-  if (!args.out) throw new Refusal("no output directory given (--out)", {}, 2);
+  if (!args.out) throw new Refusal(m("cliNoOut"), {}, 2);
   const outDir = path.resolve(args.out);
   const operator = readOperator();
-  if (site.entries > 1)
-    warn(`relay-config: ${site.entries} quartz-forms entries; taking the first`);
+  if (site.entries > 1) warn(`relay-config: ${m("cliEntries", { count: site.entries })}`);
   const opts = resolveAt(site);
-  if (opts.problems.length > 0)
+  if (opts.problems.length > 0) {
+    const problems = opts.problemMessages.map(fm);
     throw new Refusal(
-      `[forms] ${opts.problems.length} problem(s) in the quartz-forms options:\n` +
-        opts.problems.map((p) => `  - ${p}`).join("\n"),
-      { problems: opts.problems },
+      `${m("cliOptionProblems", { count: problems.length })}\n` +
+        problems.map((p) => `  - ${p}`).join("\n"),
+      { problems },
     );
+  }
   const configuration = site.yaml.configuration as Record<string, unknown> | undefined;
   const data = relayData(opts, configuration?.baseUrl);
   const recipients = recipientNames(data);
 
   const patterns = checkPatterns(data);
   sayPatterns(patterns, args.skipPatternCheck, warn, say);
-  if (patterns.status === "failed")
-    throw new Refusal("php could not check the patterns", { patterns });
+  if (patterns.status === "failed") throw new Refusal(m("cliPhpFailedShort"), { patterns });
   if (patterns.status === "checked" && patterns.errors.length > 0 && !args.skipPatternCheck) {
-    warn(
-      "relay-config: nothing written; fix the pattern, or pass --skip-pattern-check when the host's PCRE is newer than this machine's",
-    );
-    throw new Refusal("a pattern PCRE cannot read", { patterns });
+    warn(`relay-config: ${m("cliNothingWritten")}`);
+    throw new Refusal(m("cliPatternRefusal"), { patterns });
   }
 
   const relayDir = path.join(pluginRoot(), "relay", "php");
@@ -290,7 +320,7 @@ async function commandRelay(args: Args, say: Say, warn: Say): Promise<Record<str
     configPhp = "written";
     missingRecipients = recipients.filter((r) => !operator.recipients[r]?.trim());
     for (const r of missingRecipients)
-      warn(`relay-config: no address for the recipient "${r}"; the relay refuses its forms`);
+      warn(`relay-config: ${m("cliMissingRecipient", { name: r })}`);
     say(`wrote ${shown(configFile)} from the operator values`);
   } else if (!fs.existsSync(configFile)) {
     const example = fs.readFileSync(path.join(relayDir, "config.example.php"), "utf8");
@@ -324,13 +354,16 @@ export async function main(argv: string[]): Promise<number> {
   const warnings: string[] = [];
   const say: Say = (line) => (json ? lines.push(line) : console.log(line));
   const warn: Say = (line) => (json ? warnings.push(line) : console.warn(line));
+  // Before the arguments are read, so that a refusal of them is in the language asked for too.
+  const langAt = argv.indexOf("--lang");
+  lang = messageLang(langAt >= 0 ? argv[langAt + 1] : undefined);
   try {
     const args = parseArgs(argv);
     let result: Record<string, unknown>;
     if (args.command === "relay") result = await commandRelay(args, say, warn);
     else if (args.command === "check") result = await commandCheck(args);
     else if (args.command === "key") result = await commandKey(args);
-    else throw new Refusal(`unknown command "${args.command}" (relay, check, key)`, {}, 2);
+    else throw new Refusal(m("cliUnknownCommand", { command: args.command }), {}, 2);
     if (json) process.stdout.write(JSON.stringify({ ...result, warnings }) + "\n");
     else if (args.command !== "relay") console.log(JSON.stringify(result, null, 2));
     return 0;
@@ -344,7 +377,7 @@ export async function main(argv: string[]): Promise<number> {
       console.error(refusal.message);
       if (refusal.status === 2)
         console.error(
-          "usage: quartz-forms relay --site <dir> --out <dir> [--skip-pattern-check] | check --site <dir> | key --site <dir> --file <path>  [--json]",
+          "usage: quartz-forms relay --site <dir> --out <dir> [--skip-pattern-check] | check --site <dir> | key --site <dir> --file <path>  [--json] [--lang de|en]",
         );
     }
     return refusal.status;

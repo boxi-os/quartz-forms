@@ -5,8 +5,16 @@
 const BLOCK = /-----BEGIN PGP ([A-Z ]+?)-----[\s\S]*?-----END PGP \1-----/g;
 const PUBLIC = "PUBLIC KEY BLOCK";
 
+import { messageText, type MessageCode, type Params } from "../messages";
+
+/** The block, or why there is none: `problem` in English for the log, `code` for another language. */
 export type PublicKeyBlock =
-  { armored: string; problem?: undefined } | { armored?: undefined; problem: string };
+  | { armored: string; problem?: undefined; code?: undefined; params?: undefined }
+  | { armored?: undefined; problem: string; code: MessageCode; params?: Params };
+
+function refused(code: MessageCode, params?: Params): PublicKeyBlock {
+  return { problem: messageText(code, params), code, ...(params ? { params } : {}) };
+}
 
 /**
  * The one public key block a key source may hold; only that block goes into the page. Before
@@ -17,18 +25,14 @@ export type PublicKeyBlock =
  * and the page gets the block, never the file.
  */
 export function publicKeyBlock(text: string): PublicKeyBlock {
-  if (/-----BEGIN PGP PRIVATE KEY BLOCK-----/.test(text))
-    return {
-      problem: "holds a private key block; export only the public key (gpg --export --armor)",
-    };
+  if (/-----BEGIN PGP PRIVATE KEY BLOCK-----/.test(text)) return refused("armorPrivate");
   const blocks = [...text.matchAll(BLOCK)];
   const begins = text.match(/-----BEGIN PGP /g)?.length ?? 0;
   const first = blocks[0];
-  if (!first) return { problem: "not an armored PGP public key block" };
-  if (begins > blocks.length) return { problem: "holds an incomplete armor block" };
+  if (!first) return refused("armorNone");
+  if (begins > blocks.length) return refused("armorIncomplete");
   const other = blocks.find((b) => b[1] !== PUBLIC);
-  if (other) return { problem: `holds a PGP ${other[1]} besides the public key` };
-  if (blocks.length > 1)
-    return { problem: `holds ${blocks.length} key blocks; one public key per source` };
+  if (other) return refused("armorOther", { kind: other[1] });
+  if (blocks.length > 1) return refused("armorMany", { count: blocks.length });
   return { armored: first[0] };
 }
