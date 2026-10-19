@@ -178,8 +178,12 @@ echo json_encode(['success' => ($_POST['secret'] ?? '') === 'cap-secret' && ($_P
   base = `http://127.0.0.1:${port}`;
   writeConfig();
   const log = fs.openSync(path.join(dir, "php.log"), "w");
-  // More than one worker: the captcha check calls verify.php on this same server.
-  server = spawn("php", ["-S", `127.0.0.1:${port}`, "-t", dir], {
+  // More than one worker: the captcha check calls verify.php on this same server. No opcache:
+  // the captcha test rewrites config.php three times within milliseconds, and opcache rechecks a
+  // cached file's time stamp only every revalidate_freq seconds (2 by default), so the relay
+  // read the previous config (CI run 39215450865 and one local run, 2026-10-19). Measured with
+  // an include aged past file_update_protection: stale with opcache on, fresh with it off.
+  server = spawn("php", ["-S", `127.0.0.1:${port}`, "-t", dir, "-d", "opcache.enable=0"], {
     stdio: ["ignore", log, log],
     env: { ...process.env, PHP_CLI_SERVER_WORKERS: "4" },
   });
