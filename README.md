@@ -189,6 +189,11 @@ recipient key is shown under the form so a visitor can compare it with the one y
 The build checks every key in use: readable, public, not revoked, not expired, able to encrypt;
 it logs the fingerprint and stops on a problem.
 
+If OpenPGP.js cannot be loaded in a visitor's browser (network, content blocker, a strict CSP),
+an encrypting form says so and sends nothing. A form that does not encrypt still sends; a key the
+visitor pasted into a `pgpKey` field then goes out as pasted, checked for its markers only, and
+the field says that it went unchecked.
+
 ## Validation
 
 The rules of a field stand once, in its definition, and are applied three times: at build time

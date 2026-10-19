@@ -705,6 +705,53 @@ describe("encryption", () => {
     expect(body.fields.key).toBe(visitor.publicKey.trim());
     delete (window as unknown as { __quartzFormsOpenpgp?: unknown }).__quartzFormsOpenpgp;
   }, 30_000);
+
+  it("sends a pasted key unchecked, and says so, when OpenPGP.js cannot be loaded", async () => {
+    // Second review, price of the fixes (2026-10-19): since the key is parsed at send time, a
+    // failed import() of the library (network, content blocker, CSP) read as "not a public key",
+    // and a form that does not even encrypt could not be sent with a key pasted. Nothing is
+    // injected here, so the import of the static URL fails as it would in such a browser.
+    const form = mount(
+      contact({
+        ...quick,
+        fields: [
+          { type: "pgpKey", name: "key", label: "Key" },
+          { type: "textarea", name: "message", label: "M", required: true },
+        ],
+      }),
+    );
+    await nav();
+    const area = form.elements.namedItem("key") as HTMLTextAreaElement;
+    const leave = async () => {
+      area.dispatchEvent(new Event("focusout", { bubbles: true }));
+      for (let i = 0; i < 10; i++) await tick();
+    };
+    const pasted =
+      "-----BEGIN PGP PUBLIC KEY BLOCK-----\n\nmQENBF...\n-----END PGP PUBLIC KEY BLOCK-----";
+    area.value = pasted;
+    await leave();
+    expect(errorOf(form, "key")).toBeNull();
+    expect(form.querySelector("#qf-f-key-status")!.textContent).toBe(
+      "The key could not be checked; it is sent as pasted.",
+    );
+    // The markers are still looked at: a private key does not go out.
+    area.value =
+      "-----BEGIN PGP PRIVATE KEY BLOCK-----\n\nlQ...\n-----END PGP PRIVATE KEY BLOCK-----";
+    fill(form, "message", "hi");
+    await submit(form);
+    for (let i = 0; i < 10; i++) await tick();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(errorOf(form, "key")).toBe("This is a private key. Please provide your public key.");
+
+    area.value = pasted;
+    fetchMock.mockResolvedValueOnce(ok());
+    await submit(form);
+    for (let i = 0; i < 10; i++) await tick();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
+    expect(body.fields.key).toBe(pasted);
+    expect(errorOf(form, "key")).toBeNull();
+  });
 });
 
 describe("proof of work", () => {

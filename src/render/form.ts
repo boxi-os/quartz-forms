@@ -513,6 +513,7 @@ export function clientConfig(form: ResolvedForm, ctx: RenderContext): ClientConf
       keyNotPublic: t.keyNotPublic,
       keyExpired: t.keyExpired,
       keyAccepted: t.keyAccepted,
+      keyUnchecked: t.keyUnchecked,
       encryptedFor: t.encryptedFor,
       encryptedForMany: t.encryptedForMany,
       encryptionUnavailable: t.encryptionUnavailable,

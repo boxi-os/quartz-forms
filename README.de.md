@@ -195,6 +195,12 @@ ihn mit dem vergleichen kann, den Sie veröffentlichen.
 Der Bau prüft jeden benutzten Schlüssel: lesbar, öffentlich, nicht widerrufen, nicht abgelaufen,
 verschlüsselungsfähig; er schreibt den Fingerabdruck ins Protokoll und bricht bei einem Problem ab.
 
+Kann OpenPGP.js im Browser eines Besuchers nicht geladen werden (Netz, Content-Blocker, eine
+strenge CSP), sagt ein verschlüsselndes Formular das und sendet nichts. Ein Formular, das nicht
+verschlüsselt, sendet weiterhin; ein Schlüssel, den der Besucher in ein `pgpKey`-Feld eingefügt
+hat, geht dann so hinaus, wie er eingefügt wurde, nur auf seine Markierungen geprüft, und das Feld
+sagt, dass er ungeprüft blieb.
+
 ## Validierung
 
 Die Regeln eines Felds stehen einmal, in seiner Definition, und werden dreimal angewendet: beim

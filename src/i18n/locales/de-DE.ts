@@ -28,6 +28,8 @@ const deDE: Translation = {
   keyNotPublic: "Das ist ein privater Schlüssel. Bitte geben Sie Ihren öffentlichen Schlüssel an.",
   keyExpired: "Dieser Schlüssel ist abgelaufen.",
   keyAccepted: "Schlüssel übernommen, Fingerabdruck {fingerprint}.",
+  keyUnchecked:
+    "Der Schlüssel konnte nicht geprüft werden; er wird so gesendet, wie er eingefügt wurde.",
   encryptToggle: "Verschlüsselt senden",
   encryptedFor: "In Ihrem Browser verschlüsselt für den Schlüssel {fingerprint}.",
   encryptedForMany: "In Ihrem Browser verschlüsselt für {count} Schlüssel.",

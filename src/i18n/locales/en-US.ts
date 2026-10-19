@@ -30,6 +30,7 @@ export default {
   keyNotPublic: "This is a private key. Please provide your public key.",
   keyExpired: "This key has expired.",
   keyAccepted: "Key accepted, fingerprint {fingerprint}.",
+  keyUnchecked: "The key could not be checked; it is sent as pasted.",
   encryptToggle: "Send encrypted",
   encryptedFor: "Encrypted in your browser for the key {fingerprint}.",
   encryptedForMany: "Encrypted in your browser for {count} keys.",

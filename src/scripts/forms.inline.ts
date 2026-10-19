@@ -388,6 +388,13 @@ async function qfShowFingerprint(form: HTMLFormElement, cfg: QfConfig): Promise<
  * marker only, and an expired key or a paste of public and private block went out (review
  * finding, 2026-10-19). OpenPGP.js reads the first block of such a paste and calls it public,
  * so the private marker is looked for in the text.
+ *
+ * Two ways to fail, two answers: a key the library cannot read is refused; a library that
+ * cannot be loaded (network, content blocker, CSP) leaves the key as qfCheck saw it, markers
+ * only, and the status says it went unchecked. The failed import used to read as "not a public
+ * key", and a form that does not even encrypt could not be sent with a key pasted (second
+ * review, price of the fixes, 2026-10-19). A form that encrypts fails later at qfEncrypt, with
+ * its own sentence.
  */
 async function qfCheckVisitorKey(
   form: HTMLFormElement,
@@ -404,8 +411,15 @@ async function qfCheckVisitorKey(
   }
   let message: string | null = null;
   let accepted: string | null = null;
+  let pgp: QfOpenpgp;
   try {
-    const pgp = await qfOpenpgp();
+    pgp = await qfOpenpgp();
+  } catch {
+    qfShowError(form, rule.name, null);
+    if (status) status.textContent = qfText(cfg, "keyUnchecked");
+    return null;
+  }
+  try {
     const key = await pgp.readKey({ armoredKey: value });
     if (key.isPrivate() || /-----BEGIN PGP PRIVATE KEY BLOCK-----/.test(value))
       message = qfText(cfg, "keyNotPublic");
