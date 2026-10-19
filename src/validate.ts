@@ -586,6 +586,17 @@ function checkForm(
     )
       hint(out, `${at}.spam.minSeconds`, "minSecondsNoScript");
   }
+  // The quota counts a form's mails per hour with no address, so one client that sends them all
+  // closes the form to everyone for the rest of the hour: 61 plain posts in 0.54 s with the
+  // defaults (third review, M1, 2026-10-19). Only a captcha (which an anonymous form does not load)
+  // or a proof of work the plain post cannot skip makes each of those posts cost something.
+  if (
+    tr.kind === "relay" &&
+    sp.rateLimitPerHour > 0 &&
+    (sp.captcha === "none" || form.anonymous) &&
+    (!sp.pow || sp.noScript)
+  )
+    hint(out, `${at}.spam.rateLimitPerHour`, "rateLimitLever", { count: sp.rateLimitPerHour });
   if (sp.pow && tr.kind === "relay" && sp.powDifficulty >= 18 && sp.powDifficulty <= 20)
     hint(out, `${at}.spam.powDifficulty`, "powSlow", { bits: sp.powDifficulty });
   for (const key of ["maxFieldLength", "maxTextareaLength", "maxKeyLength", "maxBytes"] as const)

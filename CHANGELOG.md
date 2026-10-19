@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed: a `consent` field in a step with a `showIf` took the step's condition, so a skipped step
   sent the message without the consent and dropped one that was given. The build now refuses a
   `consent` field in such a step (`consentInConditionalStep`).
+- The build says, for every relay form without a captcha and without a proof of work a plain post
+  cannot skip, that one client can use up the hour's quota and close the form to everyone
+  (`rateLimitLever`); the README says what the rate limit protects and what not.
 
 ## [0.4.0] - 2026-10-19
 

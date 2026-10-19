@@ -188,7 +188,7 @@ jeder unter seinem Titel.
 | `powDifficulty`     | `16`     | Führende Nullbits, 8 bis 20. Gerechnet in einem Worker: 16 dauert auf einem Desktop bis zu einer Sekunde, ab 18 auf einem Telefon Sekunden (der Bau sagt es).                                |
 | `captcha`           | `none`   | `turnstile` oder `hcaptcha`; lädt das Skript des Anbieters. Bei anonym ignoriert: kein Widget, und das Relay verlangt kein Token.                                                            |
 | `captchaSiteKey`    | `""`     | Der Site-Schlüssel des Anbieters; der geheime Schlüssel steht in der `config.php` des Relays.                                                                                                |
-| `rateLimitPerHour`  | `60`     | Mails je Formular und Stunde, die das Relay sendet; abgewiesene Posts zählen nicht, keine Adressen.                                                                                          |
+| `rateLimitPerHour`  | `60`     | Mails je Formular und Stunde, die das Relay sendet; abgewiesene Posts zählen nicht, keine Adressen (unten).                                                                                  |
 | `maxFieldLength`    | `2000`   | Vorgabe für die Höchstlänge eines einzeiligen Felds.                                                                                                                                         |
 | `maxTextareaLength` | `20000`  | Vorgabe für die Höchstlänge eines Textfelds.                                                                                                                                                 |
 | `maxKeyLength`      | `16384`  | Höchstlänge eines eingefügten öffentlichen Schlüssels.                                                                                                                                       |
@@ -212,6 +212,14 @@ Posts ab und rendert das Formular ohne Ziel, bis das Skript läuft, mit einem `<
 „Verschlüsselt senden“ leer und deaktiviert, bis das Skript es setzt, und ein `<noscript>`-Hinweis
 sagt, dass das Formular unverschlüsselt sendet; einen einfachen Post, der das Häkchen trotzdem
 trägt, weist das Relay ab.
+
+Die Ratenbegrenzung schützt Ihr Postfach, nicht Ihr Formular. Sie zählt die Mails eines Formulars
+je Stunde, ohne Adressen, ist also ein Kontingent für alle: Ein einzelner Client, der die Mails
+der Stunde selbst sendet (60 einfache Posts dauern keine Sekunde), sperrt das Formular für alle
+anderen Besucher bis zum Ende der Stunde, und Sie bekommen diese 60. Nur ein Captcha macht jeden
+solchen Post teuer, oder ein Proof of Work mit `noScript: false`, das ein einfacher Post nicht
+überspringen kann; ein anonymes Formular lädt kein Captcha. Ohne beides sagt der Bau es bei
+jedem Relay-Formular.
 
 ## Anonym
 

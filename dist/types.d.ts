@@ -89,6 +89,7 @@ declare const en: {
     noRelayEffect: () => string;
     powNoScript: () => string;
     minSecondsNoScript: () => string;
+    rateLimitLever: (p: Params) => string;
     powSlow: (p: Params) => string;
     positiveInteger: () => string;
     maxBytesLow: (p: Params) => string;

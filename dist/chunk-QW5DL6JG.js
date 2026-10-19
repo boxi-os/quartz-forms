@@ -269,6 +269,7 @@ var en = {
   noRelayEffect: () => "has no effect without the relay",
   powNoScript: () => "a plain post without JavaScript (noScript: true) skips it; noScript: false requires the script",
   minSecondsNoScript: () => "a plain post without JavaScript (noScript: true) carries no stamp and skips it; noScript: false requires the script",
+  rateLimitLever: (p) => `one client can send the hour's ${s(p, "count")} mails by itself, and the form takes no more from anyone until the hour is over; a captcha, or pow with noScript: false, makes that cost something (see the README)`,
   powSlow: (p) => `${s(p, "bits")} bits take seconds on a phone before every message`,
   positiveInteger: () => "a positive integer",
   maxBytesLow: (p) => `${s(p, "maxBytes")} is below what the fields may hold (about ${s(p, "capacity")} bytes${p.encrypted ? " once encrypted" : ""}); a long message would be refused as too large`,
@@ -404,6 +405,7 @@ var de = {
   noRelayEffect: () => "wirkt nur mit dem Relay",
   powNoScript: () => "ein einfacher Post ohne JavaScript (noScript: true) umgeht es; noScript: false verlangt das Skript",
   minSecondsNoScript: () => "ein einfacher Post ohne JavaScript (noScript: true) tr\xE4gt keinen Stempel und umgeht es; noScript: false verlangt das Skript",
+  rateLimitLever: (p) => `ein einzelner Client kann die ${s2(p, "count")} Mails der Stunde selbst senden, danach nimmt das Formular bis zum Ende der Stunde von niemandem mehr etwas an; ein Captcha oder pow mit noScript: false macht das teuer (siehe README)`,
   powSlow: (p) => `${s2(p, "bits")} Bit dauern auf einem Telefon vor jeder Nachricht Sekunden`,
   positiveInteger: () => "eine positive ganze Zahl",
   maxBytesLow: (p) => `${s2(p, "maxBytes")} ist kleiner als das, was die Felder fassen (etwa ${s2(p, "capacity")} Bytes${p.encrypted ? " verschl\xFCsselt" : ""}); eine lange Nachricht w\xFCrde als zu gro\xDF abgewiesen`,
@@ -1134,6 +1136,8 @@ function checkForm(form, raw, rawSpam, keyNames, out) {
     if (sp.minSeconds > 0 && (raw.spam?.minSeconds !== void 0 || rawSpam.minSeconds !== void 0))
       hint(out, `${at}.spam.minSeconds`, "minSecondsNoScript");
   }
+  if (tr.kind === "relay" && sp.rateLimitPerHour > 0 && (sp.captcha === "none" || form.anonymous) && (!sp.pow || sp.noScript))
+    hint(out, `${at}.spam.rateLimitPerHour`, "rateLimitLever", { count: sp.rateLimitPerHour });
   if (sp.pow && tr.kind === "relay" && sp.powDifficulty >= 18 && sp.powDifficulty <= 20)
     hint(out, `${at}.spam.powDifficulty`, "powSlow", { bits: sp.powDifficulty });
   for (const key of ["maxFieldLength", "maxTextareaLength", "maxKeyLength", "maxBytes"])
@@ -1327,5 +1331,5 @@ function logHints(opts) {
 }
 
 export { __commonJS, __export, __require, __toESM, conditionOf, conditionsOf, defaultOptions, formatMessage, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-RAQPFFAG.js.map
-//# sourceMappingURL=chunk-RAQPFFAG.js.map
+//# sourceMappingURL=chunk-QW5DL6JG.js.map
+//# sourceMappingURL=chunk-QW5DL6JG.js.map

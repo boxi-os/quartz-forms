@@ -23,6 +23,9 @@ const ARMORED = "-----BEGIN PGP PUBLIC KEY BLOCK-----\n\nabc\n-----END PGP PUBLI
 const PRIVATE =
   "-----BEGIN PGP PRIVATE KEY BLOCK-----\n\nsecret\n-----END PGP PRIVATE KEY BLOCK-----";
 const MESSAGE = "-----BEGIN PGP MESSAGE-----\n\nmsg\n-----END PGP MESSAGE-----";
+// What the build says about every relay form with the default spam settings (third review, M1).
+const LEVER =
+  "forms.contact.spam.rateLimitPerHour: one client can send the hour's 60 mails by itself, and the form takes no more from anyone until the hour is over; a captcha, or pow with noScript: false, makes that cost something (see the README)";
 
 describe("validate: forms and fields", () => {
   it("holds a condition to an earlier field of a kind with values, and to values it can have", () => {
@@ -335,7 +338,7 @@ describe("validate: transport, encryption, spam, success", () => {
     const local = resolveOptions(
       options({ transport: { kind: "relay", url: "http://localhost:8080/s" } }),
     );
-    expect(local.hints).toEqual([]);
+    expect(local.hints).toEqual([LEVER]);
   });
 
   it("checks key sources: one of file or armored, an armored block, a readable file inside the site", () => {
@@ -417,18 +420,28 @@ describe("validate: transport, encryption, spam, success", () => {
       resolveOptions(options({ spam: { pow: true, powDifficulty: 18 } as never })).hints,
     ).toEqual([
       "forms.contact.spam.pow: a plain post without JavaScript (noScript: true) skips it; noScript: false requires the script",
+      LEVER,
       "forms.contact.spam.powDifficulty: 18 bits take seconds on a phone before every message",
     ]);
     expect(
       resolveOptions(options({ spam: { pow: false, powDifficulty: 20 } as never })).hints,
-    ).toEqual([]);
+    ).toEqual([LEVER]);
+    // The quota is one for everyone; it is said unless a captcha, or a proof of work a plain post
+    // cannot skip, makes each post cost something (third review, M1, 2026-10-19).
+    const hintsOf = (spam: object, form: object = {}) =>
+      resolveOptions(options({ spam: spam as never, forms: { contact: contact(form) } })).hints;
+    expect(hintsOf({ pow: true, noScript: false })).toEqual([]);
+    expect(hintsOf({ captcha: "turnstile", captchaSiteKey: "k" })).toEqual([]);
+    expect(hintsOf({ rateLimitPerHour: 0 })).toEqual([]);
+    expect(hintsOf({ rateLimitPerHour: 5 })).toEqual([LEVER.replace("60", "5")]);
+    expect(hintsOf({ captcha: "turnstile" }, { anonymous: true })).toContain(LEVER);
     // `extra` goes to an endpoint or a service; the relay and mailto take no extra fields
     // (review finding 22, 2026-10-19).
     expect(
       resolveOptions(
         options({ transport: { kind: "relay", url: "https://r.example/x", extra: { to: "s" } } }),
       ).hints,
-    ).toEqual(["forms.contact.transport.extra: has no effect with the relay"]);
+    ).toEqual(["forms.contact.transport.extra: has no effect with the relay", LEVER]);
     expect(
       resolveOptions(
         options({
@@ -450,11 +463,12 @@ describe("validate: transport, encryption, spam, success", () => {
     expect(problemsOf({ spam: { maxBytes: 0 } as never })).toEqual([
       "forms.contact.spam.maxBytes: a positive integer",
     ]);
-    // The defaults fit together (no hint); a limit below the fields' capacity is said, and an
-    // encrypting form counts the armor (review finding 9, 2026-10-19).
-    expect(resolveOptions(options({})).hints).toEqual([]);
+    // The defaults fit together (no maxBytes hint, only the quota's); a limit below the fields'
+    // capacity is said, and an encrypting form counts the armor (review finding 9, 2026-10-19).
+    expect(resolveOptions(options({})).hints).toEqual([LEVER]);
     const tight = resolveOptions(options({ spam: { maxBytes: 1000 } as never }));
     expect(tight.hints).toEqual([
+      LEVER,
       "forms.contact.spam.maxBytes: 1000 is below what the fields may hold (about 67024 bytes); a long message would be refused as too large",
     ]);
     const tightEnc = resolveOptions(
@@ -463,7 +477,7 @@ describe("validate: transport, encryption, spam, success", () => {
         forms: { contact: contact({ encryption: { mode: "required", keys: ["owner"] } }) },
       }),
     );
-    expect(tightEnc.hints[0]).toMatch(/about 90390 bytes once encrypted/);
+    expect(tightEnc.hints[1]).toMatch(/about 90390 bytes once encrypted/);
     const noRelay = resolveOptions(
       options({
         transport: { kind: "endpoint", url: "https://e.example/x" },
@@ -490,6 +504,7 @@ describe("validate: transport, encryption, spam, success", () => {
     // With the relay, a plain post (noScript: true, the default) carries no proof: said.
     expect(resolveOptions(options({ spam: { pow: true } as never })).hints).toEqual([
       "forms.contact.spam.pow: a plain post without JavaScript (noScript: true) skips it; noScript: false requires the script",
+      LEVER,
     ]);
     expect(
       resolveOptions(options({ spam: { pow: true, noScript: false } as never })).hints,
@@ -497,19 +512,21 @@ describe("validate: transport, encryption, spam, success", () => {
     // Finding 4 of the second review (2026-10-19): the stamp too comes only from the script, so
     // a plain post skips the time trap as well. The default (3 s, noScript) is documented and
     // says nothing; a minSeconds the owner wrote, globally or for the form, is said.
-    expect(resolveOptions(options()).hints).toEqual([]);
+    expect(resolveOptions(options()).hints).toEqual([LEVER]);
     expect(resolveOptions(options({ spam: { minSeconds: 10 } as never })).hints).toEqual([
       "forms.contact.spam.minSeconds: a plain post without JavaScript (noScript: true) carries no stamp and skips it; noScript: false requires the script",
+      LEVER,
     ]);
     expect(
       resolveOptions(options({ forms: { contact: contact({ spam: { minSeconds: 10 } }) } })).hints,
     ).toEqual([
       "forms.contact.spam.minSeconds: a plain post without JavaScript (noScript: true) carries no stamp and skips it; noScript: false requires the script",
+      LEVER,
     ]);
     expect(
       resolveOptions(options({ spam: { minSeconds: 10, noScript: false } as never })).hints,
-    ).toEqual([]);
-    expect(resolveOptions(options({ spam: { minSeconds: 0 } as never })).hints).toEqual([]);
+    ).toEqual([LEVER]);
+    expect(resolveOptions(options({ spam: { minSeconds: 0 } as never })).hints).toEqual([LEVER]);
     expect(
       resolveOptions(
         options({
@@ -527,6 +544,7 @@ describe("validate: transport, encryption, spam, success", () => {
     expect(anonCaptcha.problems).toEqual([]);
     expect(anonCaptcha.hints).toEqual([
       "forms.contact: anonymous, so the hcaptcha captcha is not loaded",
+      LEVER,
     ]);
   });
 
@@ -567,6 +585,7 @@ describe("validate: plugin-wide options", () => {
     );
     expect(texts.problems).toEqual([]);
     expect(texts.hints).toEqual([
+      LEVER,
       "texts.de.nope: no such text key",
       "texts.fr: the plugin has no texts in this language; they are used as written",
     ]);

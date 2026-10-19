@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
-import { pluginRoot, checkKey } from './chunk-XSQAE54G.js';
-import { __commonJS, __require, __toESM, messageLang, publicKeyBlock, messageText, formatMessage, conditionsOf, isNamed, resolveOptions } from './chunk-RAQPFFAG.js';
+import { pluginRoot, checkKey } from './chunk-XHLPMBIO.js';
+import { __commonJS, __require, __toESM, messageLang, publicKeyBlock, messageText, formatMessage, conditionsOf, isNamed, resolveOptions } from './chunk-QW5DL6JG.js';
 import fs from 'fs';
 import path from 'path';
 import { spawnSync } from 'child_process';

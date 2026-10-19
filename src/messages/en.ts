@@ -121,6 +121,8 @@ const en = {
     "a plain post without JavaScript (noScript: true) skips it; noScript: false requires the script",
   minSecondsNoScript: () =>
     "a plain post without JavaScript (noScript: true) carries no stamp and skips it; noScript: false requires the script",
+  rateLimitLever: (p: Params) =>
+    `one client can send the hour's ${s(p, "count")} mails by itself, and the form takes no more from anyone until the hour is over; a captcha, or pow with noScript: false, makes that cost something (see the README)`,
   powSlow: (p: Params) => `${s(p, "bits")} bits take seconds on a phone before every message`,
   positiveInteger: () => "a positive integer",
   maxBytesLow: (p: Params) =>

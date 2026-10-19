@@ -110,6 +110,8 @@ const de: { [K in keyof typeof en]: (p: Params, t: Translate) => string } = {
     "ein einfacher Post ohne JavaScript (noScript: true) umgeht es; noScript: false verlangt das Skript",
   minSecondsNoScript: () =>
     "ein einfacher Post ohne JavaScript (noScript: true) trägt keinen Stempel und umgeht es; noScript: false verlangt das Skript",
+  rateLimitLever: (p) =>
+    `ein einzelner Client kann die ${s(p, "count")} Mails der Stunde selbst senden, danach nimmt das Formular bis zum Ende der Stunde von niemandem mehr etwas an; ein Captcha oder pow mit noScript: false macht das teuer (siehe README)`,
   powSlow: (p) => `${s(p, "bits")} Bit dauern auf einem Telefon vor jeder Nachricht Sekunden`,
   positiveInteger: () => "eine positive ganze Zahl",
   maxBytesLow: (p) =>

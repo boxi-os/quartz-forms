@@ -180,7 +180,7 @@ consent. Without JavaScript all steps show one after the other, each under its t
 | `powDifficulty`     | `16`     | Leading zero bits, 8 to 20. Hashed in a Worker: 16 takes up to a second on a desktop, 18 and more take seconds on a phone (the build says so).                                       |
 | `captcha`           | `none`   | `turnstile` or `hcaptcha`; loads that provider's script. Ignored when anonymous: no widget, and the relay asks for no token.                                                         |
 | `captchaSiteKey`    | `""`     | The provider's site key; the secret key goes into the relay's `config.php`.                                                                                                          |
-| `rateLimitPerHour`  | `60`     | Mails per form and hour the relay sends; refused posts do not count, no addresses.                                                                                                   |
+| `rateLimitPerHour`  | `60`     | Mails per form and hour the relay sends; refused posts do not count, no addresses (below).                                                                                           |
 | `maxFieldLength`    | `2000`   | Default length limit of a single-line field.                                                                                                                                         |
 | `maxTextareaLength` | `20000`  | Default length limit of a textarea.                                                                                                                                                  |
 | `maxKeyLength`      | `16384`  | Length limit of a pasted public key.                                                                                                                                                 |
@@ -205,6 +205,13 @@ proof of work, so the relay applies only honeypot, rate limit and field checks t
 a target until the script runs, with a `<noscript>` note. With `optional` the "send encrypted" box stays unticked and disabled until the
 script enables it, and a `<noscript>` note says the form sends unencrypted; a plain post that
 carries the box anyway is refused by the relay.
+
+The rate limit protects your mailbox, not your form. It counts a form's mails per hour, with no
+address, so it is one quota for everyone: a single client that sends the hour's mails itself
+(60 plain posts take under a second) closes the form to every other visitor until the hour is
+over, and you receive those 60. Only a captcha makes each such post cost something, or a proof
+of work with `noScript: false`, which a plain post cannot skip; an anonymous form loads no
+captcha. Without either the build says so for every relay form.
 
 ## Anonymous
 
