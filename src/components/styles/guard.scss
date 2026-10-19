@@ -19,8 +19,9 @@
 // The form spaces its lines with the gaps of its flex boxes, not with margins. A theme's rhythm
 // for the article (`article p { margin-block: 0 1.5rem }`) gave every hint and every empty status
 // line of the form a paragraph's space below it (0.5.2 to 0.5.3, measured on QuartzControl's
-// template: 30px between the key field and its hint). One class and one element, so a theme's
-// `article p` (two elements) loses and a site's `.quartz-form .quartz-form__hint` wins.
+// template: 36px instead of 12px between the key field and its hint). One class and one element,
+// so a theme's `article p` (two elements) loses and a site's `.quartz-form .quartz-form__hint`
+// wins.
 .quartz-form :is(p, h3, h4, fieldset, pre) {
   margin: 0;
 }

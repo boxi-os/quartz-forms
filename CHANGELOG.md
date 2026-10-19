@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-10-19
+
 - Fixed: `relay` created `config.php` with a fresh secret readable for everyone (0644) when no
   operator values were given, and an existing `config.php` kept its mode when the operator values
   overwrote it. Both now end at 0600, as the README already said.
@@ -15,7 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `messageKey`), in the browser and in the relay.
 - Fixed (a regression of 0.5.2): in the layer, the stylesheet's `margin: 0` on the form's
   paragraphs lost to a theme's `article p` rhythm, and every hint and every empty status line
-  got a paragraph's space below it (30px under the key field on QuartzControl's template). The
+  got a paragraph's space below it (24px each on QuartzControl's template: 36px instead of 12px
+  between the key field and its hint, 24px more under every hint). The
   margins of the form's paragraphs, headings, fieldsets and the demo's output now ship unlayered
   with the checkbox rule in `guard.scss`.
 - Docs: the German README addressed its reader as Sie in six places and du in two; it says du
