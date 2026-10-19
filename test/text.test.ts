@@ -3,6 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { interpolate, resolveText, textLanguages } from "../src/text";
 import { availableLocales, i18n, textKeys, wording } from "../src/i18n";
+import { templateNames, templateOf } from "../src/templates";
 
 describe("resolveText", () => {
   it("returns a string as is and picks a record entry by code, subtag, then first", () => {
@@ -55,6 +56,27 @@ describe("i18n", () => {
       }
     }
     expect(compared).toBeGreaterThanOrEqual(22);
+  });
+
+  it("addresses the visitor with du in German, in the texts and the templates", () => {
+    // The user's choice (2026-10-19): du by default, Sie only through `texts` and own fields. The
+    // relay's copy of the sentences is held to these by the test above.
+    const formal = /\b(Sie|Ihr\w*|Ihnen)\b/;
+    const t = i18n("de-DE") as Record<string, string>;
+    for (const key of textKeys()) expect(t[key], key).not.toMatch(formal);
+    const german = (value: unknown): string[] =>
+      typeof value === "string"
+        ? []
+        : Array.isArray(value)
+          ? value.flatMap(german)
+          : value && typeof value === "object"
+            ? Object.entries(value).flatMap(([k, v]) =>
+                k === "de" && typeof v === "string" ? [v] : german(v),
+              )
+            : [];
+    const texts = templateNames.flatMap((name) => german(templateOf(name)));
+    expect(texts.length).toBeGreaterThan(20);
+    for (const text of texts) expect(text).not.toMatch(formal);
   });
 
   it("ships the same keys and the same placeholders in every locale", () => {

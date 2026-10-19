@@ -1289,7 +1289,7 @@ describe.skipIf(!php)("relay: a browser without JavaScript (plain form post)", (
     const de = await plain({ form: "feedback", lang: "de-DE", rating: "5" });
     expect(de.status).toBe(200);
     expect(de.text).toContain("<title>Gesendet</title>");
-    expect(de.text).toContain("Danke, Ihre Nachricht wurde gesendet.");
+    expect(de.text).toContain("Danke, deine Nachricht wurde gesendet.");
     const en = await plain({ form: "feedback", lang: "en-US", rating: "5" });
     expect(en.text).toContain("<title>Sent</title>");
     const bad = await plain({ form: "feedback", lang: "de-DE", rating: "77" });
@@ -1300,9 +1300,7 @@ describe.skipIf(!php)("relay: a browser without JavaScript (plain form post)", (
     // in English, and named no field. It names each one by its label in the submission's
     // language, with the sentence the browser script would show at the field.
     expect(bad.text).toContain("Diese Angaben wurden nicht angenommen:");
-    expect(bad.text).toContain(
-      "<li>Wie hilfreich war diese Seite?: Bitte wählen Sie eine Option.</li>",
-    );
+    expect(bad.text).toContain("<li>Wie hilfreich war diese Seite?: Bitte wähle eine Option.</li>");
     expect(bad.text).not.toContain("some fields were not accepted");
     // Third review, aside (2026-10-19): a text field named twice arrives as a list, and the page
     // said "use the requested format" of a field that has no format.

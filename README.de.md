@@ -285,7 +285,9 @@ Feld, in einem Durchgang in Formularreihenfolge.
 
 Jeder Satz, den quartz-forms zeigt, kommt aus `src/i18n/locales/` (`en-US`, `de-DE`) und lässt sich
 je Sprache ersetzen: `texts: { de: { submit: "Abschicken" } }`. Schlüssel sind die von `en-US.ts`;
-`{name}`-Platzhalter füllt der Code.
+`{name}`-Platzhalter füllt der Code. Die deutschen Texte und Vorlagen duzen die Besucher. Wer
+siezen will, ersetzt die Sätze über `texts` und schreibt eigene `fields`; die Seite des Relays für
+einen Post ohne JavaScript hat ihre eigenen Sätze und duzt weiter.
 
 ## Das Relay
 

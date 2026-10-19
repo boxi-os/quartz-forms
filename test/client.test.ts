@@ -167,8 +167,8 @@ describe("validation in the browser", () => {
     fill(form, "code", "abc");
     fill(form, "long", "abcd");
     await submit(form);
-    expect(errorOf(form, "email")).toBe("Bitte geben Sie eine gültige E-Mail-Adresse ein.");
-    expect(errorOf(form, "url")).toBe("Bitte geben Sie eine gültige Webadresse ein.");
+    expect(errorOf(form, "email")).toBe("Bitte gib eine gültige E-Mail-Adresse ein.");
+    expect(errorOf(form, "url")).toBe("Bitte gib eine gültige Webadresse ein.");
     // The same rule as the relay's: umlauts pass, a domain without a dot does not.
     fill(form, "email", "müller@münchen.de");
     fill(form, "url", "https://münchen.de/weg?x=1");
@@ -178,19 +178,19 @@ describe("validation in the browser", () => {
     fill(form, "email", "ada@localhost");
     fill(form, "url", "https://exa mple.org");
     await submit(form);
-    expect(errorOf(form, "email")).toBe("Bitte geben Sie eine gültige E-Mail-Adresse ein.");
-    expect(errorOf(form, "url")).toBe("Bitte geben Sie eine gültige Webadresse ein.");
+    expect(errorOf(form, "email")).toBe("Bitte gib eine gültige E-Mail-Adresse ein.");
+    expect(errorOf(form, "url")).toBe("Bitte gib eine gültige Webadresse ein.");
     fill(form, "email", "nope");
     fill(form, "url", "ftp://x");
-    expect(errorOf(form, "tel")).toBe("Bitte geben Sie eine gültige Telefonnummer ein.");
-    expect(errorOf(form, "n")).toBe("Bitte geben Sie höchstens 5 ein.");
-    expect(errorOf(form, "code")).toBe("Bitte verwenden Sie das verlangte Format.");
-    expect(errorOf(form, "long")).toBe("Bitte verwenden Sie höchstens 3 Zeichen.");
-    expect(errorOf(form, "r")).toBe("Bitte wählen Sie eine Option.");
-    expect(errorOf(form, "c")).toBe("Bitte wählen Sie mindestens eine Option.");
-    expect(errorOf(form, "s")).toBe("Bitte wählen Sie eine Option.");
-    expect(errorOf(form, "ok")).toBe("Bitte stimmen Sie vor dem Senden zu.");
-    expect(status(form).text).toBe("Bitte prüfen Sie 10 Felder.");
+    expect(errorOf(form, "tel")).toBe("Bitte gib eine gültige Telefonnummer ein.");
+    expect(errorOf(form, "n")).toBe("Bitte gib höchstens 5 ein.");
+    expect(errorOf(form, "code")).toBe("Bitte verwende das verlangte Format.");
+    expect(errorOf(form, "long")).toBe("Bitte verwende höchstens 3 Zeichen.");
+    expect(errorOf(form, "r")).toBe("Bitte wähle eine Option.");
+    expect(errorOf(form, "c")).toBe("Bitte wähle mindestens eine Option.");
+    expect(errorOf(form, "s")).toBe("Bitte wähle eine Option.");
+    expect(errorOf(form, "ok")).toBe("Bitte stimme vor dem Senden zu.");
+    expect(status(form).text).toBe("Bitte prüfe 10 Felder.");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

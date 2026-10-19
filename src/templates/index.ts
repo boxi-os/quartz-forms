@@ -16,7 +16,7 @@ const templates: Record<FormTemplate, Partial<FormDefinition>> = {
         type: "email",
         name: "email",
         label: t("E-mail", "E-Mail"),
-        hint: t("Only if you want a reply.", "Nur, wenn Sie eine Antwort möchten."),
+        hint: t("Only if you want a reply.", "Nur, wenn du eine Antwort möchtest."),
         autocomplete: "email",
       },
       { type: "textarea", name: "message", label: t("Message", "Nachricht"), required: true },
@@ -105,7 +105,7 @@ const templates: Record<FormTemplate, Partial<FormDefinition>> = {
       {
         type: "radio",
         name: "usage",
-        label: t("How often do you visit this site?", "Wie oft besuchen Sie diese Website?"),
+        label: t("How often do you visit this site?", "Wie oft besuchst du diese Website?"),
         required: true,
         options: [
           { value: "first", label: t("First time", "Zum ersten Mal") },
@@ -116,7 +116,7 @@ const templates: Record<FormTemplate, Partial<FormDefinition>> = {
       {
         type: "checkboxes",
         name: "topics",
-        label: t("Which topics interest you?", "Welche Themen interessieren Sie?"),
+        label: t("Which topics interest you?", "Welche Themen interessieren dich?"),
         options: [
           { value: "news", label: t("News", "Neuigkeiten") },
           { value: "guides", label: t("Guides", "Anleitungen") },
@@ -126,7 +126,7 @@ const templates: Record<FormTemplate, Partial<FormDefinition>> = {
       {
         type: "scale",
         name: "satisfaction",
-        label: t("How satisfied are you overall?", "Wie zufrieden sind Sie insgesamt?"),
+        label: t("How satisfied are you overall?", "Wie zufrieden bist du insgesamt?"),
         min: 1,
         max: 5,
       },

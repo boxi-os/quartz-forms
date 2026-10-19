@@ -272,7 +272,9 @@ pass in form order.
 
 Every sentence the plugin shows comes from `src/i18n/locales/` (`en-US`, `de-DE`) and can be
 replaced per locale: `texts: { de: { submit: "Abschicken" } }`. Keys are those of `en-US.ts`;
-`{name}` placeholders are filled by the code.
+`{name}` placeholders are filled by the code. The German texts and templates address the visitor
+informally (du). For the formal Sie, replace the sentences through `texts` and write your own
+`fields`; the relay's page for a post without JavaScript keeps its own sentences, which say du.
 
 ## The relay
 
