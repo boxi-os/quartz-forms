@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The German texts and templates address the visitor with du instead of Sie, in the browser, on
   the relay's page for a post without JavaScript and in the four templates. Sie stays possible
   through `texts` and own `fields`; the relay's page then still says du.
+- A transport `kind: demo` that sends nothing: the form checks, encrypts if it encrypts, and
+  shows below itself the message as the recipient would read it, with a button to try again.
+  For a site that shows forms without anyone to receive them (the plugin's handbook on GitHub
+  Pages). The build says what has no effect with it: a `url`, `extra`, a redirect, a captcha.
 
 ## [0.4.1] - 2026-10-19
 

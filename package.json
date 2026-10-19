@@ -1287,12 +1287,13 @@
                 "endpoint",
                 "formspree",
                 "web3forms",
-                "mailto"
+                "mailto",
+                "demo"
               ],
-              "description": "relay: the plugin's own PHP relay. endpoint: any URL that takes a POST. formspree, web3forms: presets for those services. mailto: opens the visitor's mail program.",
+              "description": "relay: the plugin's own PHP relay. endpoint: any URL that takes a POST. formspree, web3forms: presets for those services. mailto: opens the visitor's mail program. demo: sends nothing and shows below the form what would have been sent.",
               "x-quartz-l10n": {
                 "de": {
-                  "description": "relay: das eigene PHP-Relay von quartz-forms. endpoint: jede URL, die einen POST annimmt. formspree, web3forms: Voreinstellungen für diese Dienste. mailto: öffnet das Mailprogramm des Besuchers."
+                  "description": "relay: das eigene PHP-Relay von quartz-forms. endpoint: jede URL, die einen POST annimmt. formspree, web3forms: Voreinstellungen für diese Dienste. mailto: öffnet das Mailprogramm des Besuchers. demo: sendet nichts und zeigt unter dem Formular, was gesendet worden wäre."
                 }
               },
               "x-quartz-order": 10
@@ -1622,12 +1623,13 @@
                 "endpoint",
                 "formspree",
                 "web3forms",
-                "mailto"
+                "mailto",
+                "demo"
               ],
-              "description": "relay: the plugin's own PHP relay. endpoint: any URL that takes a POST. formspree, web3forms: presets for those services. mailto: opens the visitor's mail program.",
+              "description": "relay: the plugin's own PHP relay. endpoint: any URL that takes a POST. formspree, web3forms: presets for those services. mailto: opens the visitor's mail program. demo: sends nothing and shows below the form what would have been sent.",
               "x-quartz-l10n": {
                 "de": {
-                  "description": "relay: das eigene PHP-Relay von quartz-forms. endpoint: jede URL, die einen POST annimmt. formspree, web3forms: Voreinstellungen für diese Dienste. mailto: öffnet das Mailprogramm des Besuchers."
+                  "description": "relay: das eigene PHP-Relay von quartz-forms. endpoint: jede URL, die einen POST annimmt. formspree, web3forms: Voreinstellungen für diese Dienste. mailto: öffnet das Mailprogramm des Besuchers. demo: sendet nichts und zeigt unter dem Formular, was gesendet worden wäre."
                 }
               },
               "x-quartz-order": 10

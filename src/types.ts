@@ -268,9 +268,11 @@ export type FormField =
 
 /**
  * `relay`: the plugin's own PHP relay. `endpoint`: any URL that takes a POST. `formspree`,
- * `web3forms`: presets for those services. `mailto`: opens the visitor's mail program.
+ * `web3forms`: presets for those services. `mailto`: opens the visitor's mail program. `demo`:
+ * sends nothing; the form checks, encrypts and shows below itself what would have been sent - for
+ * a site that shows a form without anyone to receive it (a handbook on a host without PHP).
  */
-export type TransportKind = "relay" | "endpoint" | "formspree" | "web3forms" | "mailto";
+export type TransportKind = "relay" | "endpoint" | "formspree" | "web3forms" | "mailto" | "demo";
 
 export interface TransportConfig {
   kind: TransportKind;
@@ -280,7 +282,7 @@ export interface TransportConfig {
   format?: "json" | "form";
   /**
    * Extra fields sent with every submission to an `endpoint` or a service (an access key, for
-   * instance). The relay and `mailto` take none; the build says so.
+   * instance). The relay, `mailto` and `demo` take none; the build says so.
    */
   extra?: Record<string, string>;
 }

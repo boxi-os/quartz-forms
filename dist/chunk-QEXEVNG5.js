@@ -255,6 +255,9 @@ var en = {
   kindUnknown: (p) => `unknown kind ${s(p, "kind")}`,
   extraRelay: () => "has no effect with the relay",
   extraMailto: () => "has no effect with mailto",
+  demoNoEffect: () => "has no effect with demo, which sends nothing",
+  demoRedirect: () => "demo shows what would have been sent below the form and does not redirect",
+  demoCaptcha: (p) => `the ${s(p, "provider")} widget is shown, but with demo nobody checks its answer`,
   formatValue: () => "json or form",
   // encryption
   modeValue: () => "required, optional or off",
@@ -396,6 +399,9 @@ var de = {
   kindUnknown: (p) => `unbekannter Versandweg ${s2(p, "kind")}`,
   extraRelay: () => "wirkt nicht beim Relay",
   extraMailto: () => "wirkt nicht bei mailto",
+  demoNoEffect: () => "wirkt nicht bei demo, das nichts sendet",
+  demoRedirect: () => "demo zeigt unter dem Formular, was gesendet worden w\xE4re, und leitet nicht weiter",
+  demoCaptcha: (p) => `das Widget von ${s2(p, "provider")} wird angezeigt, aber bei demo pr\xFCft niemand seine Antwort`,
   formatValue: () => "json oder form",
   modeValue: () => "required, optional oder off",
   noKeys: () => "keine Schl\xFCssel, an die verschl\xFCsselt werden kann",
@@ -547,6 +553,10 @@ var en_US_default = {
   pageContextNote: "Refers to the page \u201C{title}\u201D.",
   anonymousNote: "This form is anonymous: nothing identifies you unless you write it.",
   mailtoNote: "Your mail program opens with the message.",
+  demoNote: "A demonstration: this form sends nothing. After sending you see what would have been sent.",
+  demoSent: "Nothing was sent. This is the message as it would have arrived:",
+  demoSentEncrypted: "Nothing was sent. This is the message as it would have arrived, encrypted in your browser:",
+  demoAgain: "Try again",
   errorSummary: "Please check {count} field(s).",
   errorSummaryOne: "Please check one field.",
   onlyWhen: "Only needed if \u201C{field}\u201D is {values}.",
@@ -609,6 +619,10 @@ var deDE = {
   pageContextNote: "Bezieht sich auf die Seite \u201E{title}\u201C.",
   anonymousNote: "Dieses Formular ist anonym: Nichts identifiziert dich, au\xDFer du schreibst es.",
   mailtoNote: "Dein Mailprogramm \xF6ffnet sich mit der Nachricht.",
+  demoNote: "Eine Vorf\xFChrung: Dieses Formular sendet nichts. Nach dem Absenden siehst du, was gesendet worden w\xE4re.",
+  demoSent: "Nichts wurde gesendet. So w\xE4re die Nachricht angekommen:",
+  demoSentEncrypted: "Nichts wurde gesendet. So w\xE4re die Nachricht angekommen, in deinem Browser verschl\xFCsselt:",
+  demoAgain: "Noch einmal",
   errorSummary: "Bitte pr\xFCfe {count} Felder.",
   errorSummaryOne: "Bitte pr\xFCfe ein Feld.",
   onlyWhen: "Nur n\xF6tig, wenn bei \u201E{field}\u201C {values} gew\xE4hlt ist.",
@@ -1110,11 +1124,21 @@ function checkForm(form, raw, rawSpam, keyNames, out) {
       if (!form.recipient || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.recipient))
         problem(out, `${at}.recipient`, "mailtoRecipient");
       break;
+    case "demo":
+      if (tr.url) hint(out, `${at}.transport.url`, "demoNoEffect");
+      if (form.success.mode === "redirect") hint(out, `${at}.success`, "demoRedirect");
+      if (form.spam.captcha !== "none" && !form.anonymous)
+        hint(out, `${at}.spam.captcha`, "demoCaptcha", { provider: form.spam.captcha });
+      break;
     default:
       problem(out, `${at}.transport.kind`, "kindUnknown", { kind: JSON.stringify(tr.kind) });
   }
-  if ((tr.kind === "relay" || tr.kind === "mailto") && Object.keys(tr.extra ?? {}).length > 0)
-    hint(out, `${at}.transport.extra`, tr.kind === "relay" ? "extraRelay" : "extraMailto");
+  if ((tr.kind === "relay" || tr.kind === "mailto" || tr.kind === "demo") && Object.keys(tr.extra ?? {}).length > 0)
+    hint(
+      out,
+      `${at}.transport.extra`,
+      tr.kind === "relay" ? "extraRelay" : tr.kind === "mailto" ? "extraMailto" : "demoNoEffect"
+    );
   if (tr.format !== void 0 && tr.format !== "json" && tr.format !== "form")
     problem(out, `${at}.transport.format`, "formatValue");
   const enc = form.encryption;
@@ -1343,5 +1367,5 @@ function logHints(opts) {
 }
 
 export { __commonJS, __export, __require, __toESM, conditionOf, conditionsOf, defaultOptions, formatMessage, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-LIYB5CSP.js.map
-//# sourceMappingURL=chunk-LIYB5CSP.js.map
+//# sourceMappingURL=chunk-QEXEVNG5.js.map
+//# sourceMappingURL=chunk-QEXEVNG5.js.map

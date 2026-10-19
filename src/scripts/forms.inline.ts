@@ -56,6 +56,8 @@ interface QfRelayResponse {
   error?: string;
   message?: string;
   errors?: { field?: string; code?: string; message?: string }[];
+  /** With the demo transport: the message as it would have left the page. */
+  demo?: string;
 }
 
 const QF_HONEYPOT = "_hp_website";
@@ -821,6 +823,9 @@ async function qfSend(
     pow: await qfProofOfWork(cfg, fresh?.data ?? null),
     captcha: captchaToken || undefined,
   };
+  // The demo sends nothing: what the recipient would read - the serialized text, or the armored
+  // message the browser just encrypted - goes back to be shown under the form.
+  if (tr.kind === "demo") return { ok: true, demo: ciphertext ?? qfSerialize(cfg, values) };
   if (tr.kind === "mailto") {
     const body = ciphertext ?? qfSerialize(cfg, values);
     const subject = cfg.subject ?? cfg.id;
@@ -983,19 +988,78 @@ function qfRefusalText(cfg: QfConfig, result: QfRelayResponse): string {
   return qfText(cfg, "sendFailed");
 }
 
-function qfFinish(form: HTMLFormElement, cfg: QfConfig, encrypted: boolean): void {
-  if (cfg.success.mode === "redirect" && cfg.success.slug) {
+function qfFinish(form: HTMLFormElement, cfg: QfConfig, encrypted: boolean, demo?: string): void {
+  if (demo === undefined && cfg.success.mode === "redirect" && cfg.success.slug) {
     qfNavigate(qfInternalUrl(cfg.success.slug), true);
     return;
   }
-  const text = cfg.success.text || qfText(cfg, encrypted ? "sentEncrypted" : "sent");
-  for (const el of Array.from(form.children)) {
+  const text =
+    cfg.success.text ||
+    qfText(
+      cfg,
+      demo === undefined
+        ? encrypted
+          ? "sentEncrypted"
+          : "sent"
+        : encrypted
+          ? "demoSentEncrypted"
+          : "demoSent",
+    );
+  // Only what shows now is hidden, so that the demo can show exactly that again.
+  const hidden: HTMLElement[] = [];
+  for (const el of Array.from(form.children) as HTMLElement[]) {
     if (el.classList.contains("quartz-form__title") || el.classList.contains("quartz-form__status"))
       continue;
-    (el as HTMLElement).hidden = true;
+    if (el.hidden || el.tagName === "SCRIPT") continue;
+    el.hidden = true;
+    hidden.push(el);
   }
   form.dataset.state = "sent";
   qfStatus(form, "success", text);
+  if (demo !== undefined) qfShowDemo(form, cfg, demo, encrypted, hidden);
+}
+
+/**
+ * The demo's result under the status: the message as the recipient would read it, and a button
+ * that brings the form back with what was typed, to try it once more.
+ */
+function qfShowDemo(
+  form: HTMLFormElement,
+  cfg: QfConfig,
+  demo: string,
+  encrypted: boolean,
+  hidden: HTMLElement[],
+) {
+  const output = document.createElement("pre");
+  // The armor's lines are its own and keep their breaks; the plain text wraps like the textarea.
+  output.className = encrypted
+    ? "quartz-form__demo quartz-form__demo--armored"
+    : "quartz-form__demo";
+  // A scrolling region has to be reachable by keyboard.
+  output.tabIndex = 0;
+  output.textContent = demo;
+  const again = document.createElement("button");
+  again.type = "button";
+  again.className = "quartz-form__button quartz-form__button--secondary quartz-form__demo-again";
+  again.textContent = qfText(cfg, "demoAgain");
+  const status = form.querySelector(".quartz-form__status");
+  if (status) status.after(output, again);
+  else form.append(output, again);
+  const onAgain = () => {
+    again.removeEventListener("click", onAgain);
+    output.remove();
+    again.remove();
+    for (const el of hidden) el.hidden = false;
+    delete form.dataset.state;
+    qfStatus(form, "", "");
+    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    if (button) {
+      button.disabled = false;
+      button.focus();
+    }
+  };
+  again.addEventListener("click", onAgain);
+  window.addCleanup(() => again.removeEventListener("click", onAgain));
 }
 
 /* ---- Steps: a form with page breaks, one step at a time ---- */
@@ -1304,7 +1368,7 @@ function qfBind(form: HTMLFormElement): void {
       });
       if (!result.ok && cfg.spam.captcha !== "none") qfResetCaptcha(form, cfg.spam.captcha);
       if (result.ok) {
-        qfFinish(form, cfg, encrypt);
+        qfFinish(form, cfg, encrypt, result.demo);
         return;
       }
       // Errors at fields the visitor can correct. A field this page does not have, or one the

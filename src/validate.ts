@@ -537,11 +537,25 @@ function checkForm(
       if (!form.recipient || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.recipient))
         problem(out, `${at}.recipient`, "mailtoRecipient");
       break;
+    case "demo":
+      // Sends nothing, so a target is a sign the owner meant another kind.
+      if (tr.url) hint(out, `${at}.transport.url`, "demoNoEffect");
+      if (form.success.mode === "redirect") hint(out, `${at}.success`, "demoRedirect");
+      if (form.spam.captcha !== "none" && !form.anonymous)
+        hint(out, `${at}.spam.captcha`, "demoCaptcha", { provider: form.spam.captcha });
+      break;
     default:
       problem(out, `${at}.transport.kind`, "kindUnknown", { kind: JSON.stringify(tr.kind) });
   }
-  if ((tr.kind === "relay" || tr.kind === "mailto") && Object.keys(tr.extra ?? {}).length > 0)
-    hint(out, `${at}.transport.extra`, tr.kind === "relay" ? "extraRelay" : "extraMailto");
+  if (
+    (tr.kind === "relay" || tr.kind === "mailto" || tr.kind === "demo") &&
+    Object.keys(tr.extra ?? {}).length > 0
+  )
+    hint(
+      out,
+      `${at}.transport.extra`,
+      tr.kind === "relay" ? "extraRelay" : tr.kind === "mailto" ? "extraMailto" : "demoNoEffect",
+    );
   if (tr.format !== undefined && tr.format !== "json" && tr.format !== "form")
     problem(out, `${at}.transport.format`, "formatValue");
 

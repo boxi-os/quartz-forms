@@ -243,6 +243,15 @@ describe("renderForm", () => {
     expect(config.encryption.keys[0]).toMatch(/^-----BEGIN PGP PUBLIC KEY BLOCK-----/);
   });
 
+  it("gives a demo form no target, a note and a button only the script enables", () => {
+    const demo = render(contact(), { transport: { kind: "demo" } });
+    expect(demo.tree.properties.action).toBeUndefined();
+    expect(demo.tree.properties.dataTransport).toBe("demo");
+    expect(demo.html).toContain("A demonstration: this form sends nothing.");
+    expect(demo.html).toMatch(/<button type="submit"[^>]*disabled[^>]*data-enable-with-js="true"/);
+    expect(demo.html).toContain("This form needs JavaScript to send.");
+  });
+
   it("targets the presets and mailto", () => {
     const w3 = render(contact(), { transport: { kind: "web3forms", url: "KEY" } });
     expect(w3.tree.properties.action).toBe("https://api.web3forms.com/submit");

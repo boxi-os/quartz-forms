@@ -55,6 +55,8 @@ export function endpointOf(transport: TransportConfig, recipient: string | undef
       return "https://api.web3forms.com/submit";
     case "mailto":
       return `mailto:${recipient ?? ""}`;
+    case "demo":
+      return "";
   }
 }
 
@@ -576,9 +578,14 @@ export function clientConfig(form: ResolvedForm, ctx: RenderContext): ClientConf
     page: form.pageContext && ctx.page ? { title: ctx.page.title, slug: ctx.page.slug } : undefined,
     success: {
       mode: form.success.mode,
+      // The demo picks its sentence when it knows whether it encrypted (forms.inline.ts).
       text:
         resolveText(form.success.text, ctx.lang) ??
-        (form.encryption.mode === "required" ? t.sentEncrypted : t.sent),
+        (form.transport.kind === "demo"
+          ? ""
+          : form.encryption.mode === "required"
+            ? t.sentEncrypted
+            : t.sent),
       slug: form.success.slug,
     },
     texts: {
@@ -620,6 +627,9 @@ export function clientConfig(form: ResolvedForm, ctx: RenderContext): ClientConf
       errorSummaryOne: t.errorSummaryOne,
       stepOf: t.stepOf,
       stepOfTitled: t.stepOfTitled,
+      demoSent: t.demoSent,
+      demoSentEncrypted: t.demoSentEncrypted,
+      demoAgain: t.demoAgain,
     },
   };
 }
@@ -643,7 +653,8 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
   const required = form.encryption.mode === "required";
   // Encryption required, or no-script posts switched off: the form gets no target and no live
   // button until the script runs, and says so in a <noscript> note.
-  const scriptOnly = required || !form.spam.noScript;
+  // The demo has no target at all: only the script can show what would have been sent.
+  const scriptOnly = required || !form.spam.noScript || form.transport.kind === "demo";
   const action = endpointOf(form.transport, form.recipient);
   const hidden = presetFields(form);
   const steps = stepsOf(form.fields);
@@ -666,6 +677,8 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
     );
   if (form.transport.kind === "mailto")
     notes.push(h("p", { className: ["quartz-form__note"] }, t.mailtoNote));
+  if (form.transport.kind === "demo")
+    notes.push(h("p", { className: ["quartz-form__note", "quartz-form__note--demo"] }, t.demoNote));
 
   const encryptionRow: ElementContent[] = [];
   if (form.encryption.mode === "optional") {

@@ -51,6 +51,12 @@ export default {
   pageContextNote: "Refers to the page “{title}”.",
   anonymousNote: "This form is anonymous: nothing identifies you unless you write it.",
   mailtoNote: "Your mail program opens with the message.",
+  demoNote:
+    "A demonstration: this form sends nothing. After sending you see what would have been sent.",
+  demoSent: "Nothing was sent. This is the message as it would have arrived:",
+  demoSentEncrypted:
+    "Nothing was sent. This is the message as it would have arrived, encrypted in your browser:",
+  demoAgain: "Try again",
   errorSummary: "Please check {count} field(s).",
   errorSummaryOne: "Please check one field.",
   onlyWhen: "Only needed if “{field}” is {values}.",

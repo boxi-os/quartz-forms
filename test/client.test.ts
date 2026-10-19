@@ -630,6 +630,50 @@ describe("sending", () => {
     expect(status(form).state).toBe("success");
   });
 
+  it("sends nothing with the demo transport and shows the message, then brings the form back", async () => {
+    const form = mount(
+      contact({
+        ...quick,
+        success: { mode: "redirect", slug: "thanks" },
+        fields: [
+          { type: "text", name: "name", label: "Name" },
+          { type: "textarea", name: "message", label: "Message", required: true },
+        ],
+      }),
+      { transport: { kind: "demo" } },
+      "de",
+    );
+    await nav();
+    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    expect(button.disabled).toBe(false);
+    fill(form, "name", "Ada");
+    fill(form, "message", "Zeile eins\nZeile zwei");
+    await submit(form);
+    expect(fetchMock).not.toHaveBeenCalled();
+    // The demo stays on the page even when the form would redirect after a real send.
+    expect(navigateMock).not.toHaveBeenCalled();
+    expect(status(form)).toEqual({
+      state: "success",
+      text: "Nichts wurde gesendet. So wäre die Nachricht angekommen:",
+    });
+    const output = form.querySelector<HTMLElement>(".quartz-form__demo")!;
+    expect(output.textContent).toBe("Name: Ada\nMessage:\nZeile eins\nZeile zwei");
+    expect(form.querySelector<HTMLElement>(".quartz-form__fields")!.hidden).toBe(true);
+
+    const again = form.querySelector<HTMLButtonElement>(".quartz-form__demo-again")!;
+    expect(again.textContent).toBe("Noch einmal");
+    again.click();
+    expect(form.querySelector(".quartz-form__demo")).toBeNull();
+    expect(form.querySelector(".quartz-form__demo-again")).toBeNull();
+    expect(form.querySelector<HTMLElement>(".quartz-form__fields")!.hidden).toBe(false);
+    expect((form.elements.namedItem("name") as HTMLInputElement).value).toBe("Ada");
+    expect(form.dataset.state).toBeUndefined();
+    expect(status(form)).toEqual({ state: "", text: "" });
+    expect(button.disabled).toBe(false);
+    await submit(form);
+    expect(form.querySelectorAll(".quartz-form__demo")).toHaveLength(1);
+  });
+
   it("posts flat fields to an endpoint, as JSON or as a form body, with the extra fields", async () => {
     const json = mount(contact(quick), {
       transport: { kind: "endpoint", url: "https://e.example/x", extra: { to: "sales" } },
@@ -688,6 +732,34 @@ describe("encryption", () => {
   beforeAll(() => {
     vi.stubGlobal("Uint8Array", Object.getPrototypeOf(Buffer.prototype).constructor);
   });
+
+  it("shows the demo's message encrypted when the form encrypts, decryptable with the owner's key", async () => {
+    const openpgp = await import("openpgp");
+    const { generatePair, decrypt } = await import("./keys");
+    const pair = await generatePair();
+    (window as unknown as { __quartzFormsOpenpgp: unknown }).__quartzFormsOpenpgp = openpgp;
+    const form = mount(contact({ ...quick, encryption: { mode: "required" } }), {
+      transport: { kind: "demo" },
+      keys: { owner: { armored: pair.publicKey } },
+    });
+    await nav();
+    for (let i = 0; i < 10; i++) await tick();
+    fill(form, "message", "Top secret");
+    await submit(form);
+    for (let i = 0; i < 20; i++) await tick();
+    expect(fetchMock).not.toHaveBeenCalled();
+    const output = form.querySelector<HTMLElement>(".quartz-form__demo")!.textContent!;
+    expect(output).toMatch(/^-----BEGIN PGP MESSAGE-----/);
+    expect(form.querySelector(".quartz-form__demo")!.classList).toContain(
+      "quartz-form__demo--armored",
+    );
+    expect(output).not.toContain("Top secret");
+    expect(await decrypt(output, pair.privateKey)).toBe("Message:\nTop secret");
+    expect(status(form).text).toBe(
+      "Nothing was sent. This is the message as it would have arrived, encrypted in your browser:",
+    );
+    delete (window as unknown as { __quartzFormsOpenpgp?: unknown }).__quartzFormsOpenpgp;
+  }, 30_000);
 
   it("encrypts the serialised message for the recipient key and shows the fingerprint", async () => {
     const openpgp = await import("openpgp");

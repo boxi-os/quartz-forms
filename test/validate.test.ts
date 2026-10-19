@@ -475,6 +475,27 @@ describe("validate: transport, encryption, spam, success", () => {
         }),
       ).hints,
     ).toEqual([]);
+    // The demo sends nothing: a target, extra fields, a redirect and a captcha are said.
+    expect(resolveOptions(options({ transport: { kind: "demo" } })).hints).toEqual([]);
+    expect(resolveOptions(options({ transport: { kind: "demo" } })).problems).toEqual([]);
+    expect(
+      resolveOptions(
+        options({
+          forms: {
+            contact: contact({
+              success: { mode: "redirect", slug: "thanks" },
+              spam: { captcha: "turnstile", captchaSiteKey: "k" },
+            }),
+          },
+          transport: { kind: "demo", url: "https://e.example/x", extra: { to: "s" } },
+        }),
+      ).hints,
+    ).toEqual([
+      "forms.contact.transport.url: has no effect with demo, which sends nothing",
+      "forms.contact.success: demo shows what would have been sent below the form and does not redirect",
+      "forms.contact.spam.captcha: the turnstile widget is shown, but with demo nobody checks its answer",
+      "forms.contact.transport.extra: has no effect with demo, which sends nothing",
+    ]);
     expect(problemsOf({ spam: { captcha: "turnstile" } as never })).toEqual([
       "forms.contact.spam.captchaSiteKey: turnstile needs the site key",
     ]);

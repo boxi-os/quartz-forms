@@ -95,6 +95,11 @@ const de: { [K in keyof typeof en]: (p: Params, t: Translate) => string } = {
   kindUnknown: (p) => `unbekannter Versandweg ${s(p, "kind")}`,
   extraRelay: () => "wirkt nicht beim Relay",
   extraMailto: () => "wirkt nicht bei mailto",
+  demoNoEffect: () => "wirkt nicht bei demo, das nichts sendet",
+  demoRedirect: () =>
+    "demo zeigt unter dem Formular, was gesendet worden wäre, und leitet nicht weiter",
+  demoCaptcha: (p) =>
+    `das Widget von ${s(p, "provider")} wird angezeigt, aber bei demo prüft niemand seine Antwort`,
   formatValue: () => "json oder form",
 
   modeValue: () => "required, optional oder off",

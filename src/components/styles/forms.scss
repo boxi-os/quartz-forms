@@ -323,6 +323,36 @@
     }
   }
 
+  // The demo transport's result: the message as the recipient would read it, then a way back.
+  &__demo {
+    margin: 0;
+    padding: 0.75rem;
+    max-height: 24rem;
+    overflow: auto;
+    font-family: var(--codeFont);
+    font-size: 0.85em;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    color: var(--darkgray);
+    background: var(--quartz-forms-field-bg);
+    border: 1px solid var(--quartz-forms-border);
+    border-radius: var(--quartz-forms-radius);
+
+    &--armored {
+      white-space: pre;
+      overflow-wrap: normal;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--quartz-forms-border-focus);
+      outline-offset: 2px;
+    }
+  }
+
+  &__demo-again {
+    align-self: flex-start;
+  }
+
   &__status {
     min-height: 1.4em;
     font-size: 0.95em;

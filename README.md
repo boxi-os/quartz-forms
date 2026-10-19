@@ -16,7 +16,8 @@ third time 0.4.0 as a whole (see the CHANGELOG).
   PGP key
 - Per form: encryption `required`, `optional` or `off`; an anonymous mode without personal data
 - Transports: your own relay (a PHP script ships in `relay/php/`), a generic HTTP endpoint,
-  presets for form services, or `mailto:`
+  presets for form services, `mailto:`, or a demo that sends nothing and shows what would have
+  been sent
 - Spam protection, all configurable: honeypot and time trap, proof-of-work and rate limiting in
   the relay, Turnstile/hCaptcha
 - Labels in several languages, works with quartz-multilanguage
@@ -168,12 +169,18 @@ the consent. Without JavaScript all steps show one after the other, each under i
 
 ### Transport
 
-| Key      | Values                                                  | Description                                                                                            |
-| -------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `kind`   | `relay`, `endpoint`, `formspree`, `web3forms`, `mailto` | The plugin's PHP relay; any POST URL; two service presets; the mail program.                           |
-| `url`    | URL, or the service's form id / access key              | Required for `relay`, `endpoint` and the presets.                                                      |
-| `format` | `json` \| `form`                                        | Body encoding for `endpoint`. The relay gets JSON from the script and a plain post without JavaScript. |
-| `extra`  | `Record<string, string>`                                | Fields sent with every submission to an `endpoint` or a service; the relay and `mailto` take none.     |
+| Key      | Values                                                          | Description                                                                                                |
+| -------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `kind`   | `relay`, `endpoint`, `formspree`, `web3forms`, `mailto`, `demo` | The plugin's PHP relay; any POST URL; two service presets; the mail program; a demonstration.              |
+| `url`    | URL, or the service's form id / access key                      | Required for `relay`, `endpoint` and the presets.                                                          |
+| `format` | `json` \| `form`                                                | Body encoding for `endpoint`. The relay gets JSON from the script and a plain post without JavaScript.     |
+| `extra`  | `Record<string, string>`                                        | Fields sent with every submission to an `endpoint` or a service; the relay, `mailto` and `demo` take none. |
+
+`demo` sends nothing. The form checks what was typed, encrypts it if it encrypts, and shows below
+itself the message as the recipient would have read it, with a button to try again. It needs no
+`url` and no `recipient`, ignores `success.mode: redirect` and has no target without JavaScript.
+It is meant for a site that shows a form without anyone to receive it, such as a handbook on a
+host without PHP.
 
 ### Spam
 

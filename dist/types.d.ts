@@ -77,6 +77,9 @@ declare const en: {
     kindUnknown: (p: Params) => string;
     extraRelay: () => string;
     extraMailto: () => string;
+    demoNoEffect: () => string;
+    demoRedirect: () => string;
+    demoCaptcha: (p: Params) => string;
     formatValue: () => string;
     modeValue: () => string;
     noKeys: () => string;
@@ -394,9 +397,11 @@ interface PageBreakField {
 type FormField = InputField | ChoiceField | CheckboxField | ScaleField | ConsentField | PgpKeyField | HiddenField | PageBreakField;
 /**
  * `relay`: the plugin's own PHP relay. `endpoint`: any URL that takes a POST. `formspree`,
- * `web3forms`: presets for those services. `mailto`: opens the visitor's mail program.
+ * `web3forms`: presets for those services. `mailto`: opens the visitor's mail program. `demo`:
+ * sends nothing; the form checks, encrypts and shows below itself what would have been sent - for
+ * a site that shows a form without anyone to receive it (a handbook on a host without PHP).
  */
-type TransportKind = "relay" | "endpoint" | "formspree" | "web3forms" | "mailto";
+type TransportKind = "relay" | "endpoint" | "formspree" | "web3forms" | "mailto" | "demo";
 interface TransportConfig {
     kind: TransportKind;
     /** POST target for `relay` and `endpoint`; the form id or access key for the presets. */
@@ -405,7 +410,7 @@ interface TransportConfig {
     format?: "json" | "form";
     /**
      * Extra fields sent with every submission to an `endpoint` or a service (an access key, for
-     * instance). The relay and `mailto` take none; the build says so.
+     * instance). The relay, `mailto` and `demo` take none; the build says so.
      */
     extra?: Record<string, string>;
 }

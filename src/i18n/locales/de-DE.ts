@@ -51,6 +51,12 @@ const deDE: Translation = {
   pageContextNote: "Bezieht sich auf die Seite „{title}“.",
   anonymousNote: "Dieses Formular ist anonym: Nichts identifiziert dich, außer du schreibst es.",
   mailtoNote: "Dein Mailprogramm öffnet sich mit der Nachricht.",
+  demoNote:
+    "Eine Vorführung: Dieses Formular sendet nichts. Nach dem Absenden siehst du, was gesendet worden wäre.",
+  demoSent: "Nichts wurde gesendet. So wäre die Nachricht angekommen:",
+  demoSentEncrypted:
+    "Nichts wurde gesendet. So wäre die Nachricht angekommen, in deinem Browser verschlüsselt:",
+  demoAgain: "Noch einmal",
   errorSummary: "Bitte prüfe {count} Felder.",
   errorSummaryOne: "Bitte prüfe ein Feld.",
   onlyWhen: "Nur nötig, wenn bei „{field}“ {values} gewählt ist.",

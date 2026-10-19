@@ -19,7 +19,8 @@ als Ganzes (siehe CHANGELOG).
 - Je Formular: Verschlüsselung `required`, `optional` oder `off`; ein anonymer Modus ohne
   Personendaten
 - Versandwege: eigenes Relay (ein PHP-Skript liegt in `relay/php/`), generischer HTTP-Endpunkt,
-  Voreinstellungen für Formular-Dienste oder `mailto:`
+  Voreinstellungen für Formular-Dienste, `mailto:` oder eine Vorführung, die nichts sendet und
+  zeigt, was gesendet worden wäre
 - Spam-Schutz, alles konfigurierbar: Honeypot und Zeitfalle, Proof-of-Work und Ratenbegrenzung im
   Relay, Turnstile/hCaptcha
 - Bezeichnungen in mehreren Sprachen, funktioniert mit quartz-multilanguage
@@ -179,10 +180,16 @@ seinem Titel.
 
 | Schlüssel | Werte                                                             | Beschreibung                                                                                                      |
 | --------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `kind`    | `relay`, `endpoint`, `formspree`, `web3forms`, `mailto`           | Das PHP-Relay von quartz-forms; jede POST-URL; zwei Dienst-Voreinstellungen; das Mailprogramm.                    |
+| `kind`    | `relay`, `endpoint`, `formspree`, `web3forms`, `mailto`, `demo`   | Das PHP-Relay von quartz-forms; jede POST-URL; zwei Dienst-Voreinstellungen; das Mailprogramm; eine Vorführung.   |
 | `url`     | URL oder die Formular-Kennung / der Zugangsschlüssel des Dienstes | Pflicht für `relay`, `endpoint` und die Voreinstellungen.                                                         |
 | `format`  | `json` \| `form`                                                  | Kodierung des Inhalts für `endpoint`. Das Relay bekommt JSON vom Script und ohne JavaScript einen einfachen Post. |
-| `extra`   | `Record<string, string>`                                          | Felder, die mit jeder Sendung an einen `endpoint` oder Dienst gehen; Relay und `mailto` nehmen keine.             |
+| `extra`   | `Record<string, string>`                                          | Felder, die mit jeder Sendung an einen `endpoint` oder Dienst gehen; Relay, `mailto` und `demo` nehmen keine.     |
+
+`demo` sendet nichts. Das Formular prüft die Eingaben, verschlüsselt sie, wenn es verschlüsselt,
+und zeigt unter sich die Nachricht so, wie der Empfänger sie gelesen hätte, mit einem Button für
+einen zweiten Versuch. Es braucht weder `url` noch `recipient`, übergeht `success.mode: redirect`
+und hat ohne JavaScript kein Ziel. Gedacht ist es für eine Website, die ein Formular zeigt, ohne
+dass jemand es empfängt, etwa ein Handbuch auf einem Host ohne PHP.
 
 ### Spam
 
