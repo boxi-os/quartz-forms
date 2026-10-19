@@ -280,6 +280,26 @@ steps is decided the same way in all three: the build holds a condition to an ea
 to values it can have, and browser and relay read one list per field derived from it, in one
 pass in form order.
 
+## Styling
+
+Every tunable value is a custom property on `.quartz-form`: `--quartz-forms-gap`, `-radius`,
+`-border`, `-border-focus`, `-field-bg`, `-error`, `-success`, `-button-bg`, `-button-fg`,
+`-max-width`. Set them in `custom.scss`:
+
+```scss
+.quartz-form {
+  --quartz-forms-button-bg: var(--tertiary);
+}
+```
+
+The stylesheet sits in Quartz' cascade layer `quartz-base`, so any rule outside it wins whatever
+its specificity: your `custom.scss`, and just as much a theme's own unlayered rules. A theme that
+styles the article's `input`, `select`, `textarea`, `label`, `button`, `fieldset` or `pre` styles
+the form's too (edge, ground, font size, the button's colours). Two rules stand outside the layer
+on purpose (`guard.scss`): the form's checkboxes and radios keep the browser's look, and its
+paragraphs, headings, fieldsets and the demo's output keep no outer margin; a selector more
+specific than `.quartz-form input[type="checkbox"]` or `.quartz-form p` overrides them.
+
 ## Texts
 
 Every sentence the plugin shows comes from `src/i18n/locales/` (`en-US`, `de-DE`) and can be

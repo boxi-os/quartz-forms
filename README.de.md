@@ -294,6 +294,27 @@ Schritten zählen, entscheiden alle drei gleich: Der Bau hält eine Bedingung an
 und an Werte, die es haben kann, und Browser und Relay lesen eine daraus abgeleitete Liste je
 Feld, in einem Durchgang in Formularreihenfolge.
 
+## Aussehen
+
+Jeder einstellbare Wert ist eine Custom Property an `.quartz-form`: `--quartz-forms-gap`,
+`-radius`, `-border`, `-border-focus`, `-field-bg`, `-error`, `-success`, `-button-bg`,
+`-button-fg`, `-max-width`. Gesetzt werden sie in `custom.scss`:
+
+```scss
+.quartz-form {
+  --quartz-forms-button-bg: var(--tertiary);
+}
+```
+
+Das Stylesheet liegt in Quartz' Kaskadenschicht `quartz-base`, also gewinnt jede Regel außerhalb
+davon, gleich wie spezifisch: deine `custom.scss`, aber ebenso die ungeschichteten Regeln eines
+Themes. Ein Theme, das `input`, `select`, `textarea`, `label`, `button`, `fieldset` oder `pre` im
+Artikel gestaltet, gestaltet die des Formulars mit (Rand, Grund, Schriftgröße, die Farben des
+Buttons). Zwei Regeln stehen absichtlich außerhalb der Schicht (`guard.scss`): Die Kästchen und
+Radio-Knöpfe des Formulars behalten das Aussehen des Browsers, seine Absätze, Überschriften,
+Feldgruppen und die Ausgabe der Demo keinen Außenabstand; ein spezifischerer Selektor als
+`.quartz-form input[type="checkbox"]` bzw. `.quartz-form p` setzt sich darüber hinweg.
+
 ## Texte
 
 Jeder Satz, den quartz-forms zeigt, kommt aus `src/i18n/locales/` (`en-US`, `de-DE`) und lässt sich
