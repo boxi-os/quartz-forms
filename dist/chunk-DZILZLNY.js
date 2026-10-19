@@ -294,7 +294,8 @@ var en = {
   cliUnknownArgument: (p) => `unknown argument ${s(p, "arg")}`,
   cliNoSite: () => "no site directory given (--site)",
   cliConfigMissing: (p) => `${s(p, "path")} not found`,
-  cliNoEntry: (p) => `no quartz-forms entry in ${s(p, "path")}`,
+  // Quartz names a plugin by the end of its source, so a folder of another name is not this one.
+  cliNoEntry: (p) => `no quartz-forms entry in ${s(p, "path")}: an entry's source must end in quartz-forms (github:boxi-os/quartz-forms, or a folder named quartz-forms)`,
   cliEntries: (p) => `${s(p, "count")} quartz-forms entries; taking the first`,
   cliNoOut: () => "no output directory given (--out)",
   cliUnknownCommand: (p) => `unknown command "${s(p, "command")}" (relay, check, key)`,
@@ -428,7 +429,7 @@ var de = {
   cliUnknownArgument: (p) => `unbekanntes Argument ${s2(p, "arg")}`,
   cliNoSite: () => "kein Website-Ordner angegeben (--site)",
   cliConfigMissing: (p) => `${s2(p, "path")} fehlt`,
-  cliNoEntry: (p) => `kein quartz-forms-Eintrag in ${s2(p, "path")}`,
+  cliNoEntry: (p) => `kein quartz-forms-Eintrag in ${s2(p, "path")}: die source eines Eintrags muss auf quartz-forms enden (github:boxi-os/quartz-forms oder ein Ordner namens quartz-forms)`,
   cliEntries: (p) => `${s2(p, "count")} Eintr\xE4ge von quartz-forms; es gilt der erste`,
   cliNoOut: () => "kein Ausgabeordner angegeben (--out)",
   cliUnknownCommand: (p) => `unbekannter Befehl \u201E${s2(p, "command")}\u201C (relay, check, key)`,
@@ -1342,5 +1343,5 @@ function logHints(opts) {
 }
 
 export { __commonJS, __export, __require, __toESM, conditionOf, conditionsOf, defaultOptions, formatMessage, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-3ZPEJT2D.js.map
-//# sourceMappingURL=chunk-3ZPEJT2D.js.map
+//# sourceMappingURL=chunk-DZILZLNY.js.map
+//# sourceMappingURL=chunk-DZILZLNY.js.map

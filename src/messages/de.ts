@@ -141,7 +141,8 @@ const de: { [K in keyof typeof en]: (p: Params, t: Translate) => string } = {
   cliUnknownArgument: (p) => `unbekanntes Argument ${s(p, "arg")}`,
   cliNoSite: () => "kein Website-Ordner angegeben (--site)",
   cliConfigMissing: (p) => `${s(p, "path")} fehlt`,
-  cliNoEntry: (p) => `kein quartz-forms-Eintrag in ${s(p, "path")}`,
+  cliNoEntry: (p) =>
+    `kein quartz-forms-Eintrag in ${s(p, "path")}: die source eines Eintrags muss auf quartz-forms enden (github:boxi-os/quartz-forms oder ein Ordner namens quartz-forms)`,
   cliEntries: (p) => `${s(p, "count")} Einträge von quartz-forms; es gilt der erste`,
   cliNoOut: () => "kein Ausgabeordner angegeben (--out)",
   cliUnknownCommand: (p) => `unbekannter Befehl „${s(p, "command")}“ (relay, check, key)`,

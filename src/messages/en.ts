@@ -155,7 +155,9 @@ const en = {
   cliUnknownArgument: (p: Params) => `unknown argument ${s(p, "arg")}`,
   cliNoSite: () => "no site directory given (--site)",
   cliConfigMissing: (p: Params) => `${s(p, "path")} not found`,
-  cliNoEntry: (p: Params) => `no quartz-forms entry in ${s(p, "path")}`,
+  // Quartz names a plugin by the end of its source, so a folder of another name is not this one.
+  cliNoEntry: (p: Params) =>
+    `no quartz-forms entry in ${s(p, "path")}: an entry's source must end in quartz-forms (github:boxi-os/quartz-forms, or a folder named quartz-forms)`,
   cliEntries: (p: Params) => `${s(p, "count")} quartz-forms entries; taking the first`,
   cliNoOut: () => "no output directory given (--out)",
   cliUnknownCommand: (p: Params) => `unknown command "${s(p, "command")}" (relay, check, key)`,

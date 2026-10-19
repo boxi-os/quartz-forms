@@ -47,6 +47,9 @@ From the same review's list of side findings:
   is the first `email` field filled in, as before.
 - A form whose other steps are all skipped no longer shows "Step 1 of 1"; the count comes back
   with a second step.
+- "no quartz-forms entry" says that the entry's source has to end in `quartz-forms`, as Quartz
+  names a plugin by it; a local folder of another name was not found, and the sentence did not
+  say why.
 
 ## [0.4.0] - 2026-10-19
 

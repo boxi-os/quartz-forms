@@ -193,6 +193,11 @@ describe("cli relay", () => {
     const none = tmpDir("cli-none");
     fs.writeFileSync(path.join(none, "quartz.config.yaml"), "plugins: []\n");
     expect(run(["check", "--site", none]).json.error).toMatch(/^no quartz-forms entry in /);
+    // Third review, aside (2026-10-19): a local path of another name is no entry, and the
+    // sentence did not say why.
+    expect(run(["check", "--site", none]).json.error).toMatch(
+      /: an entry's source must end in quartz-forms \(github:boxi-os\/quartz-forms, or a folder named quartz-forms\)$/,
+    );
   });
 });
 
