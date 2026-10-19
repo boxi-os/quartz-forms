@@ -589,21 +589,33 @@ function qf_newlines(mixed $value): mixed
     return $value;
 }
 
+/**
+ * The characters JavaScript's `\s` matches and trim() strips, as a PCRE character-class body:
+ * WhiteSpace (tab, VT, FF, space, NBSP, the Zs category, U+FEFF) and LineTerminator (LF, CR,
+ * U+2028, U+2029). test/client.test.ts compares it with `\s` over every code point.
+ */
+const QF_WS = '\t\n\x0b\f\r \x{a0}\x{1680}\x{2000}-\x{200a}\x{2028}\x{2029}\x{202f}\x{205f}\x{3000}\x{feff}';
+
 // E-mail and URL by the same rule as the browser script (QF_EMAIL/QF_URL there): a local part
 // and dot-separated labels without whitespace, a scheme and a host without whitespace. Letters
 // outside ASCII pass on both sides. FILTER_VALIDATE_EMAIL/URL refused `müller@münchen.de` and
 // `https://münchen.de`, which the page had accepted, and the visitor read "please use the
 // requested format" (review finding, 2026-10-19).
-// (*UCP): `\s` means Unicode whitespace, as in JavaScript; without it PCRE counts ASCII only,
-// and an address with a no-break space passed here and was refused by the script.
-const QF_EMAIL = '/(*UCP)^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/u';
-const QF_URL = '~(*UCP)^https?://[^\s/?#]+(?:[/?#]\S*)?$~iu';
+// Whitespace is QF_WS, not `\s`: PHP's `u` flag switches PCRE2_UCP on, and PCRE's Unicode `\s`
+// counts U+0085 and U+180E, which JavaScript's does not, and misses U+FEFF, which JavaScript's
+// has. `a\u0085b@example.org` passed the browser and was refused here, `a﻿b@example.org`
+// the other way round (second review, finding 10, 2026-10-19). An address with a no-break
+// space is refused on both sides, as before.
+const QF_EMAIL = '/^[^' . QF_WS . '@]+@[^' . QF_WS . '@.]+(?:\.[^' . QF_WS . '@.]+)+$/u';
+const QF_URL = '~^https?://[^' . QF_WS . '/?#]+(?:[/?#][^' . QF_WS . ']*)?$~iu';
 // Decimal notation only, the same expression as the script's QF_NUMBER (is_numeric agreed, but
 // the script's Number() took "0x5", so both sides now read one rule).
 const QF_NUMBER = '/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i';
 
 /**
- * Trimmed as JavaScript's trim() trims: Unicode whitespace too, not only ASCII.
+ * Trimmed as JavaScript's trim() trims: the browser's whitespace list (QF_WS), not PCRE's `\s`.
+ * A value of one U+FEFF counted as filled here and as empty in the browser, one U+0085 the other
+ * way round (second review, finding 10, 2026-10-19).
  *
  * The lookbehind is not decoration. `\s+$` alone is tried at every position of a whitespace
  * run, and each try walks to the run's end before `$` fails: quadratic without the PCRE JIT,
@@ -614,7 +626,49 @@ const QF_NUMBER = '/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i';
  */
 function qf_trim(string $value): string
 {
-    return preg_replace('/(*UCP)^\s+|(?<!\s)\s+$/u', '', $value) ?? trim($value);
+    return preg_replace('/^[' . QF_WS . ']+|(?<![' . QF_WS . '])[' . QF_WS . ']+$/u', '', $value)
+        ?? trim($value);
+}
+
+/**
+ * An owner's pattern as PCRE must read it to mean what the browser's RegExp means. PHP's `u`
+ * flag switches PCRE2_UCP on along with UTF, which makes `\s`, `\d` and `\w` Unicode: `\d{5}`
+ * took "١٢٣٤٥" here and not in the browser, `\w` took "ü", `a\sb` took U+0085 here and U+FEFF
+ * there; `\v` is PCRE's vertical-space class and the browser's vertical tab (second review,
+ * finding 10, 2026-10-19). The seven escapes are spelled out as the browser means them, inside
+ * and outside a character class. A negated escape inside a class (`[\S]`, `[\D]`, `[\W]`) has
+ * no spelled-out form and keeps PCRE's meaning.
+ */
+function qf_pcre_pattern(string $pattern): string
+{
+    // escape => [inside a class, outside a class]
+    static $spelled = [
+        's' => [QF_WS, '[' . QF_WS . ']'],
+        'S' => [null, '[^' . QF_WS . ']'],
+        'd' => ['0-9', '[0-9]'],
+        'D' => [null, '[^0-9]'],
+        'w' => ['A-Za-z0-9_', '[A-Za-z0-9_]'],
+        'W' => [null, '[^A-Za-z0-9_]'],
+        'v' => ['\x0b', '\x0b'],
+    ];
+    $out = '';
+    $inClass = false;
+    $length = strlen($pattern);
+    for ($i = 0; $i < $length; $i++) {
+        $c = $pattern[$i];
+        if ($c === '\\' && $i + 1 < $length) {
+            $next = $pattern[++$i];
+            $out .= $spelled[$next][$inClass ? 0 : 1] ?? '\\' . $next;
+            continue;
+        }
+        if ($c === '[' && !$inClass) {
+            $inClass = true;
+        } elseif ($c === ']' && $inClass) {
+            $inClass = false;
+        }
+        $out .= $c;
+    }
+    return $out;
 }
 
 /** Length as the browser's maxlength counts it: UTF-16 units, so an emoji counts two. */
@@ -749,7 +803,7 @@ function qf_check_field(array $rule, mixed $value): ?string
         // read). An unreadable pattern, invalid input or a hit backtrack limit all gave false,
         // and false used to pass (review finding, 2026-10-19): now it refuses, and the owner
         // finds the reason in the server's error log.
-        $m = @preg_match("\x01^(?:" . $rule['pattern'] . ")$\x01u", $value);
+        $m = @preg_match("\x01^(?:" . qf_pcre_pattern($rule['pattern']) . ")$\x01u", $value);
         if ($m === 0) {
             return 'invalid';
         }

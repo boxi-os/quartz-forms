@@ -134,7 +134,9 @@ function qfControlsOf(form: HTMLFormElement, name: string): Element[] {
 // E-mail and URL by one rule here and in the relay (QF_EMAIL/QF_URL in send.php): a local part
 // and dot-separated labels without whitespace, a scheme and a host without whitespace. Letters
 // outside ASCII pass on both sides (review finding, 2026-10-19: `müller@münchen.de` passed here
-// and was refused there).
+// and was refused there). Whitespace is this engine's `\s`, which trim() strips as well; the relay
+// spells that list out (QF_WS), because PCRE's `\s` has U+0085 and lacks U+FEFF (second review,
+// finding 10, 2026-10-19).
 const QF_EMAIL = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/u;
 const QF_URL = /^https?:\/\/[^\s/?#]+(?:[/?#]\S*)?$/iu;
 const QF_TEL = /^\+?[0-9 ()./-]{5,}$/;

@@ -242,6 +242,7 @@ Fixes from a second review of the changes above (another model, fresh context, 2
   required one was refused as missing, an optional one was silently absent from the mail (the JSON
   path, which nests the fields, was unaffected). The three names are reserved now, like `form`,
   `lang` and `ts` already were, and the build refuses them.
+- Whitespace meant different characters in the browser and in the relay. PHP's `u` flag switches PCRE's Unicode mode on, and PCRE's `\s` counts U+0085 and U+180E, which JavaScript's does not, and misses U+FEFF, which JavaScript's has: `a\u0085b@example.org` passed the browser and was refused by the relay, `a\uFEFFb@example.org` the other way round, and a required field holding one U+FEFF was empty in the browser and filled in the relay. The same mode made `\d` and `\w` in an owner's `pattern` Unicode in the relay and ASCII in the browser (`\d{5}` took "١٢٣٤٥" there), and `\v` PCRE's vertical-space class instead of the vertical tab. The relay now spells the browser's whitespace list out (`QF_WS`) for its e-mail and URL rules and for trimming, and rewrites `\s`, `\S`, `\d`, `\D`, `\w`, `\W` and `\v` in an owner's pattern to what the browser means before compiling it (`qf_pcre_pattern`; a negated escape inside a character class, such as `[\S]`, keeps PCRE's meaning). Twenty-five cases joined the shared parity catalog, and a test compares the relay's list with JavaScript's `\s` over every code point.
 
 ## [0.1.1] - 2026-10-19
 

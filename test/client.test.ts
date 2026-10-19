@@ -1125,4 +1125,19 @@ describe("parity with the relay", () => {
     }
     expect(disagreements).toEqual([]);
   });
+
+  it("the relay's whitespace list (QF_WS in send.php) is this engine's \\s, over every code point", () => {
+    // Second review, finding 10 (2026-10-19): PCRE's Unicode `\s` has U+0085 and U+180E and lacks
+    // U+FEFF, so the relay spells the browser's list out; this keeps the two from drifting apart.
+    const php = fs.readFileSync(path.join(__dirname, "../relay/php/send.php"), "utf8");
+    const body = /^const QF_WS = '([^']+)';$/m.exec(php)?.[1];
+    expect(body).toBeDefined();
+    const list = new RegExp(`^[${body!.replace(/\\x\{([0-9a-f]+)\}/g, "\\u{$1}")}]$`, "u");
+    const differences: string[] = [];
+    for (let cp = 0; cp <= 0x10ffff; cp++) {
+      const ch = String.fromCodePoint(cp);
+      if (/^\s$/u.test(ch) !== list.test(ch)) differences.push(`U+${cp.toString(16)}`);
+    }
+    expect(differences).toEqual([]);
+  });
 });

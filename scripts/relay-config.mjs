@@ -171,7 +171,9 @@ for (const form of Object.values(opts.forms)) {
 // review, finding 3, 2026-10-19). The build refuses the syntax no PCRE2 reads (src/validate.ts);
 // what is left (a property name this PCRE does not know, a lookbehind of bounded variable length
 // before PCRE2 10.43) is asked of the php on this machine, compiled as send.php compiles it: the
-// same delimiter, the same anchors, the same flag. The host's PCRE may still be older.
+// same delimiter, the same anchors, the same flag. send.php first spells seven escapes out
+// (`qf_pcre_pattern`), which changes what they match, not whether PCRE can read the pattern.
+// The host's PCRE may still be older.
 const patterns = Object.entries(forms).flatMap(([id, form]) =>
   form.fields
     .filter((rule) => rule.pattern)
