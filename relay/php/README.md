@@ -34,7 +34,8 @@ hosting with PHP ≥ 8.1; no dependencies.
   addresses).
 - Plain text: every field against its rule (unknown field, required, length, options, e-mail,
   number range, pattern); errors go back as `{field, code}` and the browser shows them at the
-  fields. Encrypted: the ciphertext must be an armored PGP message; nothing else is readable.
+  fields. E-mail and URL follow the browser script's rule, so letters outside ASCII pass on both
+  sides; `Reply-To` is set only for an ASCII address. Encrypted: the ciphertext must be an armored PGP message; nothing else is readable.
 - The recipient is a name the config maps to an address. An address still at `@example.` is
   treated as missing.
 - The captcha token is verified with the provider over HTTP: with `allow_url_fopen`, or through

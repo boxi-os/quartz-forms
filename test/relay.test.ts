@@ -105,6 +105,13 @@ const siteOptions = {
       spam: { maxBytes: 300 },
       fields: [{ type: "text", name: "s", label: "S" }],
     },
+    links: {
+      recipient: "owner",
+      fields: [
+        { type: "email", name: "mail", label: "Mail" },
+        { type: "url", name: "site", label: "Site" },
+      ],
+    },
   },
 };
 
@@ -453,6 +460,36 @@ describe.skipIf(!php)("relay: refusals", () => {
     });
     const long = await post(env("feedback", { rating: "4", comment: "x".repeat(20_001) }));
     expect(errorsOf(long)).toContainEqual({ field: "comment", code: "too_long" });
+  });
+  it("e-mail and URL: the browser's rule, so an address or host with umlauts passes here as it did there", async () => {
+    // Review finding 13 (2026-10-19): the script accepted `müller@münchen.de` and
+    // `https://münchen.de`, FILTER_VALIDATE_EMAIL/URL refused them, and the visitor read "please
+    // use the requested format" for a value the page had taken.
+    const idn = await post(
+      env("links", { mail: "müller@münchen.de", site: "https://münchen.de/weg?x=1" }),
+    );
+    expect(idn.json).toEqual({ ok: true });
+    const { headers, body } = lastMail();
+    expect(body).toContain("Mail: müller@münchen.de");
+    expect(body).toContain("Site: https://münchen.de/weg?x=1");
+    // A Reply-To header carries ASCII addresses only; this one stays in the body.
+    expect(headers).not.toContain("Reply-To");
+    const ascii = await post(env("links", { mail: "ada@example.org" }));
+    expect(ascii.json).toEqual({ ok: true });
+    expect(lastMail().headers).toContain("Reply-To: ada@example.org");
+    // What both sides refuse: no dot in the domain, a space, no scheme, ftp.
+    for (const mail of ["ada@localhost", "a b@example.org", "ada@example..org", "@example.org"]) {
+      expect(errorsOf(await post(env("links", { mail })))).toContainEqual({
+        field: "mail",
+        code: "invalid",
+      });
+    }
+    for (const site of ["example.org", "ftp://example.org", "https://exa mple.org", "https://"]) {
+      expect(errorsOf(await post(env("links", { site })))).toContainEqual({
+        field: "site",
+        code: "invalid",
+      });
+    }
   });
   it("proof of work: missing, unsolved or forged is refused before the fields are looked at", async () => {
     const bad = { ...contactFields, email: "not-an-address" };

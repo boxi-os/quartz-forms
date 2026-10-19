@@ -152,6 +152,19 @@ describe("validation in the browser", () => {
     await submit(form);
     expect(errorOf(form, "email")).toBe("Bitte geben Sie eine gültige E-Mail-Adresse ein.");
     expect(errorOf(form, "url")).toBe("Bitte geben Sie eine gültige Webadresse ein.");
+    // The same rule as the relay's: umlauts pass, a domain without a dot does not.
+    fill(form, "email", "müller@münchen.de");
+    fill(form, "url", "https://münchen.de/weg?x=1");
+    await submit(form);
+    expect(errorOf(form, "email")).toBeNull();
+    expect(errorOf(form, "url")).toBeNull();
+    fill(form, "email", "ada@localhost");
+    fill(form, "url", "https://exa mple.org");
+    await submit(form);
+    expect(errorOf(form, "email")).toBe("Bitte geben Sie eine gültige E-Mail-Adresse ein.");
+    expect(errorOf(form, "url")).toBe("Bitte geben Sie eine gültige Webadresse ein.");
+    fill(form, "email", "nope");
+    fill(form, "url", "ftp://x");
     expect(errorOf(form, "tel")).toBe("Bitte geben Sie eine gültige Telefonnummer ein.");
     expect(errorOf(form, "n")).toBe("Bitte geben Sie höchstens 5 ein.");
     expect(errorOf(form, "code")).toBe("Bitte verwenden Sie das verlangte Format.");
@@ -275,7 +288,12 @@ describe("sending", () => {
   });
 
   it("shows the relay's field errors at the fields and its rate limit as a sentence", async () => {
-    const form = mount(contact(quick));
+    const form = mount(
+      contact({
+        ...quick,
+        fields: [...contact().fields!, { type: "email", name: "mail", label: "Mail" }],
+      }),
+    );
     await nav();
     fill(form, "message", "x");
     fetchMock.mockResolvedValueOnce(
@@ -287,6 +305,23 @@ describe("sending", () => {
     await submit(form);
     expect(errorOf(form, "message")).toBe("Please use at most 20000 characters.");
     expect(status(form).text).toBe("Please check one field.");
+    // "invalid" from the relay is named by the field's type, not as a pattern mismatch.
+    fetchMock.mockResolvedValueOnce(
+      ok(
+        { ok: false, error: "invalid", errors: [{ field: "name", code: "invalid" }] },
+        { status: 400 },
+      ),
+    );
+    await submit(form);
+    expect(errorOf(form, "name")).toBe("Please use the requested format.");
+    fetchMock.mockResolvedValueOnce(
+      ok(
+        { ok: false, error: "invalid", errors: [{ field: "mail", code: "invalid" }] },
+        { status: 400 },
+      ),
+    );
+    await submit(form);
+    expect(errorOf(form, "mail")).toBe("Please enter a valid e-mail address.");
     fetchMock.mockResolvedValueOnce(new Response("", { status: 429 }));
     await submit(form);
     expect(status(form).text).toBe("Too many messages at the moment. Please try again later.");

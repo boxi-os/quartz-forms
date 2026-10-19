@@ -132,7 +132,12 @@ function qfControlsOf(form: HTMLFormElement, name: string): Element[] {
     : [item as Element];
 }
 
-const QF_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// E-mail and URL by one rule here and in the relay (QF_EMAIL/QF_URL in send.php): a local part
+// and dot-separated labels without whitespace, a scheme and a host without whitespace. Letters
+// outside ASCII pass on both sides (review finding, 2026-10-19: `müller@münchen.de` passed here
+// and was refused there).
+const QF_EMAIL = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/u;
+const QF_URL = /^https?:\/\/[^\s/?#]+(?:[/?#]\S*)?$/iu;
 const QF_TEL = /^\+?[0-9 ()./-]{5,}$/;
 const QF_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -159,12 +164,7 @@ function qfCheck(cfg: QfConfig, rule: QfRule, value: QfValue): string | null {
       if (!QF_EMAIL.test(value)) return t("invalidEmail");
       break;
     case "url":
-      try {
-        const u = new URL(value);
-        if (u.protocol !== "http:" && u.protocol !== "https:") return t("invalidUrl");
-      } catch {
-        return t("invalidUrl");
-      }
+      if (!QF_URL.test(value)) return t("invalidUrl");
       break;
     case "tel":
       if (!QF_TEL.test(value)) return t("invalidTel");
@@ -663,6 +663,27 @@ function qfFieldErrorText(
       return qfText(cfg, "tooLong", { max: rule?.maxLength ?? "" });
     case "not_an_option":
       return qfText(cfg, "chooseOne");
+    case "invalid":
+      // The relay says only "invalid"; the field's type names what was wrong.
+      switch (rule?.type) {
+        case "email":
+          return qfText(cfg, "invalidEmail");
+        case "url":
+          return qfText(cfg, "invalidUrl");
+        case "tel":
+          return qfText(cfg, "invalidTel");
+        case "number":
+          return qfText(cfg, "invalidNumber");
+        case "date":
+          return qfText(cfg, "invalidDate");
+        case "pgpKey":
+          return qfText(cfg, "keyInvalid");
+        case "checkbox":
+        case "consent":
+          return qfText(cfg, "consentRequired");
+        default:
+          return qfText(cfg, "patternMismatch");
+      }
     default:
       return qfText(cfg, "patternMismatch");
   }

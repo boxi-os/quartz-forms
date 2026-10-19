@@ -480,6 +480,14 @@ function qf_newlines(mixed $value): mixed
     return $value;
 }
 
+// E-mail and URL by the same rule as the browser script (QF_EMAIL/QF_URL there): a local part
+// and dot-separated labels without whitespace, a scheme and a host without whitespace. Letters
+// outside ASCII pass on both sides. FILTER_VALIDATE_EMAIL/URL refused `müller@münchen.de` and
+// `https://münchen.de`, which the page had accepted, and the visitor read "please use the
+// requested format" (review finding, 2026-10-19).
+const QF_EMAIL = '/^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/u';
+const QF_URL = '~^https?://[^\s/?#]+(?:[/?#]\S*)?$~iu';
+
 /** One field against its rule; null when it passes. Same rules as the browser script. */
 function qf_check_field(array $rule, mixed $value): ?string
 {
@@ -531,12 +539,12 @@ function qf_check_field(array $rule, mixed $value): ?string
     }
     switch ($type) {
         case 'email':
-            if (filter_var($value, FILTER_VALIDATE_EMAIL) === false) {
+            if (preg_match(QF_EMAIL, $value) !== 1) {
                 return 'invalid';
             }
             break;
         case 'url':
-            if (!preg_match('~^https?://~i', $value) || filter_var($value, FILTER_VALIDATE_URL) === false) {
+            if (preg_match(QF_URL, $value) !== 1) {
                 return 'invalid';
             }
             break;
@@ -952,7 +960,12 @@ if ($encrypted) {
     if (empty($formCfg['anonymous'])) {
         foreach ($rules as $name => $rule) {
             if ($rule['type'] === 'email' && !empty($fields[$name]) && is_string($fields[$name])) {
-                $replyTo = trim($fields[$name]);
+                // Only an ASCII address goes into the header: mail() does not negotiate SMTPUTF8,
+                // and an address with umlauts would arrive broken. It stays readable in the body.
+                $address = trim($fields[$name]);
+                if (filter_var($address, FILTER_VALIDATE_EMAIL) !== false) {
+                    $replyTo = $address;
+                }
                 break;
             }
         }

@@ -94,6 +94,13 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   `maxlength` and the script count them as one character: a textarea of 250 short lines was 499
   characters on the page and 748 at the relay, refused as `too_long`. The relay now normalises
   line breaks before the length check and in the mail.
+- E-mail and URL fields were checked by two rules: the script accepted `müller@münchen.de` and
+  `https://münchen.de`, the relay's `FILTER_VALIDATE_EMAIL`/`URL` refused them, and the visitor
+  read "please use the requested format" for a value the page had taken. Both sides now apply
+  one rule (a local part and dotted labels without whitespace; a scheme and a host), letters
+  outside ASCII pass, and `Reply-To` is set only for an ASCII address, since `mail()` cannot
+  carry another. The relay's `invalid` is now named by the field's type in the browser (e-mail,
+  URL, phone, number, date, key) instead of always as a pattern mismatch.
 
 ## [0.1.1] - 2026-10-19
 
