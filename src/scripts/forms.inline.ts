@@ -194,6 +194,8 @@ function qfCheck(cfg: QfConfig, rule: QfRule, value: QfValue): string | null {
       if (rule.options && !rule.options.includes(value)) return t("chooseOne");
       break;
     case "pgpKey":
+      // The markers only; qfCheckVisitorKey parses the key when the field is left and at send.
+      if (/-----BEGIN PGP PRIVATE KEY BLOCK-----/.test(value)) return t("keyNotPublic");
       if (!/-----BEGIN PGP PUBLIC KEY BLOCK-----/.test(value)) return t("keyInvalid");
       break;
   }
@@ -359,26 +361,34 @@ async function qfShowFingerprint(form: HTMLFormElement, cfg: QfConfig): Promise<
   }
 }
 
-/** The visitor's own key: readable, public, not expired; then its fingerprint is shown. */
+/**
+ * The visitor's own key: readable, public, not expired; then its fingerprint is shown. Returns
+ * the error shown at the field, null when the key is accepted or the field is empty. Run when
+ * the visitor leaves the field and again before sending: sending used to look for the public-key
+ * marker only, and an expired key or a paste of public and private block went out (review
+ * finding, 2026-10-19). OpenPGP.js reads the first block of such a paste and calls it public,
+ * so the private marker is looked for in the text.
+ */
 async function qfCheckVisitorKey(
   form: HTMLFormElement,
   cfg: QfConfig,
   rule: QfRule,
-): Promise<void> {
+): Promise<string | null> {
   const status = form.querySelector<HTMLElement>(
     `#${form.querySelector(`[data-field="${rule.name}"] textarea`)?.id}-status`,
   );
   const value = qfValueOf(form, rule);
   if (typeof value !== "string" || value === "") {
     if (status) status.textContent = "";
-    return;
+    return null;
   }
   let message: string | null = null;
   let accepted: string | null = null;
   try {
     const pgp = await qfOpenpgp();
     const key = await pgp.readKey({ armoredKey: value });
-    if (key.isPrivate()) message = qfText(cfg, "keyNotPublic");
+    if (key.isPrivate() || /-----BEGIN PGP PRIVATE KEY BLOCK-----/.test(value))
+      message = qfText(cfg, "keyNotPublic");
     else {
       const expires = await key.getExpirationTime();
       if (expires instanceof Date && expires.getTime() < Date.now())
@@ -391,6 +401,7 @@ async function qfCheckVisitorKey(
   }
   qfShowError(form, rule.name, message);
   if (status) status.textContent = accepted ?? "";
+  return message;
 }
 
 /* ---- Third-party captcha: the provider's script once per page life, one widget per form ---- */
@@ -748,12 +759,23 @@ function qfBind(form: HTMLFormElement): void {
   form.addEventListener("focusout", onBlur);
   window.addCleanup(() => form.removeEventListener("focusout", onBlur));
 
+  const keyRule = cfg.fields.find((r) => r.type === "pgpKey");
   let busy = false;
   const onSubmit = async (event: Event) => {
     event.preventDefault();
     if (busy) return;
 
     const problems = qfValidate(form, cfg);
+    if (problems.length === 0 && keyRule && qfValueOf(form, keyRule) !== "") {
+      // The visitor's key is parsed, which takes a moment: no second submit meanwhile.
+      busy = true;
+      try {
+        const message = await qfCheckVisitorKey(form, cfg, keyRule);
+        if (message) problems.push({ name: keyRule.name, message });
+      } finally {
+        busy = false;
+      }
+    }
     if (problems.length > 0) {
       qfStatus(
         form,
@@ -857,7 +879,6 @@ function qfBind(form: HTMLFormElement): void {
 
   // The visitor's key file: read into the textarea, which is what gets validated and sent.
   const fileInput = form.elements.namedItem(QF_KEY_FILE) as HTMLInputElement | null;
-  const keyRule = cfg.fields.find((r) => r.type === "pgpKey");
   if (fileInput && keyRule) {
     const onFile = () => {
       const file = fileInput.files?.[0];

@@ -574,6 +574,27 @@ describe("encryption", () => {
     await leave();
     expect(errorOf(form, "key")).toBe("This is not a PGP public key.");
 
+    // Review finding 25 (2026-10-19): sending looked for the public-key marker only and cleared
+    // the error shown at the field; an expired key, a private key and a paste of both blocks
+    // (OpenPGP.js reads the first and calls it public) went out. Now the check runs at send time.
+    fill(form, "message", "hi");
+    for (const [text, error] of [
+      [expiredKey.publicKey, "This key has expired."],
+      [visitor.privateKey, "This is a private key. Please provide your public key."],
+      [
+        `${visitor.publicKey.trim()}\n${visitor.privateKey.trim()}`,
+        "This is a private key. Please provide your public key.",
+      ],
+    ]) {
+      area.value = text!;
+      await submit(form);
+      for (let i = 0; i < 10; i++) await tick();
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(errorOf(form, "key")).toBe(error);
+      expect(status(form).text).toBe("Please check one field.");
+      expect(document.activeElement).toBe(area);
+    }
+
     // the key travels inside the message
     area.value = visitor.publicKey;
     await leave();

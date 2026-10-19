@@ -592,7 +592,10 @@ function qf_check_field(array $rule, mixed $value): ?string
             }
             break;
         case 'pgpKey':
-            if (!str_contains($value, '-----BEGIN PGP PUBLIC KEY BLOCK-----')) {
+            // No PGP parser here; but a private block in the paste is visible, and it must not
+            // travel in a mail (review finding, 2026-10-19).
+            if (!str_contains($value, '-----BEGIN PGP PUBLIC KEY BLOCK-----')
+                || str_contains($value, '-----BEGIN PGP PRIVATE KEY BLOCK-----')) {
                 return 'invalid';
             }
             break;

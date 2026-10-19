@@ -117,6 +117,7 @@ const siteOptions = {
       fields: [
         { type: "hidden", name: "src", value: "web" },
         { type: "text", name: "note", label: "Note" },
+        { type: "pgpKey", name: "key", label: "Key" },
       ],
     },
   },
@@ -511,6 +512,21 @@ describe.skipIf(!php)("relay: refusals", () => {
     const posted = await plain({ form: "tagged", lang: "de-DE", note: "hi", src: "web" });
     expect(posted.status).toBe(200);
     expect(lastMail().body).toContain("src: web");
+  });
+  it("a visitor's key that holds a private key block is refused, so it never travels in a mail", async () => {
+    // Review finding 25 (2026-10-19), the relay's share: it cannot parse a key, but it can see
+    // the marker of a private block, which the browser's check lets through in a paste of both.
+    const pub = "-----BEGIN PGP PUBLIC KEY BLOCK-----\n\nabc\n-----END PGP PUBLIC KEY BLOCK-----";
+    const priv =
+      "-----BEGIN PGP PRIVATE KEY BLOCK-----\n\nabc\n-----END PGP PRIVATE KEY BLOCK-----";
+    const before = mails().length;
+    for (const key of [priv, `${pub}\n${priv}`]) {
+      const r = await post(env("tagged", { note: "hi", key }));
+      expect(errorsOf(r)).toContainEqual({ field: "key", code: "invalid" });
+    }
+    expect(mails().length).toBe(before);
+    expect((await post(env("tagged", { note: "hi", key: pub }))).json).toEqual({ ok: true });
+    expect(lastMail().body).toContain("Public key of the sender:");
   });
   it("proof of work: missing, unsolved or forged is refused before the fields are looked at", async () => {
     const bad = { ...contactFields, email: "not-an-address" };

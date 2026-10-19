@@ -108,6 +108,11 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   between or after them was mailed as the message. The ciphertext must now be exactly one armor
   block as OpenPGP.js writes it (Base64 lines, an optional checksum line, no header lines,
   nothing beside it), measured with a real OpenPGP.js message in the relay suite.
+- The check of the visitor's own key (`pgpKey`) ran only when the field was left; sending looked
+  for the public-key marker, cleared the error shown at the field and sent an expired key, a
+  private key or a paste of public and private block (OpenPGP.js reads the first block and calls
+  it public). The check now runs again before sending and its result counts; a text that holds a
+  private key block is refused in the browser and by the relay.
 
 ## [0.1.1] - 2026-10-19
 
