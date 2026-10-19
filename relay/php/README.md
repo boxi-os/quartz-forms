@@ -64,6 +64,10 @@ form is not anonymous. In the outbox file the body is therefore encoded; a mail 
 decoded. Delivery depends on your hoster's SPF/DKIM setup for the
 `from` domain.
 
+With `['sendmail' => '…']` keep the `-i` flag (as in `config.example.php`): without it, a line that
+holds a single dot ends the message for sendmail, and everything the visitor wrote after it is
+lost. The quoted-printable encoding leaves such a line as it is. `mail()` passes the flag itself.
+
 ## Test from the command line
 
 ```bash

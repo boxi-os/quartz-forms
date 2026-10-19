@@ -31,7 +31,8 @@ return $generated + [
     // Per form under 'captchaSecrets' => ['contact' => '…'] when they differ.
     'captchaSecret' => '',
 
-    // 'mail' uses PHP's mail(); ['sendmail' => '/usr/sbin/sendmail -t -i'] pipes to sendmail;
+    // 'mail' uses PHP's mail(); ['sendmail' => '/usr/sbin/sendmail -t -i'] pipes to sendmail
+    // (keep -i: without it a line holding a single dot ends the message, see the README);
     // ['file' => '/home/you/private/outbox.txt'] appends every mail to a file (testing only:
     // use a path outside the web root, or the messages are one URL away from anyone).
     'mailer' => 'mail',
