@@ -912,9 +912,13 @@ if ($encrypted) {
     if (($formCfg['encryption'] ?? 'off') === 'off') {
         qf_fail(400, 'encryption', 'this form does not accept encrypted messages');
     }
+    // Exactly one armor block, as OpenPGP.js writes it: the markers, an empty line, Base64 lines,
+    // an optional checksum line. No header lines, nothing beside the block: the check used to
+    // look for the two markers only, and a phishing text between or after them was mailed as the
+    // message (review finding, 2026-10-19). Base64 has no "-", so a second marker cannot hide.
     $cipher = $envelope['ciphertext'] ?? null;
-    if (!is_string($cipher)
-        || !preg_match('/^-----BEGIN PGP MESSAGE-----\R[\s\S]+\R-----END PGP MESSAGE-----\s*$/', trim($cipher))) {
+    $armor = '/^-----BEGIN PGP MESSAGE-----\R\R?(?:[A-Za-z0-9+\/]+={0,2}\R)+(?:=[A-Za-z0-9+\/]{4}\R)?-----END PGP MESSAGE-----$/';
+    if (!is_string($cipher) || preg_match($armor, trim($cipher)) !== 1) {
         qf_fail(400, 'ciphertext', 'the ciphertext is not an armored PGP message');
     }
     $body = trim($cipher) . "\n";

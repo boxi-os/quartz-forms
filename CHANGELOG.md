@@ -104,6 +104,10 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
 - A `hidden` field was checked on no level: 900 × `x` posted under its name was mailed as if the
   recipient saw the fixed value. The generated relay config now carries the value, and the relay
   puts that value into the mail itself, whatever was posted.
+- The armor check of an encrypted submission looked for the two markers only: a phishing text
+  between or after them was mailed as the message. The ciphertext must now be exactly one armor
+  block as OpenPGP.js writes it (Base64 lines, an optional checksum line, no header lines,
+  nothing beside it), measured with a real OpenPGP.js message in the relay suite.
 
 ## [0.1.1] - 2026-10-19
 

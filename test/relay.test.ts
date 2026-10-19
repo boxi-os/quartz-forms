@@ -641,6 +641,35 @@ describe.skipIf(!php)("relay: accepted submissions and their mail", () => {
     expect(body).not.toContain("Page:");
     expect(body).toContain("Anonym.");
   });
+  it("ciphertext: a real OpenPGP.js message passes; text beside the block, a second block or a header line do not", async () => {
+    // Review finding 15 (2026-10-19): the armor check looked for the two markers and let anything
+    // between and after them through; a phishing text beside the block was mailed as a message.
+    const openpgp = await import("openpgp");
+    const { generatePair } = await import("./keys");
+    const key = await openpgp.readKey({ armoredKey: (await generatePair()).publicKey });
+    const real = String(
+      await openpgp.encrypt({
+        message: await openpgp.createMessage({ text: "hi\nthere" }),
+        encryptionKeys: key,
+        format: "armored",
+      }),
+    );
+    const r = await post(env("enc", {}, { encrypted: true, ciphertext: real }));
+    expect(r.json).toEqual({ ok: true });
+    expect(lastMail().body.replace(/\r\n/g, "\n").trim()).toBe(real.trim());
+    const before = mails().length;
+    for (const bad of [
+      `${ARMOR}\nPlease wire 500 EUR to the account below.\n-----END PGP MESSAGE-----`,
+      `${ARMOR}\n${ARMOR}`,
+      "-----BEGIN PGP MESSAGE-----\nComment: wire 500 EUR\n\nabc\n-----END PGP MESSAGE-----",
+      "-----BEGIN PGP MESSAGE-----\n\nabc def\n-----END PGP MESSAGE-----",
+      "-----BEGIN PGP MESSAGE-----\n\n-----END PGP MESSAGE-----",
+    ]) {
+      const refused = await post(env("enc", {}, { encrypted: true, ciphertext: bad }));
+      expect([refused.status, refused.json?.error]).toEqual([400, "ciphertext"]);
+    }
+    expect(mails().length).toBe(before);
+  }, 15_000);
   it("an encrypted submission: the body is the armored message, unchanged", async () => {
     const r = await post(env("enc", {}, { encrypted: true, ciphertext: ARMOR }));
     expect(r.json).toEqual({ ok: true });
