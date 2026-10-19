@@ -5,6 +5,7 @@ import type {
   ResolvedForm,
   ResolvedOptions,
   SpamConfig,
+  SuccessConfig,
   TransportConfig,
 } from "./types";
 import { isTemplateName, templateOf } from "./templates";
@@ -105,7 +106,12 @@ function resolveForm(
     anonymous,
     pageContext: anonymous ? false : (merged.pageContext ?? false),
     spam: { ...global.spam, ...withoutNulls(merged.spam ?? {}) },
-    success: merged.success ?? { mode: "inline" },
+    // `mode` defaults to inline inside a written `success` too: `success: { text: … }` stopped the
+    // build with "inline or redirect" although the docs give inline as the default (fiftieth
+    // review, N6). Anything that is not an object goes on to validate as written.
+    success: isObject(merged.success)
+      ? { mode: "inline", ...withoutNulls(merged.success) }
+      : ((merged.success as SuccessConfig | undefined) ?? { mode: "inline" }),
     className: merged.className,
   };
 }

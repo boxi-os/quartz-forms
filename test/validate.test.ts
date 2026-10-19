@@ -656,6 +656,12 @@ describe("validate: transport, encryption, spam, success", () => {
     expect(formProblems(contact({ success: { mode: "elsewhere" as never } }))).toEqual([
       "forms.f.success.mode: inline or redirect",
     ]);
+    // a written success without mode is inline, as the docs say (fiftieth review, N6)
+    expect(formProblems(contact({ success: { text: "Danke!" } }))).toEqual([]);
+    expect(
+      resolveOptions(options({ forms: { f: contact({ success: { text: "Danke!" } }) } })).forms.f!
+        .success,
+    ).toEqual({ mode: "inline", text: "Danke!" });
   });
 });
 

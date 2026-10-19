@@ -1314,7 +1314,10 @@ function resolveForm(id, def, global) {
     anonymous,
     pageContext: anonymous ? false : merged.pageContext ?? false,
     spam: { ...global.spam, ...withoutNulls(merged.spam ?? {}) },
-    success: merged.success ?? { mode: "inline" },
+    // `mode` defaults to inline inside a written `success` too: `success: { text: … }` stopped the
+    // build with "inline or redirect" although the docs give inline as the default (fiftieth
+    // review, N6). Anything that is not an object goes on to validate as written.
+    success: isObject2(merged.success) ? { mode: "inline", ...withoutNulls(merged.success) } : merged.success ?? { mode: "inline" },
     className: merged.className
   };
 }
@@ -1380,5 +1383,5 @@ function logHints(opts) {
 }
 
 export { __commonJS, __export, __require, __toESM, conditionOf, conditionsOf, defaultOptions, formatMessage, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-F2XJM37R.js.map
-//# sourceMappingURL=chunk-F2XJM37R.js.map
+//# sourceMappingURL=chunk-4RQDHCYL.js.map
+//# sourceMappingURL=chunk-4RQDHCYL.js.map

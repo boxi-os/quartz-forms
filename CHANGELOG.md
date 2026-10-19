@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed: a service (`endpoint`, `formspree`, `web3forms`) got the page's slug as `_page` in the
   clear beside an encrypted message; the page now stays inside the ciphertext, as with the relay.
   The README says what travels beside it (`_subject`, `extra`).
+- Fixed: `success: { text: … }` without `mode` stopped the build with "inline or redirect"; `mode`
+  defaults to `inline` there too, as documented.
 - Docs: a section on styling in both READMEs: the custom properties, the layer, that a theme's
   unlayered rules for the article's form elements restyle the form as `custom.scss` does, and the
   two rules outside the layer.

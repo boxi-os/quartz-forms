@@ -86,7 +86,8 @@ export interface FormDefinition {
   /** Overrides single fields of the global spam settings. */
   spam?: Partial<SpamConfig>;
   /** What happens after a successful send. Default: a thank-you sentence in place. */
-  success?: SuccessConfig;
+  /** What happens after sending. */
+  success?: SuccessDefinition;
   /** Extra class(es) on the form element, next to the fixed `quartz-form`. */
   className?: string;
 }
@@ -346,8 +347,18 @@ export interface SpamConfig {
   maxBytes: number;
 }
 
+/** `success` as written: the same as `SuccessConfig`, with `mode` left out for `inline`. */
+export interface SuccessDefinition {
+  /** `inline` (the default): a sentence replaces the form. `redirect`: go to a page of the site. */
+  mode?: "inline" | "redirect";
+  /** The sentence for `inline`; default from the plugin's texts. */
+  text?: Text;
+  /** Slug of the page for `redirect` (`thanks`, `kontakt/danke`). */
+  slug?: string;
+}
+
 export interface SuccessConfig {
-  /** `inline`: a sentence replaces the form. `redirect`: go to a page of the site. */
+  /** `inline` (the default): a sentence replaces the form. `redirect`: go to a page of the site. */
   mode: "inline" | "redirect";
   /** The sentence for `inline`; default from the plugin's texts. */
   text?: Text;
