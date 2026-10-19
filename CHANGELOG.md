@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-19
+
+Two independent reviews of 0.1.1 (another model, fresh context each), 26 and 10 findings, all
+fixed, plus the price of one fix and five asides; the relay got its own test suite under
+`php -S` (a relay per PHP configuration: without opcache, without `allow_url_fopen`, without
+cURL, without the PCRE JIT, without mbstring) and a parity catalog that the client suite and the
+relay suite both read. Still private; still unmeasured: Firefox, real Safari and phones, real
+mail delivery, Apache/nginx/FPM, the captcha widget after an SPA navigation in a real browser.
+
 Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10-19):
 
 - A key source that held a private key block behind the public one (the secret key appended to
