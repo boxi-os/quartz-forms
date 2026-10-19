@@ -60,7 +60,9 @@ no-referrer` hides both from a plain form post without JavaScript (the browser s
   treated as missing.
 - The captcha token is verified with the provider over HTTP: with `allow_url_fopen`, or through
   cURL when the hoster has switched that off. A host with neither answers `500 captcha_config`
-  and says so; a provider that cannot be reached is `502 captcha_verify`, not "not solved".
+  and says so; a provider that cannot be reached is `502 captcha_verify`, not "not solved". It is
+  asked last, after the fields, the encryption and the recipient, so a post refused for one of
+  those costs no call and leaves the visitor's token unspent.
 - A plain form post (a browser without JavaScript) carries no stamp and no proof of work;
   it gets honeypot, rate limit and field checks, and a form with `noScript: false` refuses it.
   One that asks for encryption (`_encrypt`) is refused too: only the script can encrypt.

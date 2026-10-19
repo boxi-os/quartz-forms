@@ -50,6 +50,9 @@ From the same review's list of side findings:
 - "no quartz-forms entry" says that the entry's source has to end in `quartz-forms`, as Quartz
   names a plugin by it; a local folder of another name was not found, and the sentence did not
   say why.
+- The relay asks the captcha provider last, after the fields, the encryption and the recipient.
+  A post refused for one of those cost a call to the provider (up to eight seconds of a worker)
+  and spent the visitor's token.
 
 ## [0.4.0] - 2026-10-19
 

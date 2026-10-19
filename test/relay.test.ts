@@ -1027,6 +1027,27 @@ describe.skipIf(!php)("relay: refusals", () => {
       writeConfig();
     }
   });
+  it("captcha: asks the provider only for a post that passed every check of its own", async () => {
+    // Third review, aside (2026-10-19): every post with a token cost a call to the provider (up
+    // to eight seconds of a worker) and spent the token, also when its fields, its encryption or
+    // the relay's own address book refused it afterwards.
+    const calls = () =>
+      fs.existsSync(path.join(dir, "verify.log"))
+        ? fs.statSync(path.join(dir, "verify.log")).size
+        : 0;
+    const before = calls();
+    const unknown = await post(env("captcha", { a: "x", zzz: "1" }, { captcha: "good" }));
+    expect(errorsOf(unknown)).toContainEqual({ field: "zzz", code: "unknown_field" });
+    const sealed = await post(
+      env("captcha", {}, { captcha: "good", encrypted: true, ciphertext: ARMOR }),
+    );
+    expect(sealed.json?.error).toBe("encryption");
+    expect(calls()).toBe(before);
+    expect((await post(env("captcha", { a: "x" }, { captcha: "good" }))).json).toEqual({
+      ok: true,
+    });
+    expect(calls()).toBe(before + 1);
+  });
   it("an anonymous form with a captcha configured asks for no token and never calls the provider", async () => {
     // What the README's `captcha` row says ("ignored when anonymous") and the build hints, held
     // at the relay too (second review, aside 4, 2026-10-19): no token, no provider call, and no

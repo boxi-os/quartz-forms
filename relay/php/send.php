@@ -1269,7 +1269,7 @@ if ($minSeconds > 0 && !$isForm) {
     }
 }
 
-// The proof is checked here, so no captcha call and no field check is spent on a bot without
+// The proof is checked here, so no field check and no captcha call is spent on a bot without
 // one, but it is marked as used only after every check the visitor can fail (see qf_pow_spent).
 $pow = null;
 $powWindow = null;
@@ -1278,25 +1278,6 @@ if (!empty($spam['pow']) && !$isForm) {
     $powWindow = qf_pow_window($config, $formId, (int) ($spam['powDifficulty'] ?? 16), $pow);
     if ($powWindow === null) {
         qf_fail(400, 'pow', 'the proof of work is missing or wrong');
-    }
-}
-
-$captchaProvider = (string) ($spam['captcha'] ?? 'none');
-if ($captchaProvider !== 'none' && empty($formCfg['anonymous'])) {
-    if (qf_captcha_secret($config, $formId) === '') {
-        // The owner's mistake, not the visitor's: said as such, and never a silent 400.
-        qf_fail(500, 'captcha_config', 'captchaSecret is not set in config.php');
-    }
-    $why = qf_http_unavailable();
-    if ($why !== '') {
-        qf_fail(500, 'captcha_config', $why);
-    }
-    $valid = qf_captcha_valid($config, $formId, $captchaProvider, $envelope['captcha'] ?? null);
-    if ($valid === null) {
-        qf_fail(502, 'captcha_verify', 'the captcha provider could not be reached');
-    }
-    if (!$valid) {
-        qf_fail(400, 'captcha', 'the captcha was not solved');
     }
 }
 
@@ -1408,6 +1389,28 @@ if (!is_string($to) || $to === '' || str_contains($to, '@example.')) {
 $subject = qf_text($formCfg['subject'] ?? $formCfg['title'] ?? null, $lang, $formId);
 if (!empty($config['subjectPrefix'])) {
     $subject = $config['subjectPrefix'] . ' ' . $subject;
+}
+
+// The captcha last of the checks before the gate: a call to the provider takes up to eight
+// seconds of a worker and spends the visitor's token, so a post its fields, its encryption or the
+// address book refuse no longer costs one (third review, aside, 2026-10-19).
+$captchaProvider = (string) ($spam['captcha'] ?? 'none');
+if ($captchaProvider !== 'none' && empty($formCfg['anonymous'])) {
+    if (qf_captcha_secret($config, $formId) === '') {
+        // The owner's mistake, not the visitor's: said as such, and never a silent 400.
+        qf_fail(500, 'captcha_config', 'captchaSecret is not set in config.php');
+    }
+    $why = qf_http_unavailable();
+    if ($why !== '') {
+        qf_fail(500, 'captcha_config', $why);
+    }
+    $valid = qf_captcha_valid($config, $formId, $captchaProvider, $envelope['captcha'] ?? null);
+    if ($valid === null) {
+        qf_fail(502, 'captcha_verify', 'the captcha provider could not be reached');
+    }
+    if (!$valid) {
+        qf_fail(400, 'captcha', 'the captcha was not solved');
+    }
 }
 
 // The gate before the mail, after every check: the hour's quota is read, the proof is spent,
