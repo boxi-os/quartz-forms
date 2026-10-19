@@ -80,6 +80,14 @@ const siteOptions = {
         { type: "text", name: "note", label: "Note" },
       ],
     },
+    patterns: {
+      recipient: "owner",
+      fields: [
+        { type: "text", name: "site", label: "Site", pattern: "https?:\\/\\/.+" },
+        // valid in JavaScript (the build and the browser), unreadable for PCRE
+        { type: "text", name: "lb", label: "LB", pattern: "(?<=a+)b" },
+      ],
+    },
     captcha: {
       recipient: "owner",
       spam: { captcha: "turnstile", captchaSiteKey: "site-key" },
@@ -374,6 +382,25 @@ describe.skipIf(!php)("relay: refusals", () => {
     expect(cipherToOff.json?.error).toBe("encryption");
     const noArmor = await post(env("enc", {}, { encrypted: true, ciphertext: "hello" }));
     expect(noArmor.json?.error).toBe("ciphertext");
+  });
+  it("pattern: a JavaScript pattern with escaped slashes is applied; what PCRE cannot read refuses, with a log line", async () => {
+    const miss = await post(env("patterns", { site: "NOT A URL" }));
+    expect(errorsOf(miss)).toContainEqual({ field: "site", code: "invalid" });
+    expect((await post(env("patterns", { site: "https://example.org/x" }))).json).toEqual({
+      ok: true,
+    });
+    const unreadable = await post(env("patterns", { lb: "ab" }));
+    expect(errorsOf(unreadable)).toContainEqual({ field: "lb", code: "invalid" });
+    expect(fs.readFileSync(path.join(dir, "php.log"), "utf8")).toContain(
+      'the pattern of field "lb" cannot be applied',
+    );
+    // invalid UTF-8 reaches the relay only as a plain form post
+    const bytes = await post("form=patterns&lang=de-DE&site=https%3A%2F%2Fx%FF", {
+      raw: true,
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "text/html" },
+    });
+    expect(bytes.status).toBe(400);
+    expect(bytes.text).toContain("some fields were not accepted");
   });
   it("captcha: the secret from config.php is sent to the provider; without one the owner is told", async () => {
     const good = await post(env("captcha", { a: "x" }, { captcha: "good" }));

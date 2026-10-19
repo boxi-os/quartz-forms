@@ -312,7 +312,7 @@ function qf_check_field(array $rule, mixed $value): ?string
             return 'invalid';
         }
         foreach ($value as $v) {
-            if (!is_string($v)) {
+            if (!is_string($v) || !mb_check_encoding($v, 'UTF-8')) {
                 return 'invalid';
             }
         }
@@ -333,6 +333,11 @@ function qf_check_field(array $rule, mixed $value): ?string
         return 'invalid';
     }
     $value = trim((string) ($value ?? ''));
+    if (!mb_check_encoding($value, 'UTF-8')) {
+        // Only the plain-form path can deliver this (json_decode refuses it); preg_match would
+        // answer false on it, which used to count as a pass.
+        return 'invalid';
+    }
     if ($value === '') {
         return !empty($rule['required']) ? 'required' : null;
     }
@@ -400,12 +405,23 @@ function qf_check_field(array $rule, mixed $value): ?string
             break;
     }
     if (!empty($rule['pattern']) && in_array($type, ['text', 'textarea', 'tel', 'url', 'email'], true)) {
-        $re = '/^(?:' . str_replace('/', '\/', $rule['pattern']) . ')$/u';
-        $m = @preg_match($re, $value);
+        // A control character as delimiter: the pattern is written for JavaScript and may hold
+        // `\/`, which escaping `/` for a `/` delimiter turned into `\\/` (a pattern PCRE could not
+        // read). An unreadable pattern, invalid input or a hit backtrack limit all gave false,
+        // and false used to pass (review finding, 2026-10-19): now it refuses, and the owner
+        // finds the reason in the server's error log.
+        $m = @preg_match("\x01^(?:" . $rule['pattern'] . ")$\x01u", $value);
         if ($m === 0) {
             return 'invalid';
         }
-        // $m === false: a pattern PCRE cannot read; the browser already checked it, let it pass.
+        if ($m === false) {
+            error_log(sprintf(
+                'quartz-forms relay: the pattern of field "%s" cannot be applied (%s); the value was refused',
+                $rule['name'] ?? '?',
+                preg_last_error_msg()
+            ));
+            return 'invalid';
+        }
     }
     return null;
 }

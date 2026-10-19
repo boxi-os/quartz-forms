@@ -113,6 +113,11 @@ except `hidden` and `consent`, a `label` (Text). Optional on most: `required`, `
 | `pgpKey`                                                    | the visitor's own public key (pasted or chosen as a file); at most one                     |
 | `hidden`                                                    | `value`                                                                                    |
 
+A `pattern` is a JavaScript regular expression (the build and the browser read it with `u`), and
+the relay applies it with PCRE: write only what both read the same way. Variable-length lookbehind
+and long Unicode property names are JavaScript only; the relay refuses every value of such a field
+and names the pattern in the server's error log.
+
 ### Transport
 
 | Key      | Values                                                  | Description                                                                  |

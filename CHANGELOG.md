@@ -35,6 +35,12 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   captcha form was refused. The secret now lives in `config.php` as `captchaSecret` (or per form
   under `captchaSecrets`), a captcha form without one answers `500 captcha_config` instead of a
   silent `400 captcha`, and `captchaVerifyUrls` can point the verification elsewhere (tests).
+- The relay's pattern check passed whatever PCRE could not evaluate: escaping `/` for the `/`
+  delimiter broke a JavaScript pattern with `\/`, invalid UTF-8 (possible only on the plain-form
+  path) and a hit backtrack limit made `preg_match` answer `false`, and `false` counted as a
+  pass. The pattern now uses a control character as delimiter, invalid UTF-8 is refused, and a
+  pattern PCRE cannot apply refuses the value with a line in the server's error log. The README
+  says a pattern must read the same in JavaScript and PCRE.
 
 ## [0.1.1] - 2026-10-19
 

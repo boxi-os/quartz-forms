@@ -117,6 +117,11 @@ Formular) und, außer `hidden` und `consent`, ein `label` (Text). Optional bei d
 | `pgpKey`                                                    | der eigene öffentliche Schlüssel des Besuchers (eingefügt oder als Datei); höchstens einer |
 | `hidden`                                                    | `value`                                                                                    |
 
+Ein `pattern` ist ein regulärer Ausdruck in JavaScript-Schreibweise (Bau und Browser lesen ihn mit
+`u`), das Relay wendet ihn mit PCRE an: Schreib nur, was beide gleich lesen. Lookbehind mit
+variabler Länge und lange Unicode-Eigenschaftsnamen kennt nur JavaScript; das Relay weist dann jeden
+Wert dieses Feldes ab und nennt das Muster im Fehlerprotokoll des Servers.
+
 ### Transport
 
 | Schlüssel | Werte                                                             | Beschreibung                                                                                   |
