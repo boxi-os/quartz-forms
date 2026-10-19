@@ -540,6 +540,10 @@ export function clientConfig(form: ResolvedForm, ctx: RenderContext): ClientConf
     return rule;
   });
   const anonymous = form.anonymous;
+  // No third-party captcha where nothing goes to a third party, and none where nothing is sent:
+  // a demo loaded the provider's script and made the visitor solve it for nothing (fiftieth
+  // review, M3).
+  const noCaptcha = anonymous || form.transport.kind === "demo";
   return {
     id: form.id,
     lang: ctx.lang,
@@ -565,8 +569,8 @@ export function clientConfig(form: ResolvedForm, ctx: RenderContext): ClientConf
       minSeconds: form.spam.minSeconds,
       pow: form.spam.pow && form.transport.kind === "relay",
       powDifficulty: form.spam.powDifficulty,
-      captcha: anonymous ? "none" : form.spam.captcha,
-      captchaSiteKey: anonymous ? "" : form.spam.captchaSiteKey,
+      captcha: noCaptcha ? "none" : form.spam.captcha,
+      captchaSiteKey: noCaptcha ? "" : form.spam.captchaSiteKey,
       maxBytes: form.spam.maxBytes,
     },
     encryption: {
@@ -719,9 +723,9 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
     );
 
   // The third-party captcha widget renders into this container; its script is loaded by the
-  // browser script only when such a form is on the page. Anonymous forms never get one.
+  // browser script only when such a form is on the page. Anonymous and demo forms never get one.
   const captcha =
-    form.spam.captcha !== "none" && !form.anonymous
+    form.spam.captcha !== "none" && !form.anonymous && form.transport.kind !== "demo"
       ? h("div", {
           className: [
             "quartz-form__captcha",

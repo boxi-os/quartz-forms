@@ -258,7 +258,7 @@ var en = {
   extraMailto: () => "has no effect with mailto",
   demoNoEffect: () => "has no effect with demo, which sends nothing",
   demoRedirect: () => "demo shows what would have been sent below the form and does not redirect",
-  demoCaptcha: (p) => `the ${s(p, "provider")} widget is shown, but with demo nobody checks its answer`,
+  demoCaptcha: (p) => `with demo the ${s(p, "provider")} widget is not loaded: nothing is sent that it could protect`,
   formatValue: () => "json or form",
   // encryption
   modeValue: () => "required, optional or off",
@@ -403,7 +403,7 @@ var de = {
   extraMailto: () => "wirkt nicht bei mailto",
   demoNoEffect: () => "wirkt nicht bei demo, das nichts sendet",
   demoRedirect: () => "demo zeigt unter dem Formular, was gesendet worden w\xE4re, und leitet nicht weiter",
-  demoCaptcha: (p) => `das Widget von ${s2(p, "provider")} wird angezeigt, aber bei demo pr\xFCft niemand seine Antwort`,
+  demoCaptcha: (p) => `bei demo wird das Widget von ${s2(p, "provider")} nicht geladen: Es wird nichts gesendet, das es sch\xFCtzen k\xF6nnte`,
   formatValue: () => "json oder form",
   modeValue: () => "required, optional oder off",
   noKeys: () => "keine Schl\xFCssel, an die verschl\xFCsselt werden kann",
@@ -1379,5 +1379,5 @@ function logHints(opts) {
 }
 
 export { __commonJS, __export, __require, __toESM, conditionOf, conditionsOf, defaultOptions, formatMessage, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-WJ7RKWLZ.js.map
-//# sourceMappingURL=chunk-WJ7RKWLZ.js.map
+//# sourceMappingURL=chunk-G3CCDTOV.js.map
+//# sourceMappingURL=chunk-G3CCDTOV.js.map

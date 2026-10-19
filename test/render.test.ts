@@ -352,6 +352,13 @@ describe("captcha container", () => {
     );
     expect(anon.html).not.toContain("quartz-form__captcha");
     expect(anon.config.spam.captcha).toBe("none");
+    // nor for a demo, which sends nothing (fiftieth review, M3: the widget loaded and asked)
+    const demo = render(contact({ spam: { captcha: "turnstile", captchaSiteKey: "abc" } }), {
+      transport: { kind: "demo" },
+    });
+    expect(demo.html).not.toContain("quartz-form__captcha");
+    expect(demo.config.spam.captcha).toBe("none");
+    expect(demo.config.spam.captchaSiteKey).toBe("");
     expect(render(contact()).html).not.toContain("quartz-form__captcha");
   });
 

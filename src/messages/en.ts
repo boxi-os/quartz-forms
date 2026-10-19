@@ -109,7 +109,7 @@ const en = {
   demoNoEffect: () => "has no effect with demo, which sends nothing",
   demoRedirect: () => "demo shows what would have been sent below the form and does not redirect",
   demoCaptcha: (p: Params) =>
-    `the ${s(p, "provider")} widget is shown, but with demo nobody checks its answer`,
+    `with demo the ${s(p, "provider")} widget is not loaded: nothing is sent that it could protect`,
   formatValue: () => "json or form",
 
   // encryption

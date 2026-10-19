@@ -101,7 +101,7 @@ const de: { [K in keyof typeof en]: (p: Params, t: Translate) => string } = {
   demoRedirect: () =>
     "demo zeigt unter dem Formular, was gesendet worden wäre, und leitet nicht weiter",
   demoCaptcha: (p) =>
-    `das Widget von ${s(p, "provider")} wird angezeigt, aber bei demo prüft niemand seine Antwort`,
+    `bei demo wird das Widget von ${s(p, "provider")} nicht geladen: Es wird nichts gesendet, das es schützen könnte`,
   formatValue: () => "json oder form",
 
   modeValue: () => "required, optional oder off",

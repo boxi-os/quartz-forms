@@ -493,7 +493,7 @@ describe("validate: transport, encryption, spam, success", () => {
     ).toEqual([
       "forms.contact.transport.url: has no effect with demo, which sends nothing",
       "forms.contact.success: demo shows what would have been sent below the form and does not redirect",
-      "forms.contact.spam.captcha: the turnstile widget is shown, but with demo nobody checks its answer",
+      "forms.contact.spam.captcha: with demo the turnstile widget is not loaded: nothing is sent that it could protect",
       "forms.contact.transport.extra: has no effect with demo, which sends nothing",
     ]);
     expect(problemsOf({ spam: { captcha: "turnstile" } as never })).toEqual([

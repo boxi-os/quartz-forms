@@ -1,5 +1,5 @@
 import { createRequire } from 'module';
-import { __commonJS, __export, __toESM, publicKeyBlock, resolveOrThrow, logHints, warnOnce, wording, conditionsOf, stepsOf, conditionOf, isNamed } from './chunk-WJ7RKWLZ.js';
+import { __commonJS, __export, __toESM, publicKeyBlock, resolveOrThrow, logHints, warnOnce, wording, conditionsOf, stepsOf, conditionOf, isNamed } from './chunk-G3CCDTOV.js';
 import fs from 'fs';
 import path from 'path';
 import { jsx, jsxs, Fragment } from 'preact/jsx-runtime';
@@ -2442,6 +2442,7 @@ function clientConfig(form, ctx) {
     return rule;
   });
   const anonymous = form.anonymous;
+  const noCaptcha = anonymous || form.transport.kind === "demo";
   return {
     id: form.id,
     lang: ctx.lang,
@@ -2465,8 +2466,8 @@ function clientConfig(form, ctx) {
       minSeconds: form.spam.minSeconds,
       pow: form.spam.pow && form.transport.kind === "relay",
       powDifficulty: form.spam.powDifficulty,
-      captcha: anonymous ? "none" : form.spam.captcha,
-      captchaSiteKey: anonymous ? "" : form.spam.captchaSiteKey,
+      captcha: noCaptcha ? "none" : form.spam.captcha,
+      captchaSiteKey: noCaptcha ? "" : form.spam.captchaSiteKey,
       maxBytes: form.spam.maxBytes
     },
     encryption: {
@@ -2597,7 +2598,7 @@ function renderForm(form, ctx) {
         hidden: true
       })
     );
-  const captcha = form.spam.captcha !== "none" && !form.anonymous ? h("div", {
+  const captcha = form.spam.captcha !== "none" && !form.anonymous && form.transport.kind !== "demo" ? h("div", {
     className: [
       "quartz-form__captcha",
       form.spam.captcha === "turnstile" ? "cf-turnstile" : "h-captcha"
@@ -3565,5 +3566,5 @@ var FormBox_default = ((userOpts) => {
 });
 
 export { FormBox_default, Forms, loadKeySources, resolveText };
-//# sourceMappingURL=chunk-SOQLB6SB.js.map
-//# sourceMappingURL=chunk-SOQLB6SB.js.map
+//# sourceMappingURL=chunk-2WJWHRGK.js.map
+//# sourceMappingURL=chunk-2WJWHRGK.js.map

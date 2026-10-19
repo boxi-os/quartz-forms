@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added: a key whose encryption subkey is X25519 or X448 as RFC 9580 writes them (OpenPGP.js 6's
   `curve25519`, `curve448`) gets a notice in the build log and in `check`/`key` (`notice`): GnuPG
   2.5.22 cannot read it and decrypts nothing sent to it. The build goes on.
+- Changed: a form with `transport: demo` loads no captcha, like an anonymous one. It loaded the
+  provider's script and made the visitor solve the check before showing what would have been sent;
+  the hint `demoCaptcha` now says the widget is not loaded.
 
 ## [0.5.4] - 2026-10-19
 
