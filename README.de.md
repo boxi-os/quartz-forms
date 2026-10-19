@@ -308,7 +308,9 @@ Angabe englisch; das Build-Log bleibt englisch).
 Umgebungsvariable `QF_RELAY_OPERATOR` (Secret, Origins, Absender, Mailer, Empfänger,
 Captcha-Secrets, Zählerordner) schreibt es `config.php` bei jedem Lauf daraus; Geheimnisse gehen nie
 über argv. Mit `--json` steht auf stdout ein Objekt, darin unter anderem ein `hash` der erzeugten
-Regeln, der gleich bleibt, solange sie es tun. Das ruft QuartzControl auf.
+Regeln, der gleich bleibt, solange sie es tun. Das ruft QuartzControl auf. `config.php` wird mit
+den Rechten 0600 geschrieben; ein Hochladen über SFTP oder FTP behält sie nicht, prüfen Sie die
+Rechte also auf dem Host (siehe `relay/php/README.md`, Schritt 3).
 
 Das Relay antwortet nur Anfragen vom Origin der Website. Eine Website mit `Referrer-Policy:
 no-referrer` verbirgt diesen Origin bei einem einfachen Formular-Post ohne JavaScript (der

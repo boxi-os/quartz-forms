@@ -296,7 +296,9 @@ the build log stays English).
 `QF_RELAY_OPERATOR` (secret, origins, sender, mailer, recipients, captcha secrets, counter
 directory) it writes `config.php` from them on every run; secrets never go through argv. With
 `--json` stdout holds one object, among others a `hash` of the generated rules that stays the same
-as long as they do. This is what QuartzControl runs.
+as long as they do. This is what QuartzControl runs. `config.php` is written with mode 0600; an
+upload over SFTP or FTP does not keep that, so check its mode on the host (see
+`relay/php/README.md`, step 3).
 
 The relay answers only requests from the site's origin. A site with `Referrer-Policy:
 no-referrer` hides that origin from a plain form post without JavaScript (the browser sends

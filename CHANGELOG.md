@@ -30,6 +30,8 @@ Fixes from a third review, of 0.4.0 as a whole (another model, fresh context, 20
   secret, addresses and captcha secrets stay with the command line.
 - A browser without container queries shows every field across the whole row; it kept half and
   third fields side by side at every width before.
+- The READMEs say that an upload over SFTP or FTP does not keep the 0600 of `config.php`, and
+  which mode to check for on the host.
 
 ## [0.4.0] - 2026-10-19
 

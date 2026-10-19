@@ -23,7 +23,11 @@ request is answered `500 mbstring_config` and says so); no packages to install.
    them (the relay writes it again when it is missing). On nginx deny the directory in the
    server block, or better, on any server, set `counterDir` in `config.php` to a directory
    outside the web root. An outbox file (`mailer => ['file' => …]`) belongs outside the web
-   root too, or every message is one URL away from anyone.
+   root too, or every message is one URL away from anyone. `config.php` holds the secret and
+   the addresses: after the upload, check that no other account on the host can read it. The
+   command line writes it with mode 0600, but an upload over SFTP or FTP gets the server's
+   default mode instead. 0600 works where PHP runs as your own user (PHP-FPM, suEXEC); where it
+   runs as the web server's user, 0640 with that group.
 4. Set `transport.url` in the site to that `send.php` URL and rebuild the site.
 5. Whenever you change a form in `quartz.config.yaml`, run step 1 again and upload
    `config.generated.php`.
