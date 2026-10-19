@@ -73,6 +73,12 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   origins, else the site's address from its `baseUrl`, which `relay:config` writes into the
   generated config as `siteOrigin`; without either the relay shows its "sent" page instead of
   redirecting. An empty list answers CORS with `*`, which is what it means.
+- The counter files were one URL away: `counters/` ships next to `send.php`, inside the web
+  root, and `GET /counters/<form>-<hour>.count` answered the hour's count; the example outbox
+  path in `config.php` would have served every message the same way. `counters/` now carries a
+  `.htaccess` that denies the web (Apache 2.4 and 2.2 syntax), the relay writes it again when it
+  is missing, the example outbox path is outside the web root, and the README says to put
+  `counterDir` outside the web root or to deny it in nginx.
 
 ## [0.1.1] - 2026-10-19
 

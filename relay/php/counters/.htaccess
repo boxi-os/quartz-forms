@@ -1,0 +1,11 @@
+# quartz-forms relay: the hourly counters and the used proofs of work are the relay's own
+# bookkeeping. They hold no addresses, but they do tell how many messages a form received, so
+# nothing in this directory is served. Apache reads this file; on nginx deny the directory in the
+# server block, or point `counterDir` in config.php outside the web root (recommended either way).
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+</IfModule>

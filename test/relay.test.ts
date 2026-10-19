@@ -649,5 +649,11 @@ describe.skipIf(!php)("relay: rate limit", () => {
     const limited = counters.find((f) => f.startsWith("limited-"));
     expect(limited).toMatch(/^limited-\d{10}\.count$/);
     expect(fs.readFileSync(path.join(dir, "counters", limited!), "utf8")).toBe("3");
+    // The directory ships inside the web root and its files tell the counts: the relay keeps a
+    // .htaccess there that denies the web (review finding 16, 2026-10-19; measured with Apache
+    // 2.4.67: 200 and "3" without it, 403 with it). The suite made the directory empty above.
+    const htaccess = fs.readFileSync(path.join(dir, "counters", ".htaccess"), "utf8");
+    expect(htaccess).toContain("Require all denied");
+    expect(htaccess).toContain("Deny from all");
   });
 });

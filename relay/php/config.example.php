@@ -30,7 +30,8 @@ return $generated + [
     'captchaSecret' => '',
 
     // 'mail' uses PHP's mail(); ['sendmail' => '/usr/sbin/sendmail -t -i'] pipes to sendmail;
-    // ['file' => __DIR__ . '/outbox.txt'] appends to a file (testing only).
+    // ['file' => '/home/you/private/outbox.txt'] appends every mail to a file (testing only:
+    // use a path outside the web root, or the messages are one URL away from anyone).
     'mailer' => 'mail',
 
     // Recipient name (as written in quartz.config.yaml under `recipient`) → address.
@@ -39,6 +40,9 @@ return $generated + [
         'owner' => 'you@example.org',
     ],
 
-    // Where the per-form hourly counters and the used proofs of work live (no addresses).
+    // Where the per-form hourly counters and the used proofs of work live (no addresses, but
+    // the number of messages a form got). Best outside the web root, e.g.
+    // dirname($_SERVER['DOCUMENT_ROOT']) . '/quartz-forms-counters'; inside it the relay keeps
+    // a .htaccess there, which Apache honours and nginx does not.
     'counterDir' => __DIR__ . '/counters',
 ];

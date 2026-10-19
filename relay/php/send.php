@@ -237,6 +237,29 @@ function qf_pow_valid(array $config, string $form, int $difficulty, mixed $pow):
 }
 
 /**
+ * The directory of the counters and the used proofs: created when missing, and kept with a
+ * .htaccess that denies the web, because the counter files tell how many messages a form got
+ * and the directory ships next to send.php, inside the web root (review finding 16, 2026-10-19:
+ * `GET /counters/survey-2026101906.count` answered `3`). Only Apache reads .htaccess; the
+ * README says to put `counterDir` outside the web root, or to deny it in nginx. Null when the
+ * directory cannot be made.
+ */
+function qf_counter_dir(array $config): ?string
+{
+    $dir = $config['counterDir'] ?? (__DIR__ . '/counters');
+    if (!is_dir($dir) && !@mkdir($dir, 0700, true)) {
+        return null;
+    }
+    $htaccess = $dir . '/.htaccess';
+    if (!file_exists($htaccess)) {
+        @file_put_contents($htaccess, "# quartz-forms relay: not for the web.\n"
+            . "<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n"
+            . "<IfModule !mod_authz_core.c>\n    Order deny,allow\n    Deny from all\n</IfModule>\n");
+    }
+    return $dir;
+}
+
+/**
  * Marks a proof of work as used, or says that it was. The proof is bound to the form and the
  * hour, not to the message, so one solved nonce would otherwise send any number of messages for
  * up to two hours (review finding, 2026-10-19: the same nonce three times, three mails). One
@@ -244,9 +267,9 @@ function qf_pow_valid(array $config, string $form, int $difficulty, mixed $pow):
  */
 function qf_pow_spent(array $config, string $challenge, string $nonce): bool
 {
-    $dir = $config['counterDir'] ?? (__DIR__ . '/counters');
-    if (!is_dir($dir) && !@mkdir($dir, 0700, true)) {
-        error_log('quartz-forms relay: cannot create ' . $dir . '; a proof of work may be reused');
+    $dir = qf_counter_dir($config);
+    if ($dir === null) {
+        error_log('quartz-forms relay: cannot create the counter directory; a proof of work may be reused');
         return false;
     }
     $window = (int) floor(time() / 3600);
@@ -275,8 +298,8 @@ function qf_rate_limited(array $config, string $form, int $perHour): bool
     if ($perHour <= 0) {
         return false;
     }
-    $dir = $config['counterDir'] ?? (__DIR__ . '/counters');
-    if (!is_dir($dir) && !@mkdir($dir, 0700, true)) {
+    $dir = qf_counter_dir($config);
+    if ($dir === null) {
         return false; // cannot count: let the mail through rather than lose it
     }
     $hour = gmdate('YmdH');

@@ -53,3 +53,4 @@ test/.tmp/
 relay/php/config.php
 relay/php/config.generated.php
 relay/php/counters/*.count
+relay/php/counters/*.spent

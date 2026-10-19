@@ -10,8 +10,13 @@ hosting with PHP ≥ 8.1; no dependencies.
    `quartz.config.yaml`) and, once, `relay/php/config.php` with a fresh secret.
 2. Edit `config.php`: your origin(s), the `from` address, the recipient addresses, and the
    captcha provider's secret key (`captchaSecret`) when a form uses `spam.captcha`.
-3. Upload `send.php`, `config.php`, `config.generated.php` and an empty, writable `counters/`
-   directory to your web space, e.g. `https://example.org/forms/`.
+3. Upload `send.php`, `config.php`, `config.generated.php` and the writable `counters/`
+   directory with its `.htaccess` to your web space, e.g. `https://example.org/forms/`. The
+   counter files say how many messages a form got; the `.htaccess` keeps Apache from serving
+   them (the relay writes it again when it is missing). On nginx deny the directory in the
+   server block, or better, on any server, set `counterDir` in `config.php` to a directory
+   outside the web root. An outbox file (`mailer => ['file' => …]`) belongs outside the web
+   root too, or every message is one URL away from anyone.
 4. Set `transport.url` in the site to that `send.php` URL and rebuild the site.
 5. Whenever you change a form in `quartz.config.yaml`, run step 1 again and upload
    `config.generated.php`.
