@@ -24,6 +24,14 @@
   font-family: var(--bodyFont);
   color: var(--darkgray);
 
+  // What the script hides stays hidden: `hidden` is the browser's `display: none`, which any
+  // `display` of ours overrides - a conditional field and the fields after sending stayed in
+  // view with the attribute set (measured in Chrome, 2026-10-19).
+  &[hidden],
+  [hidden] {
+    display: none !important;
+  }
+
   &__title {
     margin: 0;
     font-family: var(--headerFont);
