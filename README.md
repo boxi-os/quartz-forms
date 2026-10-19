@@ -128,6 +128,7 @@ except `hidden` and `consent`, a `label` (Text). Optional on most: `required`, `
 | ------------------- | ------- | -------------------------------------------------------------------------------- |
 | `honeypot`          | `true`  | An invisible field that must stay empty.                                         |
 | `minSeconds`        | `3`     | Seconds between opening the page and sending; `0` turns it off.                  |
+| `noScript`          | `true`  | Accept plain form posts from browsers without JavaScript; see below.             |
 | `pow`               | `false` | Proof of work the relay checks (`relay` only).                                   |
 | `powDifficulty`     | `16`    | Leading zero bits; 16 takes a fraction of a second.                              |
 | `captcha`           | `none`  | `turnstile` or `hcaptcha`; loads that provider's script. Ignored when anonymous. |
@@ -137,6 +138,12 @@ except `hidden` and `consent`, a `label` (Text). Optional on most: `required`, `
 | `maxTextareaLength` | `20000` | Default length limit of a textarea.                                              |
 | `maxKeyLength`      | `16384` | Length limit of a pasted public key.                                             |
 | `maxBytes`          | `65536` | Size limit of a whole submission.                                                |
+
+Without JavaScript a form with `encryption: off` or `optional` posts as a plain form to the relay,
+which answers with the redirect or a short page. Such a post carries neither the time stamp nor a
+proof of work, so the relay applies only honeypot, rate limit and field checks to it. `noScript:
+false` refuses these posts and renders the form without a target until the script runs, with a
+`<noscript>` note.
 
 ## Anonymous
 

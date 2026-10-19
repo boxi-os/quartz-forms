@@ -209,6 +209,12 @@ interface SpamConfig {
     honeypot: boolean;
     /** Seconds a visitor needs at least between opening the page and sending. 0 turns it off. */
     minSeconds: number;
+    /**
+     * Accept a submission from a browser without JavaScript (a plain form post). It skips the time
+     * trap and the proof of work, which only the script can supply; honeypot, rate limit and field
+     * checks still apply. `false` renders the form without a target until the script runs.
+     */
+    noScript: boolean;
     /** Proof of work checked by the relay (`transport.kind: relay` only). */
     pow: boolean;
     /** Leading zero bits the proof must reach; 16 takes a fraction of a second. */

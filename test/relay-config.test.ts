@@ -13,7 +13,7 @@ function site(options: Record<string, unknown>): string {
   fs.writeFileSync(
     path.join(dir, "quartz.config.yaml"),
     YAML.stringify({
-      configuration: { pageTitle: "Test", locale: "de-DE" },
+      configuration: { pageTitle: "Test", locale: "de-DE", baseUrl: "example.org/site" },
       plugins: [
         { source: "@quartz-community/frontmatter", enabled: true },
         { source: "github:boxi-os/quartz-forms", enabled: true, options },
@@ -80,9 +80,14 @@ describe("relay-config", () => {
     expect(generated).toContain(
       "'subject' => [\n                'de' => 'Kontakt',\n                'en' => 'Contact',\n            ]",
     );
-    expect(generated).toContain("'redirect' => '/danke'");
+    // The redirect carries the site's base path: the no-JavaScript answer is a 303 to the site.
+    expect(generated).toContain("'redirect' => '/site/danke'");
     expect(generated).toMatch(/'pow' => true,\n\s+'powDifficulty' => 16/);
     expect(generated).toContain("'rateLimitPerHour' => 10");
+    expect(generated).toMatch(/'minSeconds' => 3,\n\s+'noScript' => true/);
+    // The subject falls back to the title: null without one, the template's record with one.
+    expect(generated).toContain("'title' => null");
+    expect(generated).toMatch(/'title' => \[\n\s+'en' => 'Survey',\n\s+'de' => 'Umfrage',\n\s+\]/);
     expect(generated).toMatch(
       /'name' => 'email',\n\s+'type' => 'email',\n\s+'required' => true,\n\s+'label' => 'E-Mail',\n\s+'maxLength' => 2000/,
     );

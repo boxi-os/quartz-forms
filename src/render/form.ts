@@ -531,6 +531,9 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
   const description = resolveText(form.description, ctx.lang);
   const submit = resolveText(form.submitLabel, ctx.lang) ?? t.submit;
   const required = form.encryption.mode === "required";
+  // Encryption required, or no-script posts switched off: the form gets no target and no live
+  // button until the script runs, and says so in a <noscript> note.
+  const scriptOnly = required || !form.spam.noScript;
   const action = endpointOf(form.transport, form.recipient);
   const hidden = presetFields(form);
 
@@ -601,7 +604,7 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
       method: "post",
       // With encryption required the plaintext target is never written into the page; the
       // script sets it once it has encrypted. Without JavaScript the form cannot send.
-      action: required ? undefined : action,
+      action: scriptOnly ? undefined : action,
       enctype: form.transport.kind === "mailto" ? "text/plain" : undefined,
       novalidate: undefined,
     },
@@ -609,9 +612,13 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
       title ? h("h3", { className: ["quartz-form__title"] }, title) : null,
       description ? h("p", { className: ["quartz-form__description"] }, description) : null,
       ...notes,
-      required
+      scriptOnly
         ? h("noscript", {}, [
-            h("p", { className: ["quartz-form__note", "quartz-form__note--noscript"] }, t.noScript),
+            h(
+              "p",
+              { className: ["quartz-form__note", "quartz-form__note--noscript"] },
+              required ? t.noScript : t.needsScript,
+            ),
           ])
         : null,
       ...form.fields.map((f) => renderField(f, form, ctx)),
@@ -642,8 +649,8 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
           {
             type: "submit",
             className: ["quartz-form__button"],
-            disabled: required ? true : undefined,
-            dataEnableWithJs: required ? "true" : undefined,
+            disabled: scriptOnly ? true : undefined,
+            dataEnableWithJs: scriptOnly ? "true" : undefined,
           },
           submit,
         ),

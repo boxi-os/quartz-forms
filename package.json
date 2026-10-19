@@ -1,6 +1,6 @@
 {
   "name": "quartz-forms",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Quartz v5 plugin for web forms: contact, feedback, sign-up and survey forms rendered at build time, validated in the browser, encrypted with OpenPGP before they leave the page, and sent through a configurable transport (own relay, generic endpoint, mailto).",
   "type": "module",
   "license": "UNLICENSED",
@@ -98,7 +98,7 @@
       "emitter",
       "component"
     ],
-    "version": "0.1.0",
+    "version": "0.1.1",
     "quartzVersion": ">=5.0.0",
     "dependencies": [],
     "defaultEnabled": true,
@@ -112,6 +112,7 @@
       "spam": {
         "honeypot": true,
         "minSeconds": 3,
+        "noScript": true,
         "pow": false,
         "powDifficulty": 16,
         "captcha": "none",
@@ -1190,6 +1191,17 @@
               },
               "x-quartz-order": 20
             },
+            "noScript": {
+              "type": "boolean",
+              "description": "Accept submissions from browsers without JavaScript (plain form posts). They skip the time trap and the proof of work; honeypot, rate limit and field checks still apply.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "Sendungen aus Browsern ohne JavaScript annehmen (einfache Formular-Posts). Sie umgehen Zeitfalle und Proof of Work; Honeypot, Ratenbegrenzung und Feldprüfung gelten weiter."
+                }
+              },
+              "x-quartz-order": 25,
+              "x-quartz-advanced": true
+            },
             "pow": {
               "type": "boolean",
               "description": "Proof of work checked by the relay (transport relay only).",
@@ -1436,6 +1448,17 @@
                 }
               },
               "x-quartz-order": 20
+            },
+            "noScript": {
+              "type": "boolean",
+              "description": "Accept submissions from browsers without JavaScript (plain form posts). They skip the time trap and the proof of work; honeypot, rate limit and field checks still apply.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "Sendungen aus Browsern ohne JavaScript annehmen (einfache Formular-Posts). Sie umgehen Zeitfalle und Proof of Work; Honeypot, Ratenbegrenzung und Feldprüfung gelten weiter."
+                }
+              },
+              "x-quartz-order": 25,
+              "x-quartz-advanced": true
             },
             "pow": {
               "type": "boolean",

@@ -35,6 +35,7 @@ export default {
   encryptedForMany: "Encrypted in your browser for {count} keys.",
   encryptionUnavailable: "Encryption could not be loaded; the message was not sent.",
   noScript: "This form sends encrypted and needs JavaScript to do so.",
+  needsScript: "This form needs JavaScript to send.",
   tooFast: "Please wait a moment before sending.",
   captchaRequired: "Please complete the check below before sending.",
   sendFailed: "The message could not be sent. Please try again later.",

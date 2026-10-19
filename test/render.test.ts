@@ -200,6 +200,17 @@ describe("renderForm", () => {
     expect(config.success.text).toBe("Thank you, your message has been sent encrypted.");
   });
 
+  it("with noScript off: no action and a disabled button until the script runs, own notice", () => {
+    const { tree, html } = render(contact({ spam: { noScript: false } }));
+    expect(tree.properties.action).toBeUndefined();
+    expect(html).toContain(
+      '<button type="submit" class="quartz-form__button" disabled data-enable-with-js="true">',
+    );
+    expect(html).toContain(
+      '<noscript><p class="quartz-form__note quartz-form__note--noscript">This form needs JavaScript to send.</p></noscript>',
+    );
+  });
+
   it("with encryption optional: a checked toggle, and the plaintext action stays", () => {
     const { tree, html } = render(contact({ encryption: { mode: "optional" } }), {
       keys: { k: { armored: ARMORED } },

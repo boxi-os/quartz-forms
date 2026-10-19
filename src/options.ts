@@ -17,6 +17,7 @@ export const defaultTransport: TransportConfig = { kind: "relay" };
 export const defaultSpam: SpamConfig = {
   honeypot: true,
   minSeconds: 3,
+  noScript: true,
   pow: false,
   powDifficulty: 16,
   captcha: "none",

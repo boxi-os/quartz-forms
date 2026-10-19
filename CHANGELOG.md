@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-10-19
+
+Measured the PHP relay against PHP 8.5.11 (`php -S`): 46 requests covering every refusal
+(origin, JSON, time trap, honeypot, unknown field, required, option, length, size, proof of work,
+encryption mode, armor), the accepted paths with the mail in an outbox file (labels, `[x]`,
+Reply-To only when not anonymous, page line only with page context, the armored message
+unchanged), the plain-form path and the rate limit; then the browser measurement of 0.1.0 again
+with the PHP relay in place of the mock (29 of 29), and Chrome with JavaScript switched off:
+a plain post lands on the relay's German page with the mail written, the redirect form lands on
+the site's thank-you page, a `noScript: false` form stays inert without the script and sends
+with it (8 of 8). Fixes from it:
+
+- The plain-form path (a browser without JavaScript) always fell into the time trap, because only
+  the script fills the time stamp. The relay now skips time trap and proof of work on that path
+  and the new `spam.noScript` (default `true`) decides whether to accept it at all; `false`
+  renders the form without a target until the script runs.
+- The redirect on that path was relative and so resolved against the relay's host; the relay
+  now sends it absolute with the request's origin, and `relay:config` prefixes the site's base
+  path from `baseUrl`.
+- The relay's subject falls back to the form's title before the form id.
+- The relay's no-JavaScript answer page is in the submission's language (German or English) and
+  the `X-Powered-By` header is removed.
+- `npm run relay:config` names a target outside the repo by its absolute path.
+
 ## [0.1.0] - 2026-10-19
 
 First working version, private. Measured on 2026-10-19 in a throwaway copy of the gui-test site

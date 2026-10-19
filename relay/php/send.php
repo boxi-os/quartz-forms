@@ -17,9 +17,28 @@
 declare(strict_types=1);
 
 const QF_HONEYPOT = '_hp_website';
-const QF_VERSION = '0.1.0';
+const QF_VERSION = '0.1.1';
 
 $config = require __DIR__ . '/config.php';
+header_remove('X-Powered-By');
+
+/** The two sentences the no-JavaScript answer page needs, in the submission's language. */
+function qf_words(string $lang): array
+{
+    $de = [
+        'sent' => 'Gesendet',
+        'sentText' => 'Danke, Ihre Nachricht wurde gesendet.',
+        'notSent' => 'Nicht gesendet',
+        'notSentText' => 'Die Nachricht konnte nicht gesendet werden.',
+    ];
+    $en = [
+        'sent' => 'Sent',
+        'sentText' => 'Thank you, your message has been sent.',
+        'notSent' => 'Not sent',
+        'notSentText' => 'The message could not be sent.',
+    ];
+    return str_starts_with(strtolower($lang), 'de') ? $de : $en;
+}
 
 /* ---------------------------------------------------------------- helpers */
 
@@ -40,26 +59,51 @@ function qf_wants_html(): bool
         && !str_contains($accept, 'application/json');
 }
 
+/**
+ * The site's origin for a redirect: the request's Origin (or Referer) when it is allowed, else
+ * the first allowed origin. A relative Location would resolve against this relay's host.
+ */
+function qf_site_origin(array $config): string
+{
+    $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+    if ($origin === '' && isset($_SERVER['HTTP_REFERER'])) {
+        $p = parse_url($_SERVER['HTTP_REFERER']);
+        if (is_array($p) && isset($p['scheme'], $p['host'])) {
+            $origin = $p['scheme'] . '://' . $p['host'] . (isset($p['port']) ? ':' . $p['port'] : '');
+        }
+    }
+    if ($origin !== '' && qf_origin_allowed($config)) {
+        return rtrim($origin, '/');
+    }
+    return rtrim((string) (($config['allowedOrigins'] ?? [])[0] ?? ''), '/');
+}
+
 /** Answer for the no-JavaScript path: a redirect when the form has one, else a plain page. */
-function qf_html(int $status, string $title, string $text, ?string $redirect = null): never
+function qf_html(int $status, string $title, string $text, ?string $redirect = null, string $detail = ''): never
 {
     if ($redirect !== null && $status < 400) {
+        if (str_starts_with($redirect, '/')) {
+            $redirect = qf_site_origin($GLOBALS['config']) . $redirect;
+        }
         header('Location: ' . $redirect, true, 303);
         exit;
     }
     http_response_code($status);
     header('Content-Type: text/html; charset=utf-8');
     header('Cache-Control: no-store');
+    $lang = htmlspecialchars(substr($GLOBALS['qfLang'] ?? 'en', 0, 2), ENT_QUOTES, 'UTF-8');
     $t = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
     $p = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
-    echo "<!doctype html><meta charset=\"utf-8\"><title>$t</title><h1>$t</h1><p>$p</p>";
+    $d = $detail === '' ? '' : '<p><small>' . htmlspecialchars($detail, ENT_QUOTES, 'UTF-8') . '</small></p>';
+    echo "<!doctype html><html lang=\"$lang\"><meta charset=\"utf-8\"><title>$t</title><h1>$t</h1><p>$p</p>$d</html>";
     exit;
 }
 
 function qf_fail(int $status, string $error, string $message, array $errors = [], ?string $redirect = null): never
 {
     if (qf_wants_html()) {
-        qf_html($status, 'Not sent', $message, null);
+        $w = qf_words($GLOBALS['qfLang'] ?? 'en');
+        qf_html($status, $w['notSent'], $w['notSentText'], null, $message);
     }
     $body = ['ok' => false, 'error' => $error, 'message' => $message];
     if ($errors !== []) {
@@ -508,6 +552,9 @@ if ($isForm) {
     }
 }
 
+$lang = preg_replace('/[^A-Za-z0-9_-]/', '', (string) ($envelope['lang'] ?? '')) ?: 'en';
+$qfLang = $lang; // read by the no-JavaScript answer page
+
 $formId = (string) ($envelope['form'] ?? '');
 if ($formId === '' || !isset($forms[$formId])) {
     qf_fail(404, 'unknown_form', 'no such form');
@@ -520,12 +567,19 @@ if (!qf_origin_allowed($config)) {
     qf_fail(403, 'origin', 'origin not allowed');
 }
 
+// A plain form post comes from a browser without JavaScript (the script posts JSON). The form
+// decides whether to accept that; such a post carries neither a time stamp nor a proof of work.
+if ($isForm && empty($spam['noScript'])) {
+    qf_fail(400, 'javascript', 'this form needs JavaScript');
+}
+
 // Honeypot: a filled field means a bot. It is told "sent"; nothing is sent.
 if (!empty($spam['honeypot'])) {
     $hp = $envelope[QF_HONEYPOT] ?? ($envelope['fields'][QF_HONEYPOT] ?? '');
     if ($hp !== '' && $hp !== null) {
         if (qf_wants_html()) {
-            qf_html(200, 'Sent', 'Thank you.', $redirect);
+            $w = qf_words($lang);
+            qf_html(200, $w['sent'], $w['sentText'], $redirect);
         }
         qf_json(200, ['ok' => true]);
     }
@@ -534,7 +588,7 @@ if (!empty($spam['honeypot'])) {
 
 // Time trap: the page writes the time it was opened (ms); a bot posts within a second.
 $minSeconds = (int) ($spam['minSeconds'] ?? 0);
-if ($minSeconds > 0) {
+if ($minSeconds > 0 && !$isForm) {
     $ts = (float) ($envelope['ts'] ?? 0);
     if ($ts <= 0 || (microtime(true) * 1000 - $ts) < $minSeconds * 1000) {
         qf_fail(400, 'too_fast', 'please wait a moment before sending');
@@ -557,7 +611,6 @@ if (qf_rate_limited($config, $formId, (int) ($spam['rateLimitPerHour'] ?? 0))) {
     qf_fail(429, 'rate_limited', 'too many messages at the moment');
 }
 
-$lang = preg_replace('/[^A-Za-z0-9_-]/', '', (string) ($envelope['lang'] ?? '')) ?: 'en';
 $page = null;
 if (!empty($formCfg['pageContext']) && empty($formCfg['anonymous']) && is_string($envelope['page'] ?? null)) {
     $slug = preg_replace('/[^A-Za-z0-9\/._-]/', '', $envelope['page']);
@@ -633,7 +686,7 @@ if (!is_string($to) || $to === '' || str_contains($to, '@example.')) {
     qf_fail(500, 'recipient', 'the relay has no address for this form');
 }
 
-$subject = qf_text($formCfg['subject'] ?? null, $lang, $formId);
+$subject = qf_text($formCfg['subject'] ?? $formCfg['title'] ?? null, $lang, $formId);
 if (!empty($config['subjectPrefix'])) {
     $subject = $config['subjectPrefix'] . ' ' . $subject;
 }
@@ -643,6 +696,7 @@ if (!qf_mail($config, $to, $subject, $body, $replyTo)) {
 }
 
 if (qf_wants_html()) {
-    qf_html(200, 'Sent', 'Thank you, your message has been sent.', $redirect);
+    $w = qf_words($lang);
+    qf_html(200, $w['sent'], $w['sentText'], $redirect);
 }
 qf_json(200, ['ok' => true]);

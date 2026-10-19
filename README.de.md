@@ -132,6 +132,7 @@ Formular) und, außer `hidden` und `consent`, ein `label` (Text). Optional bei d
 | ------------------- | ------- | --------------------------------------------------------------------------------- |
 | `honeypot`          | `true`  | Ein unsichtbares Feld, das leer bleiben muss.                                     |
 | `minSeconds`        | `3`     | Sekunden zwischen Öffnen der Seite und Senden; `0` schaltet es ab.                |
+| `noScript`          | `true`  | Einfache Formular-Posts aus Browsern ohne JavaScript annehmen; siehe unten.       |
 | `pow`               | `false` | Proof-of-Work, das das Relay prüft (nur `relay`).                                 |
 | `powDifficulty`     | `16`    | Führende Nullbits; 16 dauert einen Sekundenbruchteil.                             |
 | `captcha`           | `none`  | `turnstile` oder `hcaptcha`; lädt das Skript des Anbieters. Bei anonym ignoriert. |
@@ -141,6 +142,12 @@ Formular) und, außer `hidden` und `consent`, ein `label` (Text). Optional bei d
 | `maxTextareaLength` | `20000` | Vorgabe für die Höchstlänge eines Textfelds.                                      |
 | `maxKeyLength`      | `16384` | Höchstlänge eines eingefügten öffentlichen Schlüssels.                            |
 | `maxBytes`          | `65536` | Höchstgröße einer ganzen Sendung.                                                 |
+
+Ohne JavaScript schickt ein Formular mit `encryption: off` oder `optional` einen einfachen
+Formular-Post ans Relay, das mit der Weiterleitung oder einer kurzen Seite antwortet. Ein solcher
+Post trägt weder Zeitstempel noch Proof of Work; das Relay prüft daran nur Honeypot,
+Ratenbegrenzung und Felder. `noScript: false` weist diese Posts ab und rendert das Formular ohne
+Ziel, bis das Skript läuft, mit einem `<noscript>`-Hinweis.
 
 ## Anonym
 

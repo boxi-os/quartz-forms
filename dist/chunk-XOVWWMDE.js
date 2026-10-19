@@ -440,6 +440,7 @@ var en_US_default = {
   encryptedForMany: "Encrypted in your browser for {count} keys.",
   encryptionUnavailable: "Encryption could not be loaded; the message was not sent.",
   noScript: "This form sends encrypted and needs JavaScript to do so.",
+  needsScript: "This form needs JavaScript to send.",
   tooFast: "Please wait a moment before sending.",
   captchaRequired: "Please complete the check below before sending.",
   sendFailed: "The message could not be sent. Please try again later.",
@@ -486,6 +487,7 @@ var deDE = {
   encryptedForMany: "In Ihrem Browser verschl\xFCsselt f\xFCr {count} Schl\xFCssel.",
   encryptionUnavailable: "Die Verschl\xFCsselung konnte nicht geladen werden; die Nachricht wurde nicht gesendet.",
   noScript: "Dieses Formular sendet verschl\xFCsselt und braucht daf\xFCr JavaScript.",
+  needsScript: "Dieses Formular braucht zum Senden JavaScript.",
   tooFast: "Bitte warten Sie einen Moment vor dem Senden.",
   captchaRequired: "Bitte best\xE4tigen Sie vor dem Senden die Pr\xFCfung unten.",
   sendFailed: "Die Nachricht konnte nicht gesendet werden. Bitte versuchen Sie es sp\xE4ter noch einmal.",
@@ -880,6 +882,7 @@ var defaultTransport = { kind: "relay" };
 var defaultSpam = {
   honeypot: true,
   minSeconds: 3,
+  noScript: true,
   pow: false,
   powDifficulty: 16,
   captcha: "none",
@@ -3208,6 +3211,7 @@ function renderForm(form, ctx) {
   const description = resolveText(form.description, ctx.lang);
   const submit = resolveText(form.submitLabel, ctx.lang) ?? t2.submit;
   const required = form.encryption.mode === "required";
+  const scriptOnly = required || !form.spam.noScript;
   const action = endpointOf(form.transport, form.recipient);
   const hidden = presetFields(form);
   const notes = [];
@@ -3269,7 +3273,7 @@ function renderForm(form, ctx) {
       method: "post",
       // With encryption required the plaintext target is never written into the page; the
       // script sets it once it has encrypted. Without JavaScript the form cannot send.
-      action: required ? void 0 : action,
+      action: scriptOnly ? void 0 : action,
       enctype: form.transport.kind === "mailto" ? "text/plain" : void 0,
       novalidate: void 0
     },
@@ -3277,8 +3281,12 @@ function renderForm(form, ctx) {
       title ? h("h3", { className: ["quartz-form__title"] }, title) : null,
       description ? h("p", { className: ["quartz-form__description"] }, description) : null,
       ...notes,
-      required ? h("noscript", {}, [
-        h("p", { className: ["quartz-form__note", "quartz-form__note--noscript"] }, t2.noScript)
+      scriptOnly ? h("noscript", {}, [
+        h(
+          "p",
+          { className: ["quartz-form__note", "quartz-form__note--noscript"] },
+          required ? t2.noScript : t2.needsScript
+        )
       ]) : null,
       ...form.fields.map((f) => renderField(f, form, ctx)),
       form.spam.honeypot ? h("div", { className: ["quartz-form__hp"], ariaHidden: "true" }, [
@@ -3304,8 +3312,8 @@ function renderForm(form, ctx) {
           {
             type: "submit",
             className: ["quartz-form__button"],
-            disabled: required ? true : void 0,
-            dataEnableWithJs: required ? "true" : void 0
+            disabled: scriptOnly ? true : void 0,
+            dataEnableWithJs: scriptOnly ? "true" : void 0
           },
           submit
         )
@@ -4125,5 +4133,5 @@ var FormBox_default = ((userOpts) => {
 });
 
 export { FormBox_default, Forms, defaultOptions, loadKeys, logHints, resolveOptions, resolveOrThrow, resolveText, templateNames, templateOf, warnOnce };
-//# sourceMappingURL=chunk-FPRPU3XJ.js.map
-//# sourceMappingURL=chunk-FPRPU3XJ.js.map
+//# sourceMappingURL=chunk-XOVWWMDE.js.map
+//# sourceMappingURL=chunk-XOVWWMDE.js.map

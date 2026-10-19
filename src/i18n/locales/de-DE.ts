@@ -34,6 +34,7 @@ const deDE: Translation = {
   encryptionUnavailable:
     "Die Verschlüsselung konnte nicht geladen werden; die Nachricht wurde nicht gesendet.",
   noScript: "Dieses Formular sendet verschlüsselt und braucht dafür JavaScript.",
+  needsScript: "Dieses Formular braucht zum Senden JavaScript.",
   tooFast: "Bitte warten Sie einen Moment vor dem Senden.",
   captchaRequired: "Bitte bestätigen Sie vor dem Senden die Prüfung unten.",
   sendFailed:
