@@ -30,7 +30,8 @@ map, `README.md` for user-facing options.
 - `relay/php/`: `send.php` (validation level 3 against the definition written into
   `config.php`), `config.example.php`, README.
 - `scripts/relay-config.mjs`: renders `config.php` from a site's `quartz.config.yaml`.
-- `test/`: vitest tests.
+- `test/`: vitest tests. `relay.test.ts` runs `send.php` under `php -S` (skipped, with a
+  warning, when there is no `php`); every relay fix comes with a case there.
 
 ## Leave Alone
 

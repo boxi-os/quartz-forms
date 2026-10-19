@@ -20,6 +20,11 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   disabled and unticked until the script enables it, a `<noscript>` note says the form sends
   unencrypted without JavaScript (`noScriptPlain`), and the relay refuses a plain post that
   carries the box.
+- `send.php` had no automated test; the measurement of 0.1.1 lived in scratch scripts. Now
+  `test/relay.test.ts` starts the relay under `php -S` (forms resolved from a
+  `quartz.config.yaml` by `relay:config`, mail into an outbox file) and covers the challenge and
+  CORS, every refusal, the accepted mails, the plain-form path and the rate limit; CI installs
+  PHP and runs `php -l`. Without `php` the suite is skipped with a warning.
 
 ## [0.1.1] - 2026-10-19
 

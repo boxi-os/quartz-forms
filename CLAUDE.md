@@ -27,6 +27,10 @@ npm run check        # typecheck + lint + format + test (run before submitting)
 
 Run a single test file: `npx vitest run test/options.test.ts`
 
+`test/relay.test.ts` starts the PHP relay with `php -S` on a free port (forms from a
+`quartz.config.yaml` through `scripts/relay-config.mjs`, mail into an outbox file) and drives it
+with `fetch`. Without `php` on the PATH it is skipped and says so (`brew install php`).
+
 ## Measuring
 
 A form is measured in a throwaway copy of a Quartz site (`~/Documents/QuartzProjekte/gui-test`,

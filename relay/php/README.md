@@ -53,3 +53,7 @@ curl -i -X POST https://example.org/forms/send.php \
 ```
 
 With `minSeconds` above 0 the `ts: 0` is refused as too fast, which proves the time trap.
+
+The repository's `test/relay.test.ts` runs this file under `php -S` with every refusal, the
+accepted paths (mail in an outbox file), the plain-form path and the rate limit; `npm test` runs
+it whenever `php` is on the PATH.
