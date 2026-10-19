@@ -149,6 +149,10 @@ for (const form of Object.values(opts.forms)) {
         case "pgpKey":
           rule.maxLength = form.spam.maxKeyLength;
           break;
+        case "hidden":
+          // The relay puts this value into the mail itself; what was posted does not count.
+          rule.value = f.value;
+          break;
       }
       return rule;
     }),

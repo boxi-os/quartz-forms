@@ -946,6 +946,10 @@ if ($encrypted) {
     }
     foreach ($rules as $name => $rule) {
         if ($rule['type'] === 'hidden') {
+            // A fixed value the page sends along, invisible: the mail shows what the config says,
+            // never what was posted (review finding, 2026-10-19: 900 × "x" arrived under the
+            // name of a fixed value, looking like one).
+            $fields[$name] = (string) ($rule['value'] ?? '');
             continue;
         }
         $code = qf_check_field($rule, $fields[$name] ?? null);

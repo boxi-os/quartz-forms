@@ -101,6 +101,9 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   outside ASCII pass, and `Reply-To` is set only for an ASCII address, since `mail()` cannot
   carry another. The relay's `invalid` is now named by the field's type in the browser (e-mail,
   URL, phone, number, date, key) instead of always as a pattern mismatch.
+- A `hidden` field was checked on no level: 900 × `x` posted under its name was mailed as if the
+  recipient saw the fixed value. The generated relay config now carries the value, and the relay
+  puts that value into the mail itself, whatever was posted.
 
 ## [0.1.1] - 2026-10-19
 

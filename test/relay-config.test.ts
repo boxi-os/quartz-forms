@@ -49,6 +49,7 @@ const options = {
         { type: "scale", name: "rating", label: "Bewertung", min: 1, max: 5 },
         { type: "textarea", name: "message", label: "Nachricht", required: true, maxLength: 500 },
         { type: "consent", name: "ok", text: "Einverstanden" },
+        { type: "hidden", name: "src", value: "web" },
       ],
       success: { mode: "redirect", slug: "danke" },
     },
@@ -94,6 +95,8 @@ describe("relay-config", () => {
       /'name' => 'email',\n\s+'type' => 'email',\n\s+'required' => true,\n\s+'label' => 'E-Mail',\n\s+'maxLength' => 2000/,
     );
     expect(generated).toMatch(/'name' => 'message',[\s\S]*?'maxLength' => 500/);
+    // The relay inserts a hidden field's value itself, so it needs to know it.
+    expect(generated).toMatch(/'name' => 'src',\n\s+'type' => 'hidden',[\s\S]*?'value' => 'web'/);
     expect(generated).toMatch(/'name' => 'topic',[\s\S]*?'options' => \[\n\s+'a',\n\s+'b',\n\s+\]/);
     expect(generated).toMatch(/'optionLabels' => \[\n\s+'a' => 'A',\n\s+'b' => 'B',\n\s+\]/);
     expect(generated).toMatch(/'name' => 'rating',[\s\S]*?'min' => 1,\n\s+'max' => 5/);

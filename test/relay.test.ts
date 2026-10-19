@@ -112,6 +112,13 @@ const siteOptions = {
         { type: "url", name: "site", label: "Site" },
       ],
     },
+    tagged: {
+      recipient: "owner",
+      fields: [
+        { type: "hidden", name: "src", value: "web" },
+        { type: "text", name: "note", label: "Note" },
+      ],
+    },
   },
 };
 
@@ -490,6 +497,20 @@ describe.skipIf(!php)("relay: refusals", () => {
         code: "invalid",
       });
     }
+  });
+  it("a hidden field carries the configured value, whatever was posted", async () => {
+    // Review finding 14 (2026-10-19): a hidden field was checked on no level; 900 × "x" under
+    // `src` was mailed as if the recipient saw the fixed value.
+    const tampered = await post(env("tagged", { note: "hi", src: "x".repeat(900) }));
+    expect(tampered.json).toEqual({ ok: true });
+    expect(lastMail().body).toContain("src: web");
+    expect(lastMail().body).not.toContain("xxx");
+    const missing = await post(env("tagged", { note: "hi" }));
+    expect(missing.json).toEqual({ ok: true });
+    expect(lastMail().body).toContain("src: web");
+    const posted = await plain({ form: "tagged", lang: "de-DE", note: "hi", src: "web" });
+    expect(posted.status).toBe(200);
+    expect(lastMail().body).toContain("src: web");
   });
   it("proof of work: missing, unsolved or forged is refused before the fields are looked at", async () => {
     const bad = { ...contactFields, email: "not-an-address" };
