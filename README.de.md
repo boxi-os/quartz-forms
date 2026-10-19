@@ -5,7 +5,7 @@ Website: Kontakt, Feedback, Anmeldung und Umfrage, zur Build-Zeit gerendert, im 
 mit OpenPGP verschlüsselt, bevor sie die Seite verlassen, und über einen konfigurierbaren Versandweg
 verschickt.
 
-**Stand: 0.5.2, privat.** Gemessen in einer gebauten Site und in Chrome; das PHP-Relay misst die
+**Stand: 0.5.3, privat.** Gemessen in einer gebauten Site und in Chrome; das PHP-Relay misst die
 Testsuite unter `php -S` (`test/relay.test.ts`). Drei unabhängige Reviews, das dritte über 0.4.0
 als Ganzes (siehe CHANGELOG); was 0.4.1 und 0.5.x geändert haben, hat noch kein Review gelesen.
 
