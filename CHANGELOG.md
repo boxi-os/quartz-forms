@@ -41,6 +41,9 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   pass. The pattern now uses a control character as delimiter, invalid UTF-8 is refused, and a
   pattern PCRE cannot apply refuses the value with a line in the server's error log. The README
   says a pattern must read the same in JavaScript and PCRE.
+- Refused posts used up the hourly quota: the rate limit counted before the fields were checked,
+  so invalid posts could block a form for an hour without a single mail. The relay now counts
+  directly before handing the mail over, after every check.
 
 ## [0.1.1] - 2026-10-19
 

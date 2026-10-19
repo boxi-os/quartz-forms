@@ -190,7 +190,7 @@ function qf_pow_valid(array $config, string $form, int $difficulty, mixed $pow):
     return qf_leading_zero_bits(hash('sha256', $challenge . ':' . $nonce)) >= $difficulty;
 }
 
-/** Counts a submission for this form in this hour; no address, no time beyond the hour. */
+/** Counts a mail for this form in this hour; no address, no time beyond the hour. */
 function qf_rate_limited(array $config, string $form, int $perHour): bool
 {
     if ($perHour <= 0) {
@@ -681,10 +681,6 @@ if ($captchaProvider !== 'none' && empty($formCfg['anonymous'])) {
     }
 }
 
-if (qf_rate_limited($config, $formId, (int) ($spam['rateLimitPerHour'] ?? 0))) {
-    qf_fail(429, 'rate_limited', 'too many messages at the moment');
-}
-
 $page = null;
 if (!empty($formCfg['pageContext']) && empty($formCfg['anonymous']) && is_string($envelope['page'] ?? null)) {
     $slug = preg_replace('/[^A-Za-z0-9\/._-]/', '', $envelope['page']);
@@ -763,6 +759,12 @@ if (!is_string($to) || $to === '' || str_contains($to, '@example.')) {
 $subject = qf_text($formCfg['subject'] ?? $formCfg['title'] ?? null, $lang, $formId);
 if (!empty($config['subjectPrefix'])) {
     $subject = $config['subjectPrefix'] . ' ' . $subject;
+}
+
+// The hour's quota counts mails, not posts: counted here, after every check, so refused posts
+// cannot use it up (review finding, 2026-10-19: two invalid posts spent two of three).
+if (qf_rate_limited($config, $formId, (int) ($spam['rateLimitPerHour'] ?? 0))) {
+    qf_fail(429, 'rate_limited', 'too many messages at the moment');
 }
 
 if (!qf_mail($config, $to, $subject, $body, $replyTo)) {

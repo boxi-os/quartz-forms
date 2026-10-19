@@ -544,14 +544,19 @@ describe.skipIf(!php)("relay: a browser without JavaScript (plain form post)", (
 });
 
 describe.skipIf(!php)("relay: rate limit", () => {
-  it("refuses the submission above the hourly limit, counting per form and hour in a file", async () => {
+  it("counts only what is mailed: refused posts do not use up the hour, the fourth mail is 429", async () => {
+    // Two refused posts first (an unknown field): before the fix they counted, and the hour's
+    // three were spent after one mail (review finding 10, 2026-10-19).
     const statuses: number[] = [];
+    for (let i = 0; i < 2; i++)
+      statuses.push((await post(env("limited", { x: "a", nope: "b" }))).status);
     for (let i = 0; i < 4; i++)
       statuses.push((await post(env("limited", { x: String(i) }))).status);
-    expect(statuses).toEqual([200, 200, 200, 429]);
+    expect(statuses).toEqual([400, 400, 200, 200, 200, 429]);
+    expect(mails().filter((m) => m.includes("X: ")).length).toBe(3);
     const counters = fs.readdirSync(path.join(dir, "counters")).filter((f) => f.endsWith(".count"));
     const limited = counters.find((f) => f.startsWith("limited-"));
     expect(limited).toMatch(/^limited-\d{10}\.count$/);
-    expect(fs.readFileSync(path.join(dir, "counters", limited!), "utf8")).toMatch(/^\d+$/);
+    expect(fs.readFileSync(path.join(dir, "counters", limited!), "utf8")).toBe("3");
   });
 });
