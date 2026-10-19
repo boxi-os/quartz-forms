@@ -24,6 +24,7 @@ declare const en: {
     optionsNeeded: (p: Params) => string;
     optionShape: () => string;
     optionTwice: (p: Params) => string;
+    optionSpace: (p: Params) => string;
     scaleInteger: () => string;
     scaleOrder: (p: Params) => string;
     scaleSpan: () => string;

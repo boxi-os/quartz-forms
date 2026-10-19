@@ -33,6 +33,12 @@ Fixes from a third review, of 0.4.0 as a whole (another model, fresh context, 20
 - The READMEs say that an upload over SFTP or FTP does not keep the 0600 of `config.php`, and
   which mode to check for on the host.
 
+From the same review's list of side findings:
+
+- The build refuses an option value that begins or ends with whitespace (`optionSpace`). Browser
+  and relay trim what is sent and compare it with the untrimmed options, so such an option could
+  never be chosen.
+
 ## [0.4.0] - 2026-10-19
 
 Layout, conditions and steps, each defined once and applied by build, browser and relay alike:

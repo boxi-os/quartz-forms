@@ -224,6 +224,24 @@ describe("validate: forms and fields", () => {
         ],
       }),
     ).toEqual(['forms.f.fields[0].options[1]: value "1" twice']);
+    // Trimmed on both sides before the lookup, so " a " was never chosen; " " is empty once sent.
+    expect(
+      fieldProblems({
+        type: "checkboxes",
+        name: "a",
+        label: "x",
+        options: [
+          { value: " a ", label: "a" },
+          { value: "b\t", label: "b" },
+          { value: " ", label: "blank" },
+          { value: "c d", label: "c" },
+        ],
+      }),
+    ).toEqual([
+      'forms.f.fields[0].options[0]: value " a " begins or ends with whitespace, which is trimmed from what is sent: it can never be chosen',
+      'forms.f.fields[0].options[1]: value "b\t" begins or ends with whitespace, which is trimmed from what is sent: it can never be chosen',
+      'forms.f.fields[0].options[2]: value " " begins or ends with whitespace, which is trimmed from what is sent: it can never be chosen',
+    ]);
     expect(fieldProblems({ type: "scale", name: "a", label: "x", min: 5, max: 1 })[0]).toMatch(
       /below max/,
     );

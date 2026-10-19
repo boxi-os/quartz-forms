@@ -27,6 +27,8 @@ const de: { [K in keyof typeof en]: (p: Params, t: Translate) => string } = {
   optionsNeeded: (p) => `ein Feld vom Typ ${s(p, "type")} braucht mindestens eine Option`,
   optionShape: () => "eine Option ist { value, label } mit einem Wert",
   optionTwice: (p) => `Wert „${s(p, "value")}“ doppelt`,
+  optionSpace: (p) =>
+    `Wert „${s(p, "value")}“ beginnt oder endet mit Leerraum, der beim Senden entfernt wird: er ist nie wählbar`,
   scaleInteger: () => "eine Skala hat ganzzahlige min und max",
   scaleOrder: (p) => `min ${s(p, "min")} der Skala muss unter max ${s(p, "max")} liegen`,
   scaleSpan: () => "eine Skala umfasst höchstens 21 Stufen",

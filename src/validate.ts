@@ -228,6 +228,11 @@ function checkField(field: FormField, at: string, out: Validation): void {
           problem(out, `${at}.options[${i}]`, "optionShape");
           return;
         }
+        // Browser and relay trim what is sent and look it up untrimmed: such an option is never
+        // chosen. The build says it rather than trimming it, because the value is also what the
+        // mail and every showIf name.
+        if (opt.value.trim() !== opt.value)
+          problem(out, `${at}.options[${i}]`, "optionSpace", { value: opt.value });
         if (seen.has(opt.value))
           problem(out, `${at}.options[${i}]`, "optionTwice", { value: opt.value });
         seen.add(opt.value);

@@ -34,6 +34,8 @@ const en = {
   optionsNeeded: (p: Params) => `a ${s(p, "type")} field needs at least one option`,
   optionShape: () => "an option is { value, label } with a value",
   optionTwice: (p: Params) => `value "${s(p, "value")}" twice`,
+  optionSpace: (p: Params) =>
+    `value "${s(p, "value")}" begins or ends with whitespace, which is trimmed from what is sent: it can never be chosen`,
   scaleInteger: () => "a scale has integer min and max",
   scaleOrder: (p: Params) => `scale min ${s(p, "min")} must be below max ${s(p, "max")}`,
   scaleSpan: () => "a scale spans at most 21 steps",

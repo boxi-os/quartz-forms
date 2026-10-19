@@ -197,6 +197,7 @@ var en = {
   optionsNeeded: (p) => `a ${s(p, "type")} field needs at least one option`,
   optionShape: () => "an option is { value, label } with a value",
   optionTwice: (p) => `value "${s(p, "value")}" twice`,
+  optionSpace: (p) => `value "${s(p, "value")}" begins or ends with whitespace, which is trimmed from what is sent: it can never be chosen`,
   scaleInteger: () => "a scale has integer min and max",
   scaleOrder: (p) => `scale min ${s(p, "min")} must be below max ${s(p, "max")}`,
   scaleSpan: () => "a scale spans at most 21 steps",
@@ -341,6 +342,7 @@ var de = {
   optionsNeeded: (p) => `ein Feld vom Typ ${s2(p, "type")} braucht mindestens eine Option`,
   optionShape: () => "eine Option ist { value, label } mit einem Wert",
   optionTwice: (p) => `Wert \u201E${s2(p, "value")}\u201C doppelt`,
+  optionSpace: (p) => `Wert \u201E${s2(p, "value")}\u201C beginnt oder endet mit Leerraum, der beim Senden entfernt wird: er ist nie w\xE4hlbar`,
   scaleInteger: () => "eine Skala hat ganzzahlige min und max",
   scaleOrder: (p) => `min ${s2(p, "min")} der Skala muss unter max ${s2(p, "max")} liegen`,
   scaleSpan: () => "eine Skala umfasst h\xF6chstens 21 Stufen",
@@ -845,6 +847,8 @@ function checkField(field, at, out) {
           problem(out, `${at}.options[${i}]`, "optionShape");
           return;
         }
+        if (opt.value.trim() !== opt.value)
+          problem(out, `${at}.options[${i}]`, "optionSpace", { value: opt.value });
         if (seen.has(opt.value))
           problem(out, `${at}.options[${i}]`, "optionTwice", { value: opt.value });
         seen.add(opt.value);
@@ -1336,5 +1340,5 @@ function logHints(opts) {
 }
 
 export { __commonJS, __export, __require, __toESM, conditionOf, conditionsOf, defaultOptions, formatMessage, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-QZZLDZUX.js.map
-//# sourceMappingURL=chunk-QZZLDZUX.js.map
+//# sourceMappingURL=chunk-7ZB4IENT.js.map
+//# sourceMappingURL=chunk-7ZB4IENT.js.map
