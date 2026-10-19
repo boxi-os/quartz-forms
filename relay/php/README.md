@@ -31,7 +31,8 @@ hosting with PHP ≥ 8.1; no dependencies.
 - Honeypot (a filled form is told "sent" and nothing is sent), time trap on a stamp the relay
   signed when the page opened (`GET ?challenge=<id>` hands it out; measured with the relay's
   clock), proof of work when the form enables it (one per message: used proofs are kept as
-  `pow-*.spent` files in `counters/` for two hours), captcha token (Turnstile or hCaptcha, unless
+  `pow-*.spent` files in `counters/` for as long as their challenge is accepted, this hour and
+  the next), captcha token (Turnstile or hCaptcha, unless
   the form is anonymous), rate limit per form and hour (a counter file, counting mails, no
   addresses).
 - Plain text: every field against its rule (unknown field, required, length, options, e-mail,

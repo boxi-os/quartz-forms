@@ -205,6 +205,12 @@ Fixes from a second review of the changes above (another model, fresh context, 2
   table called `minSeconds` "measured by the relay" without the caveat. The build now says so
   for a `minSeconds` written globally or on a form (the default of 3 s is documented and stays
   quiet), and the table says on which posts the relay measures.
+- A used proof of work sent once more after the hour changed. The relay accepts the challenges
+  of this hour and the last, but named the spent file after the hour of the post, so the file
+  of the first hour was not the one looked for in the second (measured: 200, 400, next hour 200,
+  400). The file is now named after the window of the challenge the proof answers. The relay's
+  one clock is `qf_now()`, which the relay suite's copy moves with a header, so the suite
+  crosses an hour boundary without waiting for one.
 
 ## [0.1.1] - 2026-10-19
 

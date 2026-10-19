@@ -235,7 +235,20 @@ beforeAll(async () => {
     [path.join(root, "scripts", "relay-config.mjs"), site, "--out", dir, "--skip-pattern-check"],
     { cwd: root, stdio: "ignore" },
   );
-  fs.copyFileSync(path.join(root, "relay", "php", "send.php"), path.join(dir, "send.php"));
+  // The copy's clock moves with an `X-Shift` header (seconds), so a test can cross an hour
+  // boundary; the one line that reads the clock is qf_now(), and the copy differs in nothing
+  // else. A send.php without that line is not the relay this suite knows.
+  const sendPhp = fs.readFileSync(path.join(root, "relay", "php", "send.php"), "utf8");
+  const clock = "function qf_now(): int\n{\n    return time();\n}";
+  if (sendPhp.split(clock).length !== 2)
+    throw new Error("send.php: qf_now() not found as expected");
+  fs.writeFileSync(
+    path.join(dir, "send.php"),
+    sendPhp.replace(
+      clock,
+      "function qf_now(): int\n{\n    return time() + (int) ($_SERVER['HTTP_X_SHIFT'] ?? 0);\n}",
+    ),
+  );
   fs.mkdirSync(path.join(dir, "counters"));
   // Stands in for the provider's siteverify endpoint: success for one secret and one token.
   fs.writeFileSync(
@@ -304,9 +317,13 @@ function plain(fields: Record<string, string>, accept = "text/html,application/x
     headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: accept },
   });
 }
-async function get(query: string, origin: string | null = ORIGIN): Promise<Answer> {
+async function get(
+  query: string,
+  origin: string | null = ORIGIN,
+  headers: Record<string, string> = {},
+): Promise<Answer> {
   const res = await fetch(`${base}/send.php?${query}`, {
-    headers: origin ? { Origin: origin } : {},
+    headers: origin ? { Origin: origin, ...headers } : headers,
   });
   const text = await res.text();
   let json = null;
@@ -695,6 +712,36 @@ describe.skipIf(!php)("relay: refusals", () => {
     const again = await post(env("contact", contactFields, { pow }));
     expect([again.status, again.json?.error]).toEqual([400, "pow"]);
     expect(adaMails()).toBe(sent + 1);
+  });
+  it("a proof spent in one hour stays spent in the next, while its challenge is still accepted", async () => {
+    // Second review, finding 5 (2026-10-19): the relay accepts the challenges of this hour and
+    // the last, but named the spent file after the hour of the post, so the same proof sent
+    // once more after the hour changed (measured: 200, 400, next hour 200, 400). The clock of
+    // the suite's copy moves with X-Shift; the posts sit one minute into an hour, so the real
+    // clock cannot change their window for the rest of this hour.
+    const real = Math.floor(Date.now() / 1000);
+    const shift = (Math.floor(real / 3600) + 1) * 3600 + 60 - real;
+    const at = (seconds: number) => ({ headers: { "X-Shift": String(seconds) } });
+    const ticket = (await get("challenge=contact", ORIGIN, at(shift).headers)).json as {
+      challenge: string;
+      stamp: string;
+    };
+    const pow = solve(ticket.challenge, 8);
+    const message = (n: string) =>
+      env("contact", { ...contactFields, message: n }, { pow, ts: ticket.stamp });
+    const first = await post(message("hour H"), at(shift + 5));
+    expect(first.json).toEqual({ ok: true });
+    const again = await post(message("hour H, again"), at(shift + 6));
+    expect([again.status, again.json?.error]).toEqual([400, "pow"]);
+    const nextHour = await post(message("hour H+1"), at(shift + 3600));
+    expect([nextHour.status, nextHour.json?.error]).toEqual([400, "pow"]);
+    // Two hours on, the challenge itself has expired: refused as a wrong proof, not as a used one.
+    const later = await post(message("hour H+2"), at(shift + 7200));
+    expect([later.status, later.json?.message]).toEqual([
+      400,
+      "the proof of work is missing or wrong",
+    ]);
+    expect(mails().filter((m) => m.includes("hour H")).length).toBe(1);
   });
   it("encryption: plaintext to a required form, ciphertext to an off form, ciphertext without armor", async () => {
     const plainToEnc = await post(env("enc", { a: "x" }));

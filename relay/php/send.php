@@ -188,6 +188,22 @@ function qf_secret(array $config): string
     return $secret;
 }
 
+/**
+ * The relay's clock, the one place that reads it. The relay suite copies send.php and lets this
+ * function add an `X-Shift` header's seconds, so an hour boundary can be crossed in a test (the
+ * proof-of-work windows, the stamp's age) without waiting for one.
+ */
+function qf_now(): int
+{
+    return time();
+}
+
+/** The hour the clock is in: the window of the proof-of-work challenges. */
+function qf_window(int $now): int
+{
+    return (int) floor($now / 3600);
+}
+
 /** Challenge for the proof of work: stateless, bound to the form and the hour. */
 function qf_challenge(array $config, string $form, int $window): string
 {
@@ -215,7 +231,7 @@ function qf_stamp_age(array $config, mixed $stamp): ?int
     if (!hash_equals(qf_stamp($config, $issued), $stamp)) {
         return null;
     }
-    $age = time() - $issued;
+    $age = qf_now() - $issued;
     return ($age < -60 || $age > 86400) ? null : $age;
 }
 
@@ -244,28 +260,32 @@ function qf_leading_zero_bits(string $hex): int
     return $bits;
 }
 
-function qf_pow_valid(array $config, string $form, int $difficulty, mixed $pow): bool
+/**
+ * The window of the challenge a valid proof answers (this hour's or the last), null for a proof
+ * that is missing, wrong, or not for this form.
+ */
+function qf_pow_window(array $config, string $form, int $difficulty, mixed $pow): ?int
 {
     if (!is_array($pow) || !is_string($pow['challenge'] ?? null) || !is_string($pow['nonce'] ?? null)) {
-        return false;
+        return null;
     }
     $challenge = $pow['challenge'];
     $nonce = $pow['nonce'];
     if (strlen($nonce) > 64 || !preg_match('/^[A-Za-z0-9_-]+$/', $nonce)) {
-        return false;
+        return null;
     }
-    $now = (int) floor(time() / 3600);
-    $ok = false;
+    $now = qf_window(qf_now());
+    $found = null;
     foreach ([$now, $now - 1] as $window) {
         if (hash_equals(qf_challenge($config, $form, $window), $challenge)) {
-            $ok = true;
+            $found = $window;
             break;
         }
     }
-    if (!$ok) {
-        return false;
+    if ($found === null) {
+        return null;
     }
-    return qf_leading_zero_bits(hash('sha256', $challenge . ':' . $nonce)) >= $difficulty;
+    return qf_leading_zero_bits(hash('sha256', $challenge . ':' . $nonce)) >= $difficulty ? $found : null;
 }
 
 /**
@@ -295,23 +315,27 @@ function qf_counter_dir(array $config): ?string
  * Marks a proof of work as used, or says that it was. The proof is bound to the form and the
  * hour, not to the message, so one solved nonce would otherwise send any number of messages for
  * up to two hours (review finding, 2026-10-19: the same nonce three times, three mails). One
- * file per used proof beside the counters; files older than the challenge's two windows go.
+ * file per used proof beside the counters, named after the window of the challenge it answers,
+ * not after the hour of the post: a challenge is accepted in its hour and the next, and a file
+ * named after the first hour was not the file looked for in the second, so the same proof sent
+ * once more after the hour changed (second review, finding 5, 2026-10-19). Files of windows
+ * no challenge is accepted for any more go.
  *
  * Called after every check the visitor can fail, right before the mail: the proof used to be
  * spent before the captcha and the fields were looked at, so a refused post burnt it, and the
  * corrected message was refused as "already used" until the hour changed (second review,
  * finding 1, 2026-10-19). A proof is spent by the message it buys.
  */
-function qf_pow_spent(array $config, string $challenge, string $nonce): bool
+function qf_pow_spent(array $config, string $challenge, string $nonce, int $window): bool
 {
     $dir = qf_counter_dir($config);
     if ($dir === null) {
         error_log('quartz-forms relay: cannot create the counter directory; a proof of work may be reused');
         return false;
     }
-    $window = (int) floor(time() / 3600);
+    $now = qf_window(qf_now());
     foreach (glob($dir . '/pow-*.spent') ?: [] as $old) {
-        if (preg_match('/^pow-(\d+)-/', basename($old), $m) && (int) $m[1] < $window - 1) {
+        if (preg_match('/^pow-(\d+)-/', basename($old), $m) && (int) $m[1] < $now - 1) {
             @unlink($old);
         }
     }
@@ -820,13 +844,13 @@ if ($method === 'GET') {
         qf_json(403, ['ok' => false, 'error' => 'origin', 'message' => 'origin not allowed']);
     }
     $spam = $forms[$form]['spam'];
-    $ticket = ['ok' => true, 'stamp' => qf_stamp($config, time())];
+    $ticket = ['ok' => true, 'stamp' => qf_stamp($config, qf_now())];
     if (empty($spam['pow'])) {
         qf_json(200, $ticket + ['pow' => false]);
     }
     qf_json(200, $ticket + [
         'pow' => true,
-        'challenge' => qf_challenge($config, $form, (int) floor(time() / 3600)),
+        'challenge' => qf_challenge($config, $form, qf_window(qf_now())),
         'difficulty' => (int) ($spam['powDifficulty'] ?? 16),
     ]);
 }
@@ -933,9 +957,11 @@ if ($minSeconds > 0 && !$isForm) {
 // The proof is checked here, so no captcha call and no field check is spent on a bot without
 // one, but it is marked as used only after every check the visitor can fail (see qf_pow_spent).
 $pow = null;
+$powWindow = null;
 if (!empty($spam['pow']) && !$isForm) {
     $pow = $envelope['pow'] ?? null;
-    if (!qf_pow_valid($config, $formId, (int) ($spam['powDifficulty'] ?? 16), $pow)) {
+    $powWindow = qf_pow_window($config, $formId, (int) ($spam['powDifficulty'] ?? 16), $pow);
+    if ($powWindow === null) {
         qf_fail(400, 'pow', 'the proof of work is missing or wrong');
     }
 }
@@ -1058,7 +1084,7 @@ if (!empty($config['subjectPrefix'])) {
 
 // The hour's quota counts mails, not posts: counted here, after every check, so refused posts
 // cannot use it up (review finding, 2026-10-19: two invalid posts spent two of three).
-if ($pow !== null && qf_pow_spent($config, $pow['challenge'], $pow['nonce'])) {
+if ($powWindow !== null && qf_pow_spent($config, $pow['challenge'], $pow['nonce'], $powWindow)) {
     qf_fail(400, 'pow', 'this proof of work was already used');
 }
 if (qf_rate_limited($config, $formId, (int) ($spam['rateLimitPerHour'] ?? 0))) {
