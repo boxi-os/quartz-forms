@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   or one older than a day) ended in "please reload the page", and the reload lost what was
   typed. The script now fetches a new stamp, waits `minSeconds` and sends once more. With `pow`,
   a stamp fetched at send time is waited out first instead of being refused as too fast.
+- The README says what encryption does not protect: scripts on the page (captcha, analytics,
+  other plugins), and what travels in the clear. The build says it for an encrypting form with a
+  captcha (`encryptionCaptcha`).
 
 ## [0.4.0] - 2026-10-19
 

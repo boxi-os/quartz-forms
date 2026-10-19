@@ -117,6 +117,8 @@ const en = {
   siteKeyNeeded: (p: Params) => `${s(p, "provider")} needs the site key`,
   anonymousCaptcha: (p: Params) => `anonymous, so the ${s(p, "provider")} captcha is not loaded`,
   noRelayEffect: () => "has no effect without the relay",
+  encryptionCaptcha: (p: Params) =>
+    `the ${s(p, "provider")} script runs on the page where the message is typed before it is encrypted, and can read it (see the README)`,
   powNoScript: () =>
     "a plain post without JavaScript (noScript: true) skips it; noScript: false requires the script",
   minSecondsNoScript: () =>

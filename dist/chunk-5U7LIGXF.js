@@ -267,6 +267,7 @@ var en = {
   siteKeyNeeded: (p) => `${s(p, "provider")} needs the site key`,
   anonymousCaptcha: (p) => `anonymous, so the ${s(p, "provider")} captcha is not loaded`,
   noRelayEffect: () => "has no effect without the relay",
+  encryptionCaptcha: (p) => `the ${s(p, "provider")} script runs on the page where the message is typed before it is encrypted, and can read it (see the README)`,
   powNoScript: () => "a plain post without JavaScript (noScript: true) skips it; noScript: false requires the script",
   minSecondsNoScript: () => "a plain post without JavaScript (noScript: true) carries no stamp and skips it; noScript: false requires the script",
   rateLimitLever: (p) => `one client can send the hour's ${s(p, "count")} mails by itself, and the form takes no more from anyone until the hour is over; a captcha, or pow with noScript: false, makes that cost something (see the README)`,
@@ -402,6 +403,7 @@ var de = {
   captchaValue: () => "none, turnstile oder hcaptcha",
   siteKeyNeeded: (p) => `${s2(p, "provider")} braucht den Site-Key`,
   anonymousCaptcha: (p) => `anonym, deshalb wird das Captcha von ${s2(p, "provider")} nicht geladen`,
+  encryptionCaptcha: (p) => `das Skript von ${s2(p, "provider")} l\xE4uft auf der Seite, auf der die Nachricht vor dem Verschl\xFCsseln getippt wird, und kann sie lesen (siehe README)`,
   noRelayEffect: () => "wirkt nur mit dem Relay",
   powNoScript: () => "ein einfacher Post ohne JavaScript (noScript: true) umgeht es; noScript: false verlangt das Skript",
   minSecondsNoScript: () => "ein einfacher Post ohne JavaScript (noScript: true) tr\xE4gt keinen Stempel und umgeht es; noScript: false verlangt das Skript",
@@ -1127,6 +1129,8 @@ function checkForm(form, raw, rawSpam, keyNames, out) {
     problem(out, `${at}.spam.captchaSiteKey`, "siteKeyNeeded", { provider: sp.captcha });
   if (sp.captcha !== "none" && form.anonymous)
     hint(out, at, "anonymousCaptcha", { provider: sp.captcha });
+  if (sp.captcha !== "none" && !form.anonymous && enc.mode !== "off")
+    hint(out, `${at}.spam.captcha`, "encryptionCaptcha", { provider: sp.captcha });
   if (tr.kind !== "relay") {
     if (sp.pow) hint(out, `${at}.spam.pow`, "noRelayEffect");
     if (sp.rateLimitPerHour > 0 && (raw.spam?.rateLimitPerHour !== void 0 || rawSpam.rateLimitPerHour !== void 0))
@@ -1331,5 +1335,5 @@ function logHints(opts) {
 }
 
 export { __commonJS, __export, __require, __toESM, conditionOf, conditionsOf, defaultOptions, formatMessage, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-QW5DL6JG.js.map
-//# sourceMappingURL=chunk-QW5DL6JG.js.map
+//# sourceMappingURL=chunk-5U7LIGXF.js.map
+//# sourceMappingURL=chunk-5U7LIGXF.js.map

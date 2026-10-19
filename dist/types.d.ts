@@ -87,6 +87,7 @@ declare const en: {
     siteKeyNeeded: (p: Params) => string;
     anonymousCaptcha: (p: Params) => string;
     noRelayEffect: () => string;
+    encryptionCaptcha: (p: Params) => string;
     powNoScript: () => string;
     minSecondsNoScript: () => string;
     rateLimitLever: (p: Params) => string;

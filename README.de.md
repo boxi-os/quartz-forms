@@ -249,6 +249,15 @@ ihn mit dem vergleichen kann, den Sie veröffentlichen.
 Der Bau prüft jeden benutzten Schlüssel: lesbar, öffentlich, nicht widerrufen, nicht abgelaufen,
 verschlüsselungsfähig; er schreibt den Fingerabdruck ins Protokoll und bricht bei einem Problem ab.
 
+Die Verschlüsselung schützt die Nachricht unterwegs und in Ihrem Postfach, nicht auf der Seite.
+Jedes Skript auf der Seite, auf der der Besucher tippt, kann die Felder lesen, bevor sie
+verschlüsselt werden: das Widget des Captcha-Anbieters (der Bau sagt es bei einem verschlüsselnden
+Formular mit `captcha`), Quartz' `analytics`, das Skript eines anderen Plugins. Offen reisen die
+Kennung des Formulars, die Sprache der Seite, der Stempel (die Sekunde, in der die Seite geöffnet
+wurde), dass die Nachricht verschlüsselt ist, und die Größe des Chiffrats; die Mail trägt den
+Betreff des Formulars und kein `Reply-To`, Sie antworten also, wenn Sie die Adresse des Besuchers
+entschlüsselt haben.
+
 Kann OpenPGP.js im Browser eines Besuchers nicht geladen werden (Netz, Content-Blocker, eine
 strenge CSP), sagt ein verschlüsselndes Formular das und sendet nichts. Ein Formular, das nicht
 verschlüsselt, sendet weiterhin; ein Schlüssel, den der Besucher in ein `pgpKey`-Feld eingefügt

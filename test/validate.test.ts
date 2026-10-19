@@ -541,6 +541,21 @@ describe("validate: transport, encryption, spam, success", () => {
         forms: { contact: contact({ anonymous: true }) },
       }),
     );
+    // Third review, M3 (2026-10-19): the provider's script runs on the page where the message is
+    // typed before it is encrypted.
+    const encCaptcha = (mode: "required" | "optional" | "off", anonymous = false) =>
+      resolveOptions(
+        options({
+          spam: { captcha: "turnstile", captchaSiteKey: "k" } as never,
+          forms: { contact: contact({ anonymous, encryption: { mode, keys: ["owner"] } }) },
+        }),
+      ).hints.filter((h) => h.includes("spam.captcha"));
+    expect(encCaptcha("required")).toEqual([
+      "forms.contact.spam.captcha: the turnstile script runs on the page where the message is typed before it is encrypted, and can read it (see the README)",
+    ]);
+    expect(encCaptcha("optional")).toHaveLength(1);
+    expect(encCaptcha("off")).toEqual([]);
+    expect(encCaptcha("required", true)).toEqual([]);
     expect(anonCaptcha.problems).toEqual([]);
     expect(anonCaptcha.hints).toEqual([
       "forms.contact: anonymous, so the hcaptcha captcha is not loaded",

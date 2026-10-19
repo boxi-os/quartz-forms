@@ -105,6 +105,8 @@ const de: { [K in keyof typeof en]: (p: Params, t: Translate) => string } = {
   captchaValue: () => "none, turnstile oder hcaptcha",
   siteKeyNeeded: (p) => `${s(p, "provider")} braucht den Site-Key`,
   anonymousCaptcha: (p) => `anonym, deshalb wird das Captcha von ${s(p, "provider")} nicht geladen`,
+  encryptionCaptcha: (p) =>
+    `das Skript von ${s(p, "provider")} läuft auf der Seite, auf der die Nachricht vor dem Verschlüsseln getippt wird, und kann sie lesen (siehe README)`,
   noRelayEffect: () => "wirkt nur mit dem Relay",
   powNoScript: () =>
     "ein einfacher Post ohne JavaScript (noScript: true) umgeht es; noScript: false verlangt das Skript",

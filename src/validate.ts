@@ -567,6 +567,10 @@ function checkForm(
     problem(out, `${at}.spam.captchaSiteKey`, "siteKeyNeeded", { provider: sp.captcha });
   if (sp.captcha !== "none" && form.anonymous)
     hint(out, at, "anonymousCaptcha", { provider: sp.captcha });
+  // The provider's script runs with the whole page, where the message is typed before it is
+  // encrypted (third review, M3, 2026-10-19: any script on the page read the plaintext field).
+  if (sp.captcha !== "none" && !form.anonymous && enc.mode !== "off")
+    hint(out, `${at}.spam.captcha`, "encryptionCaptcha", { provider: sp.captcha });
   if (tr.kind !== "relay") {
     if (sp.pow) hint(out, `${at}.spam.pow`, "noRelayEffect");
     // Written by the owner, globally or for the form; the default of 60 says nothing.

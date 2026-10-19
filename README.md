@@ -239,6 +239,14 @@ recipient key is shown under the form so a visitor can compare it with the one y
 The build checks every key in use: readable, public, not revoked, not expired, able to encrypt;
 it logs the fingerprint and stops on a problem.
 
+Encryption protects the message on its way and in your mailbox, not on the page. Every script on
+the page where the visitor types can read the fields before they are encrypted: the captcha
+provider's widget (the build says so for an encrypting form with `captcha`), Quartz' `analytics`,
+another plugin's script. In the clear travel the form's id, the page's language, the stamp (the
+second the page was opened), that the message is encrypted, and the size of the ciphertext; the
+mail carries the form's subject and no `Reply-To`, so you answer once you have decrypted the
+visitor's address.
+
 If OpenPGP.js cannot be loaded in a visitor's browser (network, content blocker, a strict CSP),
 an encrypting form says so and sends nothing. A form that does not encrypt still sends; a key the
 visitor pasted into a `pgpKey` field then goes out as pasted, checked for its markers only, and
