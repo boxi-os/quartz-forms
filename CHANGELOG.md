@@ -38,6 +38,10 @@ From the same review's list of side findings:
 - The build refuses an option value that begins or ends with whitespace (`optionSpace`). Browser
   and relay trim what is sent and compare it with the untrimmed options, so such an option could
   never be chosen.
+- A value that is not a string, or a list for a field of one value (a name posted twice), is
+  refused as `malformed` instead of `invalid`, with its own sentence "This value could not be
+  read". The relay's page for a post without JavaScript said "Please use the requested format" of
+  a field that has none.
 
 ## [0.4.0] - 2026-10-19
 

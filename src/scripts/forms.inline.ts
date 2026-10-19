@@ -921,6 +921,10 @@ function qfFieldErrorText(
       return qfText(cfg, "tooLong", { max: rule?.maxLength ?? "" });
     case "not_an_option":
       return qfText(cfg, "chooseOne");
+    case "malformed":
+      // A value that is not a string, or a list for a field of one value: the relay's own
+      // sentence, since no format of the field was missed.
+      return qfText(cfg, "malformed");
     case "invalid":
       // The relay says only "invalid"; the field's type names what was wrong.
       switch (rule?.type) {

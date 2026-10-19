@@ -986,7 +986,7 @@ describe.skipIf(!php)("relay: refusals", () => {
       headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "text/html" },
     });
     expect(bytes.status).toBe(400);
-    expect(bytes.text).toContain("<li>Site: Bitte verwenden Sie das verlangte Format.</li>");
+    expect(bytes.text).toContain("<li>Site: Dieser Wert konnte nicht gelesen werden.</li>");
   });
   it("captcha: the secret from config.php is sent to the provider; without one the owner is told", async () => {
     const good = await post(env("captcha", { a: "x" }, { captcha: "good" }));
@@ -1267,6 +1267,15 @@ describe.skipIf(!php)("relay: a browser without JavaScript (plain form post)", (
       "<li>Wie hilfreich war diese Seite?: Bitte wählen Sie eine Option.</li>",
     );
     expect(bad.text).not.toContain("some fields were not accepted");
+    // Third review, aside (2026-10-19): a text field named twice arrives as a list, and the page
+    // said "use the requested format" of a field that has no format.
+    const twice = await post("form=feedback&lang=de-DE&rating=5&comment=a&comment=b", {
+      raw: true,
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "text/html" },
+    });
+    expect(twice.status).toBe(400);
+    expect(twice.text).toMatch(/<li>[^<]+: Dieser Wert konnte nicht gelesen werden\.<\/li>/);
+    expect(twice.text).not.toContain("verlangte Format");
   });
   it("skips the time trap and the proof of work, which only the script can supply", async () => {
     const r = await plain({ form: "contact", lang: "de-DE", ...contactFields });

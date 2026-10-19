@@ -51,6 +51,7 @@ function qf_words(string $lang): array
         'chooseOne' => 'Bitte wählen Sie eine Option.',
         'consentRequired' => 'Bitte stimmen Sie vor dem Senden zu.',
         'keyInvalid' => 'Das ist kein öffentlicher PGP-Schlüssel.',
+        'malformed' => 'Dieser Wert konnte nicht gelesen werden.',
     ];
     $en = [
         'sentTitle' => 'Sent',
@@ -70,6 +71,7 @@ function qf_words(string $lang): array
         'chooseOne' => 'Please choose one option.',
         'consentRequired' => 'Please agree before sending.',
         'keyInvalid' => 'This is not a PGP public key.',
+        'malformed' => 'This value could not be read.',
     ];
     return str_starts_with(strtolower($lang), 'de') ? $de : $en;
 }
@@ -154,6 +156,7 @@ function qf_field_sentences(array $rules, array $errors, string $lang): array
             'required' => $type === 'consent' ? 'consentRequired' : 'required',
             'too_long' => 'tooLong',
             'not_an_option' => 'chooseOne',
+            'malformed' => 'malformed',
             default => $byType[$type] ?? 'patternMismatch',
         };
         $sentence = str_replace('{max}', (string) ($rule['maxLength'] ?? ''), $w[$key]);
@@ -864,11 +867,11 @@ function qf_check_field(array $rule, mixed $value): ?string
             $value = [$value];
         }
         if (!is_array($value)) {
-            return 'invalid';
+            return 'malformed';
         }
         foreach ($value as $v) {
             if (!is_string($v) || !mb_check_encoding($v, 'UTF-8')) {
-                return 'invalid';
+                return 'malformed';
             }
         }
         if ($value === []) {
@@ -885,14 +888,16 @@ function qf_check_field(array $rule, mixed $value): ?string
         return null;
     }
     if ($value !== null && !is_string($value)) {
-        // A form value is a string; `true` became "1" and passed as a scale's first step.
-        return 'invalid';
+        // A form value is a string; `true` became "1" and passed as a scale's first step. A list
+        // is a name posted twice (third review, aside, 2026-10-19: the page said "use the
+        // requested format" of a field without one), so it is `malformed`, not `invalid`.
+        return 'malformed';
     }
     $value = $value ?? '';
     if (!mb_check_encoding($value, 'UTF-8')) {
         // Only the plain-form path can deliver this (json_decode refuses it); preg_match would
         // answer false on it, which used to count as a pass.
-        return 'invalid';
+        return 'malformed';
     }
     $value = qf_trim($value);
     if ($value === '') {

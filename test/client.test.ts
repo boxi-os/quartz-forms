@@ -454,6 +454,15 @@ describe("sending", () => {
     );
     await submit(form);
     expect(errorOf(form, "mail")).toBe("Please enter a valid e-mail address.");
+    // a value that was not a string at all missed no format
+    fetchMock.mockResolvedValueOnce(
+      ok(
+        { ok: false, error: "invalid", errors: [{ field: "name", code: "malformed" }] },
+        { status: 400 },
+      ),
+    );
+    await submit(form);
+    expect(errorOf(form, "name")).toBe("This value could not be read.");
     fetchMock.mockResolvedValueOnce(new Response("", { status: 429 }));
     await submit(form);
     expect(status(form).text).toBe("Too many messages at the moment. Please try again later.");

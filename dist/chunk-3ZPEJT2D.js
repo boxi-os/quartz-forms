@@ -522,6 +522,7 @@ var en_US_default = {
   keyChooseFile: "Choose key file",
   keyPaste: "Or paste the armored key here.",
   keyInvalid: "This is not a PGP public key.",
+  malformed: "This value could not be read.",
   keyNotPublic: "This is a private key. Please provide your public key.",
   keyExpired: "This key has expired.",
   keyAccepted: "Key accepted, fingerprint {fingerprint}.",
@@ -583,6 +584,7 @@ var deDE = {
   keyChooseFile: "Schl\xFCsseldatei w\xE4hlen",
   keyPaste: "Oder f\xFCgen Sie den Schl\xFCssel hier ein.",
   keyInvalid: "Das ist kein \xF6ffentlicher PGP-Schl\xFCssel.",
+  malformed: "Dieser Wert konnte nicht gelesen werden.",
   keyNotPublic: "Das ist ein privater Schl\xFCssel. Bitte geben Sie Ihren \xF6ffentlichen Schl\xFCssel an.",
   keyExpired: "Dieser Schl\xFCssel ist abgelaufen.",
   keyAccepted: "Schl\xFCssel \xFCbernommen, Fingerabdruck {fingerprint}.",
@@ -1340,5 +1342,5 @@ function logHints(opts) {
 }
 
 export { __commonJS, __export, __require, __toESM, conditionOf, conditionsOf, defaultOptions, formatMessage, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-7ZB4IENT.js.map
-//# sourceMappingURL=chunk-7ZB4IENT.js.map
+//# sourceMappingURL=chunk-3ZPEJT2D.js.map
+//# sourceMappingURL=chunk-3ZPEJT2D.js.map

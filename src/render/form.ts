@@ -599,6 +599,7 @@ export function clientConfig(form: ResolvedForm, ctx: RenderContext): ClientConf
       chooseAtLeastOne: t.chooseAtLeastOne,
       consentRequired: t.consentRequired,
       keyInvalid: t.keyInvalid,
+      malformed: t.malformed,
       keyNotPublic: t.keyNotPublic,
       keyExpired: t.keyExpired,
       keyAccepted: t.keyAccepted,

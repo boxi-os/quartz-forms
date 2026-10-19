@@ -25,6 +25,7 @@ const deDE: Translation = {
   keyChooseFile: "Schlüsseldatei wählen",
   keyPaste: "Oder fügen Sie den Schlüssel hier ein.",
   keyInvalid: "Das ist kein öffentlicher PGP-Schlüssel.",
+  malformed: "Dieser Wert konnte nicht gelesen werden.",
   keyNotPublic: "Das ist ein privater Schlüssel. Bitte geben Sie Ihren öffentlichen Schlüssel an.",
   keyExpired: "Dieser Schlüssel ist abgelaufen.",
   keyAccepted: "Schlüssel übernommen, Fingerabdruck {fingerprint}.",

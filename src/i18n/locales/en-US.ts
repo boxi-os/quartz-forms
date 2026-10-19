@@ -27,6 +27,7 @@ export default {
   keyChooseFile: "Choose key file",
   keyPaste: "Or paste the armored key here.",
   keyInvalid: "This is not a PGP public key.",
+  malformed: "This value could not be read.",
   keyNotPublic: "This is a private key. Please provide your public key.",
   keyExpired: "This key has expired.",
   keyAccepted: "Key accepted, fingerprint {fingerprint}.",
