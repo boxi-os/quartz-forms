@@ -221,6 +221,13 @@ Fixes from a second review of the changes above (another model, fresh context, 2
   measured with a temporary test on the suite's relay), and the gate before the mail reads the
   quota first, spends the proof second and counts the mail last, so an hour never holds more
   spent files than it mailed, 60 by default. The relay suite has a form with both.
+- The relay's stamp for the time trap was signed over its time alone, so one ticket, fetched for
+  any form and aged once, served every form of the relay for a day (measured: a stamp fetched for
+  one form was accepted on another). The stamp is now signed over the form as well, and the
+  challenge and the stamp each start their HMAC input with their own word, so no form name can
+  produce the other's signature. A stamp still serves its form for a day rather than one message:
+  a page left open in a tab keeps working, and a bot that fetches tickets would lose only the
+  fetch. The relay suite fetches one stamp per fixture form.
 
 ## [0.1.1] - 2026-10-19
 

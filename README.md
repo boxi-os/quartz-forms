@@ -148,9 +148,10 @@ every value of that field, with the pattern named in the server's error log.
 | `maxBytes`          | `131072` | Size limit of a whole submission, in bytes; the build warns when the fields may hold more.                                                                                     |
 
 With the relay, the script fetches a ticket when the page opens (`GET send.php?challenge=<id>`):
-a stamp of that moment signed by the relay, and the hour's proof-of-work challenge if the form
-asks for one. The time trap is measured on that stamp with the relay's clock, so a visitor's
-clock that runs ahead does not lock them out, and a made-up stamp is refused. A solved proof of
+a stamp of that moment signed by the relay for that form, and the hour's proof-of-work challenge
+if the form asks for one. The time trap is measured on that stamp with the relay's clock, so a
+visitor's clock that runs ahead does not lock them out, and a made-up stamp or another form's is
+refused; a stamp serves its form for a day, so a page left open keeps working. A solved proof of
 work sends one message; the relay remembers used ones beside its counters, an hour's worth in a
 directory of its own, and marks a proof as used only once the message is accepted and within the
 hour's quota, so a refused post does not cost the visitor a new one.

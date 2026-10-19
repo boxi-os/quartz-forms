@@ -29,8 +29,8 @@ hosting with PHP ≥ 8.1; no dependencies.
 
 - Origin against `allowedOrigins`; the form id against the generated list.
 - Honeypot (a filled form is told "sent" and nothing is sent), time trap on a stamp the relay
-  signed when the page opened (`GET ?challenge=<id>` hands it out; measured with the relay's
-  clock), proof of work when the form enables it (one per message: used proofs are kept under
+  signed for the form when the page opened (`GET ?challenge=<id>` hands it out, good for that
+  form for a day; measured with the relay's clock), proof of work when the form enables it (one per message: used proofs are kept under
   `counters/`, a directory per hour that goes as a whole once its challenges have expired, this
   hour and the next; a proof is marked only once the hour's quota let the message through, so an
   hour never holds more of them than it mailed), captcha token (Turnstile or hCaptcha, unless

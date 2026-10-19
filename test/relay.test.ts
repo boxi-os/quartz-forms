@@ -217,8 +217,11 @@ async function untilUp(at: string): Promise<Response> {
   }
 }
 let challenge = "";
-/** The relay's signed stamp from the start of the suite: old enough for every form's minSeconds. */
-let stamp = "";
+/**
+ * The relay's signed stamps from the start of the suite, one per fixture form: old enough for
+ * every form's minSeconds. A stamp is bound to its form (second review, finding 7).
+ */
+const stamps: Record<string, string> = {};
 
 beforeAll(async () => {
   if (!php) return;
@@ -268,7 +271,11 @@ echo json_encode(['success' => ($_POST['secret'] ?? '') === 'cap-secret' && ($_P
   writeConfig();
   fs.writeFileSync(path.join(dir, "php.log"), "");
   server = spawnRelay(port);
-  stamp = ((await (await untilUp(base)).json()) as { stamp?: string }).stamp ?? "";
+  await untilUp(base);
+  for (const form of Object.keys(siteOptions.forms)) {
+    const r = await fetch(`${base}/send.php?challenge=${form}`, { headers: { Origin: ORIGIN } });
+    stamps[form] = ((await r.json()) as { stamp?: string }).stamp ?? "";
+  }
   // The stamp has to be minSeconds (one second) old before the relay accepts a submission.
   await new Promise((r) => setTimeout(r, 1100));
 }, 30_000);
@@ -339,7 +346,7 @@ async function get(
   }
   return { status: res.status, json, text, headers: res.headers };
 }
-const ts = () => stamp;
+const ts = (form: string) => stamps[form] ?? "";
 const env = (
   form: string,
   fields: Record<string, unknown>,
@@ -347,7 +354,7 @@ const env = (
 ) => ({
   form,
   lang: "de-DE",
-  ts: ts(),
+  ts: ts(form),
   encrypted: false,
   fields,
   ...extra,
@@ -526,6 +533,17 @@ describe.skipIf(!php)("relay: refusals", () => {
     });
     expect(tampered.json?.error).toBe("stamp");
   });
+  it("a stamp is bound to its form: one fetched for another form is refused as `stamp`", async () => {
+    // Second review, finding 7 (2026-10-19): the stamp was signed over its time alone, so one
+    // ticket, aged once, served every form for a day (measured against the code before: a
+    // stamp of another form was accepted here, and a mail went out).
+    const before = mails().length;
+    const foreign = await post({ ...env("feedback", { rating: "4" }), ts: ts("limited") });
+    expect([foreign.status, foreign.json?.error]).toEqual([400, "stamp"]);
+    const own = await post(env("feedback", { rating: "4" }));
+    expect(own.json).toEqual({ ok: true });
+    expect(mails().length).toBe(before + 1);
+  });
   it("honeypot: a filled field is told ok, and nothing is mailed", async () => {
     const before = mails().length;
     const r = await post({ ...env("feedback", { rating: "4" }), _hp_website: "http://spam.test" });
@@ -540,7 +558,7 @@ describe.skipIf(!php)("relay: refusals", () => {
       ["form is a list", { form: ["feedback"] }, 404, "unknown_form"],
       ["form is a number", { form: 7 }, 404, "unknown_form"],
       ["lang is a list", { ...env("feedback", { rating: "4" }), lang: ["de"] }, 200, null],
-      ["ts is a list", { ...env("feedback", { rating: "4" }), ts: [ts()] }, 400, "stamp"],
+      ["ts is a list", { ...env("feedback", { rating: "4" }), ts: [ts("feedback")] }, 400, "stamp"],
       ["ts is a number", { ...env("feedback", { rating: "4" }), ts: 1 }, 400, "stamp"],
       [
         "pow parts are lists",
@@ -565,7 +583,7 @@ describe.skipIf(!php)("relay: refusals", () => {
       ],
       [
         "ciphertext is an object",
-        { form: "enc", lang: "de", ts: ts(), encrypted: true, ciphertext: { a: 1 } },
+        { form: "enc", lang: "de", ts: ts("enc"), encrypted: true, ciphertext: { a: 1 } },
         400,
         "ciphertext",
       ],

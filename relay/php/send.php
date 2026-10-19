@@ -204,31 +204,39 @@ function qf_window(int $now): int
     return (int) floor($now / 3600);
 }
 
-/** Challenge for the proof of work: stateless, bound to the form and the hour. */
+/**
+ * Challenge for the proof of work: stateless, bound to the form and the hour. The challenge and
+ * the stamp are signed with the same key, so each input starts with its own word: a form named
+ * `stamp` must not produce a stamp's signature (second review, finding 7, 2026-10-19).
+ */
 function qf_challenge(array $config, string $form, int $window): string
 {
-    return hash_hmac('sha256', $form . '|' . $window, qf_secret($config));
+    return hash_hmac('sha256', 'challenge|' . $form . '|' . $window, qf_secret($config));
 }
 
 /**
- * The relay's own word on when a page was opened: `issued.signature`, handed out with the
- * challenge and sent back as `ts`. The time trap is measured against it with the relay's clock.
- * The page's clock was used before, which locked out a visitor whose clock ran ahead, and a
- * made-up number such as `ts=1` passed (review findings, 2026-10-19).
+ * The relay's own word on when a page was opened for this form: `issued.signature`, handed out
+ * with the challenge and sent back as `ts`. The time trap is measured against it with the relay's
+ * clock. The page's clock was used before, which locked out a visitor whose clock ran ahead, and
+ * a made-up number such as `ts=1` passed (review findings, 2026-10-19). Signed over the form as
+ * well since the second review (finding 7): a stamp fetched once served every form for a day. It
+ * still serves its form for a day, not just one message: a page left open in a tab for an
+ * afternoon would otherwise need a reload or a wait of minSeconds, and a bot that fetches tickets
+ * loses only the fetch, which the time trap was never meant to charge for.
  */
-function qf_stamp(array $config, int $issued): string
+function qf_stamp(array $config, string $form, int $issued): string
 {
-    return $issued . '.' . hash_hmac('sha256', 'stamp|' . $issued, qf_secret($config));
+    return $issued . '.' . hash_hmac('sha256', 'stamp|' . $form . '|' . $issued, qf_secret($config));
 }
 
-/** Seconds since the relay issued the stamp; null when it is not the relay's, or older than a day. */
-function qf_stamp_age(array $config, mixed $stamp): ?int
+/** Seconds since the relay issued the stamp for this form; null when it is not, or older than a day. */
+function qf_stamp_age(array $config, string $form, mixed $stamp): ?int
 {
     if (!is_string($stamp) || !preg_match('/^(\d{1,12})\.[0-9a-f]{64}$/', $stamp, $m)) {
         return null;
     }
     $issued = (int) $m[1];
-    if (!hash_equals(qf_stamp($config, $issued), $stamp)) {
+    if (!hash_equals(qf_stamp($config, $form, $issued), $stamp)) {
         return null;
     }
     $age = qf_now() - $issued;
@@ -883,7 +891,7 @@ if ($method === 'GET') {
         qf_json(403, ['ok' => false, 'error' => 'origin', 'message' => 'origin not allowed']);
     }
     $spam = $forms[$form]['spam'];
-    $ticket = ['ok' => true, 'stamp' => qf_stamp($config, qf_now())];
+    $ticket = ['ok' => true, 'stamp' => qf_stamp($config, $form, qf_now())];
     if (empty($spam['pow'])) {
         qf_json(200, $ticket + ['pow' => false]);
     }
@@ -980,13 +988,13 @@ if (!empty($spam['honeypot'])) {
     }
 }
 
-// Time trap: the script fetched a signed stamp when the page was opened and sends it as `ts`;
-// a bot posts within a second of fetching one, or without one.
+// Time trap: the script fetched a signed stamp for this form when the page was opened and sends
+// it as `ts`; a bot posts within a second of fetching one, without one, or with another form's.
 $minSeconds = (int) ($spam['minSeconds'] ?? 0);
 if ($minSeconds > 0 && !$isForm) {
-    $age = qf_stamp_age($config, $envelope['ts'] ?? null);
+    $age = qf_stamp_age($config, $formId, $envelope['ts'] ?? null);
     if ($age === null) {
-        qf_fail(400, 'stamp', 'the time stamp is missing or not this relay\'s; please reload the page');
+        qf_fail(400, 'stamp', 'the time stamp is missing or not this relay\'s for this form; please reload the page');
     }
     if ($age < $minSeconds) {
         qf_fail(400, 'too_fast', 'please wait a moment before sending');
