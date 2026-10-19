@@ -31,6 +31,9 @@ declare const en: {
     hiddenValue: () => string;
     fieldTypeUnknown: (p: Params) => string;
     labelNeeded: (p: Params) => string;
+    widthValue: () => string;
+    layoutValue: () => string;
+    layoutSelect: () => string;
     keyShape: () => string;
     keyExactlyOne: () => string;
     keyOutside: (p: Params) => string;
@@ -223,6 +226,13 @@ interface FormDefinition {
     /** Extra class(es) on the form element, next to the fixed `quartz-form`. */
     className?: string;
 }
+/**
+ * How much of the form's width a field takes: all of it, half or a third. The form is a grid of
+ * six tracks that falls to halves and then to one column in a narrow container (forms.scss).
+ */
+type FieldWidth = "full" | "half" | "third";
+/** How the options of a radio or checkboxes field stand: under each other or side by side. */
+type ChoiceLayout = "stacked" | "inline";
 type InputFieldType = "text" | "email" | "tel" | "url" | "number" | "date" | "textarea";
 /** A single-value field rendered as `<input>` or `<textarea>`. */
 interface InputField {
@@ -254,6 +264,8 @@ interface InputField {
      * after trimming; default from the spam settings.
      */
     maxLength?: number;
+    /** How much of the form's width the field takes; default `full`. */
+    width?: FieldWidth;
 }
 interface ChoiceOption {
     value: string;
@@ -267,6 +279,11 @@ interface ChoiceField {
     required?: boolean;
     hint?: Text;
     options: ChoiceOption[];
+    /** How much of the form's width the field takes; default `full`. */
+    width?: FieldWidth;
+    /** `inline`: the options side by side, wrapping; `stacked` (default) under each other. A
+     *  `select` has no options to arrange; the build says so. */
+    layout?: ChoiceLayout;
 }
 /** A single checkbox with a label. */
 interface CheckboxField {
@@ -275,6 +292,8 @@ interface CheckboxField {
     label: Text;
     required?: boolean;
     hint?: Text;
+    /** How much of the form's width the field takes; default `full`. */
+    width?: FieldWidth;
 }
 /** A rating from `min` to `max`, rendered as a row of radio buttons. */
 interface ScaleField {
@@ -289,6 +308,8 @@ interface ScaleField {
     minLabel?: Text;
     /** Caption at the high end. */
     maxLabel?: Text;
+    /** How much of the form's width the field takes; default `full`. */
+    width?: FieldWidth;
 }
 /** A checkbox the visitor must tick, with a sentence and an optional link (privacy policy). */
 interface ConsentField {
@@ -299,6 +320,8 @@ interface ConsentField {
     link?: string;
     /** Link text; default from the plugin's texts. */
     linkLabel?: Text;
+    /** How much of the form's width the field takes; default `full`. */
+    width?: FieldWidth;
 }
 /**
  * The visitor's own public PGP key, pasted or chosen as an `.asc` file, so the owner can reply
@@ -310,6 +333,8 @@ interface PgpKeyField {
     label: Text;
     required?: boolean;
     hint?: Text;
+    /** How much of the form's width the field takes; default `full`. */
+    width?: FieldWidth;
 }
 /** A fixed value sent along, invisible. */
 interface HiddenField {
@@ -433,4 +458,4 @@ interface ResolvedOptions {
     hintMessages: Message[];
 }
 
-export type { CheckboxField, ChoiceField, ChoiceOption, ConsentField, EncryptionConfig, EncryptionMode, FormDefinition, FormField, FormTemplate, HiddenField, InputField, InputFieldType, PgpKeyField, PgpKeySource, QuartzFormsOptions, ResolvedForm, ResolvedOptions, ScaleField, SpamConfig, SuccessConfig, Text, TransportConfig, TransportKind };
+export type { CheckboxField, ChoiceField, ChoiceLayout, ChoiceOption, ConsentField, EncryptionConfig, EncryptionMode, FieldWidth, FormDefinition, FormField, FormTemplate, HiddenField, InputField, InputFieldType, PgpKeyField, PgpKeySource, QuartzFormsOptions, ResolvedForm, ResolvedOptions, ScaleField, SpamConfig, SuccessConfig, Text, TransportConfig, TransportKind };

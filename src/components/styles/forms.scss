@@ -16,6 +16,10 @@
   flex-direction: column;
   gap: var(--quartz-forms-gap);
   max-width: var(--quartz-forms-max-width);
+  // The fields' widths answer to the form's own width, not the window's: a form in a sidebar is
+  // narrow on a wide screen. A size container needs a width of its own, hence the 100 %.
+  width: 100%;
+  container-type: inline-size;
   margin: 1.5rem 0;
   font-family: var(--bodyFont);
   color: var(--darkgray);
@@ -42,10 +46,45 @@
     color: var(--quartz-forms-error);
   }
 
+  // Six tracks: a field spans all of them (full), three (half) or two (third). Below 32rem a
+  // third becomes a half, below 22rem every field takes the whole width. Container queries take
+  // no custom properties, so the two widths are numbers here and in the README.
+  &__fields {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: var(--quartz-forms-gap);
+
+    > * {
+      grid-column: span 6;
+    }
+  }
+
   &__field {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
+    min-width: 0;
+  }
+
+  &__fields > &__field--half {
+    grid-column: span 3;
+  }
+
+  &__fields > &__field--third {
+    grid-column: span 2;
+  }
+
+  @container (max-width: 32rem) {
+    &__fields > &__field--third {
+      grid-column: span 3;
+    }
+  }
+
+  @container (max-width: 22rem) {
+    &__fields > &__field--half,
+    &__fields > &__field--third {
+      grid-column: span 6;
+    }
   }
 
   &__label,
@@ -122,6 +161,18 @@
     margin: 0;
     flex: none;
     accent-color: var(--secondary);
+  }
+
+  &__options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  &__options--inline {
+    flex-direction: row;
+    flex-wrap: wrap;
+    column-gap: 1.25rem;
   }
 
   &__option {

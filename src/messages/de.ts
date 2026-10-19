@@ -34,6 +34,9 @@ const de: { [K in keyof typeof en]: (p: Params, t: Translate) => string } = {
   hiddenValue: () => "ein verborgenes Feld braucht einen Wert",
   fieldTypeUnknown: (p) => `unbekannter Feldtyp ${s(p, "type")}`,
   labelNeeded: (p) => `ein Feld vom Typ ${s(p, "type")} braucht eine Beschriftung (label)`,
+  widthValue: () => "full, half oder third",
+  layoutValue: () => "stacked oder inline",
+  layoutSelect: () => "wirkt nicht bei select, dessen Optionen eine aufklappende Liste sind",
 
   keyShape: () => "ein Schlüssel ist { file } oder { armored }",
   keyExactlyOne: () => "genau eines von file oder armored",

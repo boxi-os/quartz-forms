@@ -230,7 +230,10 @@ describe("sending", () => {
       state: "success",
       text: "Thank you, your message has been sent.",
     });
-    expect((form.querySelector('[data-field="name"]') as HTMLElement).hidden).toBe(true);
+    // Hidden with the fields' grid, which is a child of the form (qfFinish hides those).
+    expect(
+      (form.querySelector('[data-field="name"]') as HTMLElement).closest("[hidden]"),
+    ).not.toBeNull();
     expect(form.dataset.state).toBe("sent");
   });
 

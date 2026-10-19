@@ -41,6 +41,9 @@ const en = {
   hiddenValue: () => "a hidden field needs a value",
   fieldTypeUnknown: (p: Params) => `unknown field type ${s(p, "type")}`,
   labelNeeded: (p: Params) => `a ${s(p, "type")} field needs a label`,
+  widthValue: () => "full, half or third",
+  layoutValue: () => "stacked or inline",
+  layoutSelect: () => "has no effect on a select, whose options are a list to open",
 
   // keys in the options
   keyShape: () => "a key is { file } or { armored }",

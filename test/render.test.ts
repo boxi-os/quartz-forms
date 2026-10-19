@@ -25,10 +25,17 @@ function render(def: FormDefinition, extra: Record<string, unknown> = {}, lang =
 
 function field(f: FormField, lang = "en") {
   const { tree, html } = render(contact({ fields: [f] }), {}, lang);
-  const wrapper = tree.children.find(
-    (c): c is Element => c.type === "element" && c.properties.dataField === f.name,
-  );
-  return { tree, html, wrapper };
+  // Searched at every depth: the fields stand in a grid of their own (0.4.0).
+  const find = (node: Element): Element | undefined => {
+    for (const c of node.children) {
+      if (c.type !== "element") continue;
+      if (c.properties.dataField === f.name) return c;
+      const inner = find(c);
+      if (inner) return inner;
+    }
+    return undefined;
+  };
+  return { tree, html, wrapper: find(tree) };
 }
 
 describe("renderForm", () => {
@@ -337,5 +344,45 @@ describe("captcha container", () => {
     expect(anon.html).not.toContain("quartz-form__captcha");
     expect(anon.config.spam.captcha).toBe("none");
     expect(render(contact()).html).not.toContain("quartz-form__captcha");
+  });
+
+  it("puts the fields in a grid of their own, with a width class on half and third fields", () => {
+    const { html } = render(
+      contact({
+        fields: [
+          { type: "text", name: "first", label: "First", width: "half" },
+          { type: "text", name: "last", label: "Last", width: "half" },
+          { type: "text", name: "zip", label: "Zip", width: "third" },
+          { type: "textarea", name: "msg", label: "Message", width: "full" },
+          { type: "hidden", name: "src", value: "web" },
+        ],
+      }),
+    );
+    expect(html).toContain(
+      '<div class="quartz-form__fields"><div class="quartz-form__field quartz-form__field--text quartz-form__field--half" data-field="first">',
+    );
+    expect(html).toContain(
+      'class="quartz-form__field quartz-form__field--text quartz-form__field--third" data-field="zip"',
+    );
+    // full is the default and needs no class; a hidden value has no wrapper at all
+    expect(html).toContain(
+      'class="quartz-form__field quartz-form__field--textarea" data-field="msg"',
+    );
+    expect(html).toContain('<input type="hidden" name="src" value="web">');
+  });
+
+  it("puts the options in a box of their own, side by side with layout: inline", () => {
+    const options = [
+      { value: "a", label: "A" },
+      { value: "b", label: "B" },
+    ];
+    const inline = field({ type: "radio", name: "r", label: "R", options, layout: "inline" });
+    expect(inline.html).toContain(
+      '<div class="quartz-form__options quartz-form__options--inline"><div class="quartz-form__option">',
+    );
+    const stacked = field({ type: "checkboxes", name: "c", label: "C", options });
+    expect(stacked.html).toContain(
+      '<div class="quartz-form__options"><div class="quartz-form__option">',
+    );
   });
 });

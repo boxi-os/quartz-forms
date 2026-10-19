@@ -105,10 +105,16 @@ function describedBy(id: string, hint: Text | undefined): string {
 }
 
 function fieldWrapper(field: FormField, children: Child[]): Element {
+  const width =
+    "width" in field && (field.width === "half" || field.width === "third") ? field.width : null;
   return h(
     "div",
     {
-      className: ["quartz-form__field", `quartz-form__field--${field.type}`],
+      className: [
+        "quartz-form__field",
+        `quartz-form__field--${field.type}`,
+        ...(width ? [`quartz-form__field--${width}`] : []),
+      ],
       dataField: field.name,
     },
     clean(children),
@@ -187,17 +193,28 @@ function renderChoice(field: ChoiceField, ctx: RenderContext): Element {
       },
       [
         legend(ctx, field.label, field.required),
-        ...field.options.map((o, i) =>
-          h("div", { className: ["quartz-form__option"] }, [
-            h("input", {
-              type,
-              id: `${id}-${i}`,
-              name: field.name,
-              value: o.value,
-              required: type === "radio" && field.required ? true : undefined,
-            }),
-            h("label", { for: `${id}-${i}` }, resolveText(o.label, ctx.lang) ?? o.value),
-          ]),
+        // In a box of their own rather than on the fieldset: a fieldset's legend is no ordinary
+        // flex item, and "side by side" is about the options alone.
+        h(
+          "div",
+          {
+            className: [
+              "quartz-form__options",
+              ...(field.layout === "inline" ? ["quartz-form__options--inline"] : []),
+            ],
+          },
+          field.options.map((o, i) =>
+            h("div", { className: ["quartz-form__option"] }, [
+              h("input", {
+                type,
+                id: `${id}-${i}`,
+                name: field.name,
+                value: o.value,
+                required: type === "radio" && field.required ? true : undefined,
+              }),
+              h("label", { for: `${id}-${i}` }, resolveText(o.label, ctx.lang) ?? o.value),
+            ]),
+          ),
         ),
       ],
     ),
@@ -638,7 +655,13 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
             ),
           ])
         : null,
-      ...form.fields.map((f) => renderField(f, form, ctx)),
+      // The fields in a grid of their own: the form's other children (title, notes, actions,
+      // status) stay a column, and a field's width is a span of six tracks (forms.scss).
+      h(
+        "div",
+        { className: ["quartz-form__fields"] },
+        form.fields.map((f) => renderField(f, form, ctx)),
+      ),
       form.spam.honeypot
         ? h("div", { className: ["quartz-form__hp"], ariaHidden: "true" }, [
             h("label", { for: `${ctx.idPrefix}-${HONEYPOT_NAME}` }, "Website"),

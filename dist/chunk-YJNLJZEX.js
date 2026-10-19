@@ -204,6 +204,9 @@ var en = {
   hiddenValue: () => "a hidden field needs a value",
   fieldTypeUnknown: (p) => `unknown field type ${s(p, "type")}`,
   labelNeeded: (p) => `a ${s(p, "type")} field needs a label`,
+  widthValue: () => "full, half or third",
+  layoutValue: () => "stacked or inline",
+  layoutSelect: () => "has no effect on a select, whose options are a list to open",
   // keys in the options
   keyShape: () => "a key is { file } or { armored }",
   keyExactlyOne: () => "exactly one of file or armored",
@@ -333,6 +336,9 @@ var de = {
   hiddenValue: () => "ein verborgenes Feld braucht einen Wert",
   fieldTypeUnknown: (p) => `unbekannter Feldtyp ${s2(p, "type")}`,
   labelNeeded: (p) => `ein Feld vom Typ ${s2(p, "type")} braucht eine Beschriftung (label)`,
+  widthValue: () => "full, half oder third",
+  layoutValue: () => "stacked oder inline",
+  layoutSelect: () => "wirkt nicht bei select, dessen Optionen eine aufklappende Liste sind",
   keyShape: () => "ein Schl\xFCssel ist { file } oder { armored }",
   keyExactlyOne: () => "genau eines von file oder armored",
   keyOutside: (p) => `${s2(p, "file")} liegt au\xDFerhalb der Website`,
@@ -795,6 +801,18 @@ function checkField(field, at, out) {
       });
       return;
   }
+  if (field.type !== "hidden") {
+    const width = field.width;
+    if (width !== void 0 && width !== "full" && width !== "half" && width !== "third")
+      problem(out, `${at}.width`, "widthValue");
+  }
+  if (field.type === "select" || field.type === "radio" || field.type === "checkboxes") {
+    const layout = field.layout;
+    if (layout !== void 0 && layout !== "stacked" && layout !== "inline")
+      problem(out, `${at}.layout`, "layoutValue");
+    else if (layout === "inline" && field.type === "select")
+      hint(out, `${at}.layout`, "layoutSelect");
+  }
   if (field.type !== "hidden" && field.type !== "consent" && field.label === void 0)
     problem(out, at, "labelNeeded", { type: field.type });
   for (const [key, text] of texts) checkText(text, `${at}.${key}`, out);
@@ -1156,5 +1174,5 @@ function logHints(opts) {
 }
 
 export { __commonJS, __export, __require, __toESM, defaultOptions, formatMessage, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-ISHKQPHX.js.map
-//# sourceMappingURL=chunk-ISHKQPHX.js.map
+//# sourceMappingURL=chunk-YJNLJZEX.js.map
+//# sourceMappingURL=chunk-YJNLJZEX.js.map

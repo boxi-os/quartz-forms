@@ -448,6 +448,21 @@
             }
           }
         },
+        "fieldWidth": {
+          "type": "string",
+          "enum": [
+            "full",
+            "half",
+            "third"
+          ]
+        },
+        "choiceLayout": {
+          "type": "string",
+          "enum": [
+            "stacked",
+            "inline"
+          ]
+        },
         "field": {
           "description": "One field; its type decides the other keys.",
           "x-quartz-l10n": {
@@ -608,6 +623,20 @@
                   "description": "Höchstlänge in Zeichen; Vorgabe aus den Spam-Einstellungen."
                 }
               }
+            },
+            "width": {
+              "$ref": "#/$defs/fieldWidth",
+              "description": "How much of the form's width the field takes: full (default), half or third. Falls to halves, then to one column in a narrow form.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "Wie viel der Formularbreite das Feld einnimmt: full (Vorgabe), half oder third. Wird in einem schmalen Formular zu Hälften, dann zu einer Spalte.",
+                  "enum": {
+                    "full": "ganze Breite",
+                    "half": "halbe Breite",
+                    "third": "ein Drittel"
+                  }
+                }
+              }
             }
           },
           "required": [
@@ -709,6 +738,39 @@
                   "description": "Die Optionen, in Reihenfolge."
                 }
               }
+            },
+            "width": {
+              "$ref": "#/$defs/fieldWidth",
+              "description": "How much of the form's width the field takes: full (default), half or third. Falls to halves, then to one column in a narrow form.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "Wie viel der Formularbreite das Feld einnimmt: full (Vorgabe), half oder third. Wird in einem schmalen Formular zu Hälften, dann zu einer Spalte.",
+                  "enum": {
+                    "full": "ganze Breite",
+                    "half": "halbe Breite",
+                    "third": "ein Drittel"
+                  }
+                }
+              }
+            },
+            "layout": {
+              "$ref": "#/$defs/choiceLayout",
+              "description": "How the options stand: stacked (default) under each other or inline side by side. No effect on a select.",
+              "x-quartz-when": {
+                "type": [
+                  "radio",
+                  "checkboxes"
+                ]
+              },
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "Wie die Optionen stehen: stacked (Vorgabe) untereinander oder inline nebeneinander. Wirkt nicht bei select.",
+                  "enum": {
+                    "stacked": "untereinander",
+                    "inline": "nebeneinander"
+                  }
+                }
+              }
             }
           },
           "required": [
@@ -767,6 +829,20 @@
               "x-quartz-l10n": {
                 "de": {
                   "description": "Ein Satz unter dem Feld."
+                }
+              }
+            },
+            "width": {
+              "$ref": "#/$defs/fieldWidth",
+              "description": "How much of the form's width the field takes: full (default), half or third. Falls to halves, then to one column in a narrow form.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "Wie viel der Formularbreite das Feld einnimmt: full (Vorgabe), half oder third. Wird in einem schmalen Formular zu Hälften, dann zu einer Spalte.",
+                  "enum": {
+                    "full": "ganze Breite",
+                    "half": "halbe Breite",
+                    "third": "ein Drittel"
+                  }
                 }
               }
             }
@@ -864,6 +940,20 @@
                   "description": "Beschriftung am oberen Ende."
                 }
               }
+            },
+            "width": {
+              "$ref": "#/$defs/fieldWidth",
+              "description": "How much of the form's width the field takes: full (default), half or third. Falls to halves, then to one column in a narrow form.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "Wie viel der Formularbreite das Feld einnimmt: full (Vorgabe), half oder third. Wird in einem schmalen Formular zu Hälften, dann zu einer Spalte.",
+                  "enum": {
+                    "full": "ganze Breite",
+                    "half": "halbe Breite",
+                    "third": "ein Drittel"
+                  }
+                }
+              }
             }
           },
           "required": [
@@ -925,6 +1015,20 @@
                   "description": "Linktext; Vorgabe aus den Texten von quartz-forms."
                 }
               }
+            },
+            "width": {
+              "$ref": "#/$defs/fieldWidth",
+              "description": "How much of the form's width the field takes: full (default), half or third. Falls to halves, then to one column in a narrow form.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "Wie viel der Formularbreite das Feld einnimmt: full (Vorgabe), half oder third. Wird in einem schmalen Formular zu Hälften, dann zu einer Spalte.",
+                  "enum": {
+                    "full": "ganze Breite",
+                    "half": "halbe Breite",
+                    "third": "ein Drittel"
+                  }
+                }
+              }
             }
           },
           "required": [
@@ -982,6 +1086,20 @@
               "x-quartz-l10n": {
                 "de": {
                   "description": "Ein Satz unter dem Feld."
+                }
+              }
+            },
+            "width": {
+              "$ref": "#/$defs/fieldWidth",
+              "description": "How much of the form's width the field takes: full (default), half or third. Falls to halves, then to one column in a narrow form.",
+              "x-quartz-l10n": {
+                "de": {
+                  "description": "Wie viel der Formularbreite das Feld einnimmt: full (Vorgabe), half oder third. Wird in einem schmalen Formular zu Hälften, dann zu einer Spalte.",
+                  "enum": {
+                    "full": "ganze Breite",
+                    "half": "halbe Breite",
+                    "third": "ein Drittel"
+                  }
                 }
               }
             }

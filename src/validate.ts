@@ -260,6 +260,19 @@ function checkField(field: FormField, at: string, out: Validation): void {
       });
       return;
   }
+  // Width and arrangement: the schema names the values, the build holds a typo to them.
+  if (field.type !== "hidden") {
+    const width = (field as { width?: unknown }).width;
+    if (width !== undefined && width !== "full" && width !== "half" && width !== "third")
+      problem(out, `${at}.width`, "widthValue");
+  }
+  if (field.type === "select" || field.type === "radio" || field.type === "checkboxes") {
+    const layout = (field as { layout?: unknown }).layout;
+    if (layout !== undefined && layout !== "stacked" && layout !== "inline")
+      problem(out, `${at}.layout`, "layoutValue");
+    else if (layout === "inline" && field.type === "select")
+      hint(out, `${at}.layout`, "layoutSelect");
+  }
   if (field.type !== "hidden" && field.type !== "consent" && field.label === undefined)
     problem(out, at, "labelNeeded", { type: field.type });
   for (const [key, text] of texts) checkText(text, `${at}.${key}`, out);

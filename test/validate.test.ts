@@ -12,6 +12,9 @@ function problemsOf(extra: Partial<QuartzFormsOptions>): string[] {
 function formProblems(def: FormDefinition): string[] {
   return problemsOf({ forms: { f: def } });
 }
+function options_(field: FormField): Partial<QuartzFormsOptions> {
+  return options({ forms: { f: contact({ fields: [field] }) } });
+}
 function fieldProblems(field: FormField): string[] {
   return formProblems(contact({ fields: [field] }));
 }
@@ -22,6 +25,23 @@ const PRIVATE =
 const MESSAGE = "-----BEGIN PGP MESSAGE-----\n\nmsg\n-----END PGP MESSAGE-----";
 
 describe("validate: forms and fields", () => {
+  it("holds width and layout to their values, and says layout does nothing on a select", () => {
+    expect(fieldProblems({ type: "text", name: "t", label: "T", width: "wide" as never })).toEqual([
+      "forms.f.fields[0].width: full, half or third",
+    ]);
+    const options = [{ value: "a", label: "A" }];
+    expect(
+      fieldProblems({ type: "radio", name: "r", label: "R", options, layout: "row" as never }),
+    ).toEqual(["forms.f.fields[0].layout: stacked or inline"]);
+    const select = resolveOptions(
+      options_({ type: "select", name: "s", label: "S", options, layout: "inline" }),
+    );
+    expect(select.problems).toEqual([]);
+    expect(select.hints).toContain(
+      "forms.f.fields[0].layout: has no effect on a select, whose options are a list to open",
+    );
+  });
+
   it("rejects a form id that is not lower-case letters, digits and dashes", () => {
     for (const id of ["Contact", "kontakt formular", "-x", "ä"])
       expect(problemsOf({ forms: { [id]: contact() } })[0]).toMatch(/form id must match/);

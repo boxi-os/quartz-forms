@@ -91,6 +91,15 @@ export interface FormDefinition {
   className?: string;
 }
 
+/**
+ * How much of the form's width a field takes: all of it, half or a third. The form is a grid of
+ * six tracks that falls to halves and then to one column in a narrow container (forms.scss).
+ */
+export type FieldWidth = "full" | "half" | "third";
+
+/** How the options of a radio or checkboxes field stand: under each other or side by side. */
+export type ChoiceLayout = "stacked" | "inline";
+
 export type InputFieldType = "text" | "email" | "tel" | "url" | "number" | "date" | "textarea";
 
 /** A single-value field rendered as `<input>` or `<textarea>`. */
@@ -123,6 +132,8 @@ export interface InputField {
    * after trimming; default from the spam settings.
    */
   maxLength?: number;
+  /** How much of the form's width the field takes; default `full`. */
+  width?: FieldWidth;
 }
 
 export interface ChoiceOption {
@@ -138,6 +149,11 @@ export interface ChoiceField {
   required?: boolean;
   hint?: Text;
   options: ChoiceOption[];
+  /** How much of the form's width the field takes; default `full`. */
+  width?: FieldWidth;
+  /** `inline`: the options side by side, wrapping; `stacked` (default) under each other. A
+   *  `select` has no options to arrange; the build says so. */
+  layout?: ChoiceLayout;
 }
 
 /** A single checkbox with a label. */
@@ -147,6 +163,8 @@ export interface CheckboxField {
   label: Text;
   required?: boolean;
   hint?: Text;
+  /** How much of the form's width the field takes; default `full`. */
+  width?: FieldWidth;
 }
 
 /** A rating from `min` to `max`, rendered as a row of radio buttons. */
@@ -162,6 +180,8 @@ export interface ScaleField {
   minLabel?: Text;
   /** Caption at the high end. */
   maxLabel?: Text;
+  /** How much of the form's width the field takes; default `full`. */
+  width?: FieldWidth;
 }
 
 /** A checkbox the visitor must tick, with a sentence and an optional link (privacy policy). */
@@ -173,6 +193,8 @@ export interface ConsentField {
   link?: string;
   /** Link text; default from the plugin's texts. */
   linkLabel?: Text;
+  /** How much of the form's width the field takes; default `full`. */
+  width?: FieldWidth;
 }
 
 /**
@@ -185,6 +207,8 @@ export interface PgpKeyField {
   label: Text;
   required?: boolean;
   hint?: Text;
+  /** How much of the form's width the field takes; default `full`. */
+  width?: FieldWidth;
 }
 
 /** A fixed value sent along, invisible. */
