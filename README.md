@@ -117,6 +117,9 @@ except `hidden` and `consent`, a `label` (Text). Optional on most: `required`, `
 | `hidden`                                                    | `value`                                                                                    |
 | `pageBreak`                                                 | no `name`; `title` (Text), `showIf`; starts a step, see [Steps](#steps)                    |
 
+The relay sets `Reply-To` to the first filled-in `email` field. With more than one (yours and a
+friend's), give the visitor's own `autocomplete: email`: then only such fields count.
+
 A `pattern` is a JavaScript regular expression (the build and the browser read it with `u`), and
 the relay applies it with PCRE: write only what both read the same way. The build refuses what no
 PCRE2 reads (`\u` escapes, `[^]`, a lookbehind of unlimited length), and `npm run relay:config`

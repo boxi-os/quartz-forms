@@ -78,7 +78,8 @@ Reply-To and no page context. Your hoster's access log is outside this file.
 
 `mail()` by default; `sendmail` or an outbox file through `mailer`. The mail is `text/plain`
 UTF-8, quoted-printable (no line longer than 76 octets, whatever the visitor typed), with the
-form's subject, `From` from the config and `Reply-To` from the visitor's e-mail field when the
+form's subject, `From` from the config and `Reply-To` from the visitor's e-mail field (the first
+one filled in; with `autocomplete: email` on one, only such fields) when the
 form is not anonymous and the message is not encrypted (the relay cannot read an encrypted one). In the outbox file the body is therefore encoded; a mail program shows it
 decoded. Delivery depends on your hoster's SPF/DKIM setup for the
 `from` domain.

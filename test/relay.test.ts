@@ -126,6 +126,13 @@ const siteOptions = {
         { type: "url", name: "site", label: "Site" },
       ],
     },
+    friend: {
+      recipient: "owner",
+      fields: [
+        { type: "email", name: "friend", label: "Friend's e-mail" },
+        { type: "email", name: "own", label: "Your e-mail", autocomplete: "email" },
+      ],
+    },
     tagged: {
       recipient: "owner",
       fields: [
@@ -766,6 +773,15 @@ describe.skipIf(!php)("relay: refusals", () => {
     const ascii = await post(env("links", { mail: "ada@example.org" }));
     expect(ascii.json).toEqual({ ok: true });
     expect(lastMail().headers).toContain("Reply-To: ada@example.org");
+    // Third review, aside (2026-10-19): the first e-mail field became Reply-To, so with "a
+    // friend's e-mail" before "your e-mail" the answer went to the friend. A field that says
+    // `autocomplete: email` is the visitor's; only such fields are asked when there is one.
+    expect(
+      (await post(env("friend", { friend: "bob@example.org", own: "ada@example.org" }))).json,
+    ).toEqual({ ok: true });
+    expect(lastMail().headers).toContain("Reply-To: ada@example.org");
+    expect((await post(env("friend", { friend: "bob@example.org" }))).json).toEqual({ ok: true });
+    expect(lastMail().headers).not.toContain("Reply-To");
     // What both sides refuse: no dot in the domain, a space, no scheme, ftp.
     for (const mail of ["ada@localhost", "a b@example.org", "ada@example..org", "@example.org"]) {
       expect(errorsOf(await post(env("links", { mail })))).toContainEqual({

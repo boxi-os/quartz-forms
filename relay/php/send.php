@@ -1384,8 +1384,9 @@ if ($encrypted) {
     }
     $body = qf_serialize($formCfg, $fields, $lang, $page);
     if (empty($formCfg['anonymous'])) {
-        foreach ($rules as $name => $rule) {
-            if ($rule['type'] === 'email' && !empty($fields[$name]) && is_string($fields[$name])) {
+        // The build names the candidates: the visitor's own address first (`replyToFields`).
+        foreach ($formCfg['replyTo'] ?? [] as $name) {
+            if (($rules[$name]['type'] ?? '') === 'email' && !empty($fields[$name]) && is_string($fields[$name])) {
                 // Only an ASCII address goes into the header: mail() does not negotiate SMTPUTF8,
                 // and an address with umlauts would arrive broken. It stays readable in the body.
                 $address = trim($fields[$name]);

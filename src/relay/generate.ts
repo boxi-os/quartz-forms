@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
-import type { ResolvedOptions, Text } from "../types";
+import type { FormField, InputField, ResolvedOptions, Text } from "../types";
 import type { Message, MessageCode, Params } from "../messages";
 import { conditionsOf, isNamed } from "../conditions";
 
@@ -24,6 +24,8 @@ export interface RelayForm {
   redirect: string | null;
   spam: Record<string, unknown>;
   fields: Record<string, unknown>[];
+  /** E-mail fields that may give the Reply-To, in order; the first one filled in decides. */
+  replyTo: string[];
 }
 
 /**
@@ -79,6 +81,18 @@ export function siteLocation(baseUrl: unknown): { origin: string | null; basePat
   }
 }
 
+/**
+ * The fields a reply goes to. An e-mail field whose `autocomplete` names the `email` token is the
+ * visitor's own; when there is one, only such fields count. Without one every e-mail field
+ * counts, in form order (third review, aside, 2026-10-19: "a friend's e-mail" before "your
+ * e-mail" sent the reply to the friend).
+ */
+function replyToFields(fields: FormField[]): string[] {
+  const emails = fields.filter((f): f is InputField => f.type === "email");
+  const own = emails.filter((f) => (f.autocomplete ?? "").trim().split(/\s+/).includes("email"));
+  return (own.length > 0 ? own : emails).map((f) => f.name);
+}
+
 export function relayData(opts: ResolvedOptions, baseUrl: unknown): RelayData {
   const { origin, basePath } = siteLocation(baseUrl);
   const forms: Record<string, RelayForm> = {};
@@ -108,6 +122,7 @@ export function relayData(opts: ResolvedOptions, baseUrl: unknown): RelayData {
         rateLimitPerHour: form.spam.rateLimitPerHour,
         maxBytes: form.spam.maxBytes,
       },
+      replyTo: replyToFields(form.fields),
       // A page break is no field: it has no value and no line in the mail.
       fields: form.fields.filter(isNamed).map((f) => {
         const when = conditions.get(f.name);

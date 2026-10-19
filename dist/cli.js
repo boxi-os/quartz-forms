@@ -7297,6 +7297,11 @@ function siteLocation(baseUrl) {
     return { origin: null, basePath: "" };
   }
 }
+function replyToFields(fields) {
+  const emails = fields.filter((f) => f.type === "email");
+  const own = emails.filter((f) => (f.autocomplete ?? "").trim().split(/\s+/).includes("email"));
+  return (own.length > 0 ? own : emails).map((f) => f.name);
+}
 function relayData(opts, baseUrl) {
   const { origin, basePath } = siteLocation(baseUrl);
   const forms = {};
@@ -7323,6 +7328,7 @@ function relayData(opts, baseUrl) {
         rateLimitPerHour: form.spam.rateLimitPerHour,
         maxBytes: form.spam.maxBytes
       },
+      replyTo: replyToFields(form.fields),
       // A page break is no field: it has no value and no line in the mail.
       fields: form.fields.filter(isNamed).map((f) => {
         const when = conditions.get(f.name);

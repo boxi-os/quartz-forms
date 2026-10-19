@@ -120,6 +120,10 @@ Formular) und, außer `hidden` und `consent`, ein `label` (Text). Optional bei d
 | `hidden`                                                    | `value`                                                                                    |
 | `pageBreak`                                                 | kein `name`; `title` (Text), `showIf`; beginnt einen Schritt, siehe [Schritte](#schritte)  |
 
+Das Relay setzt `Reply-To` auf das erste ausgefüllte `email`-Feld. Bei mehreren (die eigene
+Adresse und die eines Freundes) bekommt das des Besuchers `autocomplete: email`: Dann zählen nur
+solche Felder.
+
 Ein `pattern` ist ein regulärer Ausdruck in JavaScript-Schreibweise (Bau und Browser lesen ihn mit
 `u`), das Relay wendet ihn mit PCRE an: Schreib nur, was beide gleich lesen. Der Bau weist ab, was
 kein PCRE2 liest (`\u`-Escapes, `[^]`, Lookbehind unbegrenzter Länge), und `npm run relay:config`

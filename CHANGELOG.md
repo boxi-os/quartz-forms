@@ -42,6 +42,9 @@ From the same review's list of side findings:
   refused as `malformed` instead of `invalid`, with its own sentence "This value could not be
   read". The relay's page for a post without JavaScript said "Please use the requested format" of
   a field that has none.
+- `Reply-To` comes from an `email` field with `autocomplete: email` when the form has one, so
+  "a friend's e-mail" before "your e-mail" no longer sends the reply to the friend. Without one it
+  is the first `email` field filled in, as before.
 
 ## [0.4.0] - 2026-10-19
 
