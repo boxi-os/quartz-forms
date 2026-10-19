@@ -434,7 +434,7 @@ function qf_counter_dir(array $config): ?string
  * directory (second review, finding 6, 2026-10-19). The files of the earlier layout
  * (`pow-<window>-<hash>.spent`) expire the same way.
  */
-function qf_pow_spent(array $config, string $challenge, string $nonce, int $window): bool
+function qf_pow_spent(array $config, string $challenge, string $nonce, int $window, ?string &$marked = null): bool
 {
     $dir = qf_counter_dir($config);
     if ($dir === null) {
@@ -463,6 +463,7 @@ function qf_pow_spent(array $config, string $challenge, string $nonce, int $wind
         return false;
     }
     fclose($fh);
+    $marked = $file;
     return false;
 }
 
@@ -490,9 +491,10 @@ function qf_remove(string $path): void
  * while every post got 429; measured: three files for two mails). And a replayed proof uses no
  * quota, because the hour counts mails, not posts (review finding 10, 2026-10-19: two invalid
  * posts spent two of three). The counter is a file per form and hour; no address, no time
- * beyond the hour. Returns the error the visitor gets, or null when the mail may go.
+ * beyond the hour. Returns the error the visitor gets, or null when the mail may go; `$counted`
+ * is then the counter file the mail was counted in (see qf_refund).
  */
-function qf_admit(array $config, string $form, int $perHour, callable $spend): ?string
+function qf_admit(array $config, string $form, int $perHour, callable $spend, ?string &$counted = null): ?string
 {
     $dir = $perHour > 0 ? qf_counter_dir($config) : null;
     if ($dir === null) {
@@ -521,10 +523,43 @@ function qf_admit(array $config, string $form, int $perHour, callable $spend): ?
         rewind($fh);
         fwrite($fh, (string) ($count + 1));
         fflush($fh);
+        $counted = $file;
     }
     flock($fh, LOCK_UN);
     fclose($fh);
     return $refused;
+}
+
+/**
+ * Gives back what qf_admit took for a mail that could not be handed over: its place in the hour
+ * it was counted in, and the mark of its proof, so the visitor's next try sends with the same one.
+ * The mail used to stay counted, so a mailer that failed for an hour closed the form for the rest
+ * of it although nothing went out (third review, N2, 2026-10-19: three posts, three times 502,
+ * the counter at 3). Counting only after the handover would hold the hour's lock while the mail
+ * goes, and a mailer that hangs would hold every post of the form.
+ */
+function qf_refund(?string $counted, ?string $marked): void
+{
+    if ($marked !== null) {
+        @unlink($marked);
+    }
+    if ($counted === null || !is_file($counted)) {
+        return; // the hour has turned and its counter is gone: nothing left to give back
+    }
+    $fh = @fopen($counted, 'c+');
+    if ($fh === false) {
+        return;
+    }
+    flock($fh, LOCK_EX);
+    $count = (int) stream_get_contents($fh);
+    if ($count > 0) {
+        ftruncate($fh, 0);
+        rewind($fh);
+        fwrite($fh, (string) ($count - 1));
+        fflush($fh);
+    }
+    flock($fh, LOCK_UN);
+    fclose($fh);
 }
 
 /**
@@ -1370,13 +1405,19 @@ if (!empty($config['subjectPrefix'])) {
 }
 
 // The gate before the mail, after every check: the hour's quota is read, the proof is spent,
-// the mail is counted, in that order (see qf_admit), so a refused post uses up neither.
+// the mail is counted, in that order (see qf_admit), so a refused post uses up neither; a mail
+// that cannot be handed over gives both back (qf_refund).
+$counted = null;
+$marked = null;
 $refused = qf_admit(
     $config,
     $formId,
     (int) ($spam['rateLimitPerHour'] ?? 0),
-    fn (): bool => $powWindow !== null
-        && qf_pow_spent($config, $pow['challenge'], $pow['nonce'], $powWindow),
+    function () use ($config, $pow, $powWindow, &$marked): bool {
+        return $powWindow !== null
+            && qf_pow_spent($config, $pow['challenge'], $pow['nonce'], $powWindow, $marked);
+    },
+    $counted,
 );
 if ($refused === 'rate_limited') {
     qf_fail(429, 'rate_limited', 'too many messages at the moment');
@@ -1386,6 +1427,7 @@ if ($refused !== null) {
 }
 
 if (!qf_mail($config, $to, $subject, $body, $replyTo)) {
+    qf_refund($counted, $marked);
     qf_fail(502, 'mail', 'the mail could not be handed over');
 }
 

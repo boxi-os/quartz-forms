@@ -109,6 +109,11 @@ const siteOptions = {
       spam: { pow: true, powDifficulty: 8, rateLimitPerHour: 2 },
       fields: [{ type: "text", name: "g", label: "G" }],
     },
+    unsent: {
+      recipient: "owner",
+      spam: { pow: true, powDifficulty: 8, rateLimitPerHour: 2 },
+      fields: [{ type: "text", name: "u", label: "U" }],
+    },
     small: {
       recipient: "owner",
       spam: { maxBytes: 300 },
@@ -908,6 +913,36 @@ describe.skipIf(!php)("relay: refusals", () => {
     const late = await post(env("gated", { g: "1 once more" }, { pow: a }));
     expect([late.status, late.json?.error]).toEqual([429, "rate_limited"]);
     expect(mails().filter((m) => m.includes("G: ")).length).toBe(2);
+  });
+  it("a mail that cannot be handed over gives back its place in the hour and its proof", async () => {
+    // Third review, N2 (2026-10-19): the mail was counted before it was handed over, so a mailer
+    // that failed closed the form for the rest of the hour although nothing went out (three
+    // posts, three times 502, the counter at 3).
+    const ticket = (await get("challenge=unsent")).json as { challenge: string };
+    const proof = solve(ticket.challenge, 8);
+    const count = () => {
+      const file = fs.readdirSync(path.join(dir, "counters")).find((f) => f.startsWith("unsent-"));
+      return file ? fs.readFileSync(path.join(dir, "counters", file), "utf8") : "none";
+    };
+    const before = spentFiles().length;
+    writeConfig({
+      extra: `'captchaSecret' => 'cap-secret', 'mailer' => ['file' => __DIR__ . '/no-such-dir/outbox.txt'],`,
+    });
+    try {
+      for (const u of ["1", "2", "3"]) {
+        const r = await post(env("unsent", { u }, { pow: proof }));
+        expect([r.status, r.json?.error]).toEqual([502, "mail"]);
+      }
+      expect([count(), spentFiles().length - before]).toEqual(["0", 0]);
+    } finally {
+      writeConfig();
+    }
+    // The mailer is back: the same proof sends, and the hour has both its places.
+    expect((await post(env("unsent", { u: "4" }, { pow: proof }))).json).toEqual({ ok: true });
+    expect(
+      (await post(env("unsent", { u: "5" }, { pow: solve(ticket.challenge, 8) }))).json,
+    ).toEqual({ ok: true });
+    expect([count(), spentFiles().length - before]).toEqual(["2", 2]);
   });
   it("encryption: plaintext to a required form, ciphertext to an off form, ciphertext without armor", async () => {
     const plainToEnc = await post(env("enc", { a: "x" }));

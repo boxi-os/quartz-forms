@@ -43,7 +43,7 @@ no-referrer` hides both from a plain form post without JavaScript (the browser s
   hour and the next; a proof is marked only once the hour's quota let the message through, so an
   hour never holds more of them than it mailed), captcha token (Turnstile or hCaptcha, unless
   the form is anonymous), rate limit per form and hour (a counter file, counting mails, no
-  addresses).
+  addresses; a mail the mailer did not take is given back, and so is its proof of work).
 - Conditions first: a field whose conditions (`when`, from its `showIf` and its step's) do not
   hold is dropped from the submission, JSON and plain post alike, and neither checked nor mailed.
 - Plain text: every field against its rule (unknown field, required, length, options, e-mail,

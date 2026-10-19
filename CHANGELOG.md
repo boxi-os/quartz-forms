@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   captcha (`encryptionCaptcha`).
 - Fixed: a `hidden` value in a step whose condition did not hold was dropped, although hidden
   fields cannot be conditional. It now takes no step's condition and always arrives.
+- Fixed: a mail the relay could not hand over (`502 mail`) stayed counted against the hour's
+  quota and kept its proof of work spent. Both are given back now.
 
 ## [0.4.0] - 2026-10-19
 
