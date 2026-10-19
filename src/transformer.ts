@@ -234,8 +234,8 @@ export const Forms: QuartzTransformerPlugin<Partial<QuartzFormsOptions>> = (user
         // site's unlayered custom.scss wins with a plain `.quartz-form { --quartz-forms-*: … }`.
         // Unlayered, this copy loaded last and beat every such rule, the README's way of
         // changing a colour included (measured in Chrome, 2026-10-19).
-        // The checkbox guard alone stays unlayered: it has to beat a theme's task-list rules
-        // (guard.scss says why).
+        // The guard alone stays unlayered: it has to beat a theme's rules for the article's
+        // checkboxes and paragraphs (guard.scss says why).
         css: [
           { content: `@layer quartz-base {\n${style}\n}`, inline: true },
           { content: guard, inline: true },

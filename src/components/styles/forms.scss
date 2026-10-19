@@ -199,7 +199,8 @@
     min-inline-size: 0;
   }
 
-  // The browser's own checkboxes and radios: guard.scss, which stays out of the layer.
+  // The browser's own checkboxes and radios: guard.scss, which stays out of the layer. So do the
+  // margins of 0 the boxes here set on their paragraphs, headings, fieldsets and the demo's pre.
 
   &__options {
     display: flex;

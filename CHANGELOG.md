@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed: the message's lines `Page: …` and `Public key of the sender:` were English on a German
   page while the labels around them were German. They are text keys now (`messagePage`,
   `messageKey`), in the browser and in the relay.
+- Fixed (a regression of 0.5.2): in the layer, the stylesheet's `margin: 0` on the form's
+  paragraphs lost to a theme's `article p` rhythm, and every hint and every empty status line
+  got a paragraph's space below it (30px under the key field on QuartzControl's template). The
+  margins of the form's paragraphs, headings, fieldsets and the demo's output now ship unlayered
+  with the checkbox rule in `guard.scss`.
 - Docs: the German README addressed its reader as Sie in six places and du in two; it says du
   throughout now, like the plugin's German texts.
 

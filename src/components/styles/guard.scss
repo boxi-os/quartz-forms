@@ -1,16 +1,26 @@
-// The one rule of quartz-forms that has to win over the site's own stylesheet, and therefore the
-// one rule outside `@layer quartz-base` (the transformer ships it unlayered beside forms.scss).
-//
+// The rules of quartz-forms that have to win over the site's own stylesheet, and therefore the
+// only ones outside `@layer quartz-base` (the transformer ships them unlayered beside forms.scss).
+// Each one answers a theme's rule for the article's content that reaches into the form; a site
+// that wants otherwise writes a selector more specific than these.
+
 // A theme that draws task-list checkboxes (`article input[type="checkbox"]` with
 // `appearance: none`, a mask image and a negative margin) would draw ours the same way and push
 // them out of the form; measured on the gui-test template. Back to the browser's own. Inside the
 // layer this lost to every such unlayered theme rule (0.5.2, measured on QuartzControl's
-// template: the form's checkboxes were the template's task glyphs). A site that wants to restyle
-// the form's checkboxes writes a selector more specific than these.
+// template: the form's checkboxes were the template's task glyphs).
 .quartz-form input[type="checkbox"],
 .quartz-form input[type="radio"] {
   all: revert;
   margin: 0;
   flex: none;
   accent-color: var(--secondary);
+}
+
+// The form spaces its lines with the gaps of its flex boxes, not with margins. A theme's rhythm
+// for the article (`article p { margin-block: 0 1.5rem }`) gave every hint and every empty status
+// line of the form a paragraph's space below it (0.5.2 to 0.5.3, measured on QuartzControl's
+// template: 30px between the key field and its hint). One class and one element, so a theme's
+// `article p` (two elements) loses and a site's `.quartz-form .quartz-form__hint` wins.
+.quartz-form :is(p, h3, h4, fieldset, pre) {
+  margin: 0;
 }

@@ -217,12 +217,14 @@ describe("unknown forms and redirects", () => {
     expect(String(res.css?.[0]?.content)).toContain(".quartz-form");
     // Layered like the component's copy: unlayered, it beat a site's custom.scss.
     expect(String(res.css?.[0]?.content)).toMatch(/^@layer quartz-base \{\n[\s\S]*\n\}$/);
-    // The checkbox guard alone stays unlayered, so a theme's task-list checkboxes do not reach
-    // the form's; and it is not in the layered copy any more.
+    // The guard alone stays unlayered, so a theme's task-list checkboxes do not reach the form's;
+    // and it is not in the layered copy any more.
     const guard = String(res.css?.[1]?.content);
     expect(guard).not.toMatch(/@layer\s+[\w-]+\s*\{/);
     expect(guard).toMatch(/\.quartz-form input\[type=["']?checkbox["']?\]/);
     expect(guard).toContain("revert");
+    // ... and so does the margin of the form's own paragraphs, which a theme's `article p` took
+    expect(guard).toMatch(/\.quartz-form :is\(p,[^)]*\)\s*\{\s*margin: 0;/);
     expect(String(res.css?.[0]?.content)).not.toContain("revert");
     expect(res.js?.[0]).toMatchObject({ loadTime: "afterDOMReady", contentType: "inline" });
   });
