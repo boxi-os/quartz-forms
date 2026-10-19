@@ -123,7 +123,10 @@ let dir = "";
 let base = "";
 const relaySecret = `test-secret-${crypto.randomBytes(16).toString("hex")}`;
 /** The hand-written config.php; PHP reads it per request, so a test may rewrite it. */
-function writeConfig(extra = `'captchaSecret' => 'cap-secret',`): void {
+function writeConfig(
+  extra = `'captchaSecret' => 'cap-secret',`,
+  origins: string[] = [ORIGIN],
+): void {
   fs.writeFileSync(
     path.join(dir, "config.php"),
     `<?php
@@ -131,7 +134,7 @@ declare(strict_types=1);
 $generated = require __DIR__ . '/config.generated.php';
 return $generated + [
     'secret' => '${relaySecret}',
-    'allowedOrigins' => ['${ORIGIN}'],
+    'allowedOrigins' => ${JSON.stringify(origins).replace(/"/g, "'")},
     'from' => 'forms@relay.test',
     'subjectPrefix' => '',
     'mailer' => ['file' => __DIR__ . '/outbox.txt'],
@@ -539,6 +542,44 @@ describe.skipIf(!php)("relay: a browser without JavaScript (plain form post)", (
     expect(r.status).toBe(303);
     expect(r.headers.get("location")).toBe(`${ORIGIN}/site/danke`);
     expect(lastMail().body).toContain("Name: Ada Lovelace");
+  });
+  it("with an empty allowedOrigins the redirect goes to the site's address from baseUrl, never to the request's Origin", async () => {
+    // Review finding 11 (2026-10-19): the redirect base came from the Origin header, which an
+    // empty list accepted from anyone: an open redirect, on the honeypot path too.
+    writeConfig(undefined, []);
+    try {
+      const evil = { origin: "https://evil.test" };
+      const r = await post(
+        new URLSearchParams({ form: "contact", lang: "de-DE", ...contactFields }).toString(),
+        {
+          raw: true,
+          headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "text/html" },
+          ...evil,
+        },
+      );
+      expect(r.status).toBe(303);
+      expect(r.headers.get("location")).toBe("https://example.org/site/danke");
+      const trapped = await post(
+        new URLSearchParams({
+          form: "contact",
+          lang: "de-DE",
+          ...contactFields,
+          _hp_website: "http://spam.test",
+        }).toString(),
+        {
+          raw: true,
+          headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "text/html" },
+          ...evil,
+        },
+      );
+      expect(trapped.headers.get("location")).toBe("https://example.org/site/danke");
+      // "Any origin" is said as such, not by echoing whatever Origin arrived.
+      const cors = await get("challenge=contact", "https://evil.test");
+      expect(cors.status).toBe(200);
+      expect(cors.headers.get("access-control-allow-origin")).toBe("*");
+    } finally {
+      writeConfig();
+    }
   });
   it("answers with a short page in the submission's language when there is no redirect", async () => {
     const de = await plain({ form: "feedback", lang: "de-DE", rating: "5" });

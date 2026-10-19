@@ -59,11 +59,8 @@ function qf_wants_html(): bool
         && !str_contains($accept, 'application/json');
 }
 
-/**
- * The site's origin for a redirect: the request's Origin (or Referer) when it is allowed, else
- * the first allowed origin. A relative Location would resolve against this relay's host.
- */
-function qf_site_origin(array $config): string
+/** The request's Origin, or the origin of its Referer; '' when it carries neither. */
+function qf_request_origin(): string
 {
     $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
     if ($origin === '' && isset($_SERVER['HTTP_REFERER'])) {
@@ -72,10 +69,31 @@ function qf_site_origin(array $config): string
             $origin = $p['scheme'] . '://' . $p['host'] . (isset($p['port']) ? ':' . $p['port'] : '');
         }
     }
-    if ($origin !== '' && qf_origin_allowed($config)) {
-        return rtrim($origin, '/');
+    return $origin;
+}
+
+/**
+ * The site's origin for a redirect: the request's Origin (or Referer) when it is one of the
+ * listed `allowedOrigins` (a site reachable under two names sends the visitor back to the one
+ * they came from), else the site's address from the generated config (`siteOrigin`, from the
+ * site's baseUrl), else the first listed origin. With an empty list the request's Origin used
+ * to be taken as it came, which made the redirect go wherever the poster said (review finding
+ * 11, 2026-10-19). A relative Location would resolve against this relay's host.
+ */
+function qf_site_origin(array $config): string
+{
+    $allowed = $config['allowedOrigins'] ?? [];
+    if ($allowed !== [] && qf_origin_allowed($config)) {
+        $origin = qf_request_origin();
+        if ($origin !== '') {
+            return rtrim($origin, '/');
+        }
     }
-    return rtrim((string) (($config['allowedOrigins'] ?? [])[0] ?? ''), '/');
+    $site = $config['siteOrigin'] ?? '';
+    if (is_string($site) && $site !== '') {
+        return rtrim($site, '/');
+    }
+    return rtrim((string) ($allowed[0] ?? ''), '/');
 }
 
 /** Answer for the no-JavaScript path: a redirect when the form has one, else a plain page. */
@@ -83,10 +101,15 @@ function qf_html(int $status, string $title, string $text, ?string $redirect = n
 {
     if ($redirect !== null && $status < 400) {
         if (str_starts_with($redirect, '/')) {
-            $redirect = qf_site_origin($GLOBALS['config']) . $redirect;
+            $site = qf_site_origin($GLOBALS['config']);
+            // No address of the site known: the page below says "sent" instead of a redirect
+            // that would resolve against this relay's host.
+            $redirect = $site === '' ? null : $site . $redirect;
         }
-        header('Location: ' . $redirect, true, 303);
-        exit;
+        if ($redirect !== null) {
+            header('Location: ' . $redirect, true, 303);
+            exit;
+        }
     }
     http_response_code($status);
     header('Content-Type: text/html; charset=utf-8');
@@ -118,13 +141,7 @@ function qf_origin_allowed(array $config): bool
     if ($allowed === []) {
         return true;
     }
-    $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-    if ($origin === '' && isset($_SERVER['HTTP_REFERER'])) {
-        $p = parse_url($_SERVER['HTTP_REFERER']);
-        if (is_array($p) && isset($p['scheme'], $p['host'])) {
-            $origin = $p['scheme'] . '://' . $p['host'] . (isset($p['port']) ? ':' . $p['port'] : '');
-        }
-    }
+    $origin = qf_request_origin();
     foreach ($allowed as $a) {
         if (strcasecmp(rtrim($a, '/'), rtrim($origin, '/')) === 0) {
             return true;
@@ -137,8 +154,12 @@ function qf_cors(array $config): void
 {
     $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
     if ($origin !== '' && qf_origin_allowed($config)) {
-        header('Access-Control-Allow-Origin: ' . $origin);
-        header('Vary: Origin');
+        // An empty list means any origin, and says so, instead of echoing the one that arrived.
+        $any = ($config['allowedOrigins'] ?? []) === [];
+        header('Access-Control-Allow-Origin: ' . ($any ? '*' : $origin));
+        if (!$any) {
+            header('Vary: Origin');
+        }
         header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
         header('Access-Control-Allow-Headers: Content-Type, Accept');
         header('Access-Control-Max-Age: 600');

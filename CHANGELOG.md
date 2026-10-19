@@ -67,6 +67,12 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   ever (measured in Chrome with the Turnstile test key). The script now loads once with
   `render=explicit` and `data-persist`, and every bound form renders its own widget, removes it
   with its cleanup and resets it by id after a failed send.
+- With an empty `allowedOrigins` the plain-form redirect went to whatever `Origin` the request
+  carried (`Location: https://evil.test/…/thanks`, on the honeypot path too), and CORS echoed
+  that origin. The redirect base is now the request's origin only when it is one of the listed
+  origins, else the site's address from its `baseUrl`, which `relay:config` writes into the
+  generated config as `siteOrigin`; without either the relay shows its "sent" page instead of
+  redirecting. An empty list answers CORS with `*`, which is what it means.
 
 ## [0.1.1] - 2026-10-19
 

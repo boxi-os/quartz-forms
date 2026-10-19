@@ -15,7 +15,8 @@ return $generated + [
     // Random, long, never on the site. Signs the proof-of-work challenges.
     'secret' => 'REPLACE-WITH-A-LONG-RANDOM-STRING',
 
-    // Where the site lives; the relay answers only to these origins. Empty list: any origin.
+    // Where the site lives; the relay answers only to these origins. Empty list: any origin
+    // (the redirect of a plain post then goes to the site's baseUrl from the generated config).
     'allowedOrigins' => ['https://example.org'],
 
     // Sender address of the mails. Use an address of this domain, or SPF will reject the mail.

@@ -72,19 +72,20 @@ function php(value, indent = "    ") {
 }
 
 // A site built for a sub-path (baseUrl with a path) has its pages below that path; the redirect
-// of the plain-form path must carry it, as the script does with the page's base path.
-const basePath = (() => {
+// of the plain-form path must carry it, as the script does with the page's base path. Its origin
+// is where the redirect goes when the request's Origin is not on `allowedOrigins`: with an empty
+// list the relay used to redirect to whatever Origin arrived (review finding 11, 2026-10-19).
+const siteUrl = (() => {
   const baseUrl = String(yaml?.configuration?.baseUrl ?? "");
-  if (!baseUrl) return "";
+  if (!baseUrl) return null;
   try {
-    return new URL(/^https?:\/\//.test(baseUrl) ? baseUrl : `https://${baseUrl}`).pathname.replace(
-      /\/+$/,
-      "",
-    );
+    return new URL(/^https?:\/\//.test(baseUrl) ? baseUrl : `https://${baseUrl}`);
   } catch {
-    return "";
+    return null;
   }
 })();
+const basePath = siteUrl ? siteUrl.pathname.replace(/\/+$/, "") : "";
+const siteOrigin = siteUrl ? siteUrl.origin : null;
 
 const forms = {};
 for (const form of Object.values(opts.forms)) {
@@ -171,6 +172,7 @@ const generated = `<?php
 declare(strict_types=1);
 
 return [
+    'siteOrigin' => ${php(siteOrigin)},
     'forms' => ${php(forms)},
 ];
 `;

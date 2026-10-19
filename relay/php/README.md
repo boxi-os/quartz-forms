@@ -33,8 +33,9 @@ hosting with PHP ≥ 8.1; no dependencies.
 - A plain form post (a browser without JavaScript) carries no stamp and no proof of work;
   it gets honeypot, rate limit and field checks, and a form with `noScript: false` refuses it.
   One that asks for encryption (`_encrypt`) is refused too: only the script can encrypt.
-  The answer is the form's redirect (made absolute with the request's origin and the site's base
-  path) or a short page in the submission's language.
+  The answer is the form's redirect (made absolute with the request's origin when it is on
+  `allowedOrigins`, else with the site's `baseUrl` from the generated config, plus the site's
+  base path) or a short page in the submission's language.
 
 ## What it promises
 
