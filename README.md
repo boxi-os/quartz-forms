@@ -125,7 +125,7 @@ and names the pattern in the server's error log.
 | `kind`   | `relay`, `endpoint`, `formspree`, `web3forms`, `mailto` | The plugin's PHP relay; any POST URL; two service presets; the mail program.                           |
 | `url`    | URL, or the service's form id / access key              | Required for `relay`, `endpoint` and the presets.                                                      |
 | `format` | `json` \| `form`                                        | Body encoding for `endpoint`. The relay gets JSON from the script and a plain post without JavaScript. |
-| `extra`  | `Record<string, string>`                                | Fields sent with every submission.                                                                     |
+| `extra`  | `Record<string, string>`                                | Fields sent with every submission to an `endpoint` or a service; the relay and `mailto` take none.     |
 
 ### Spam
 

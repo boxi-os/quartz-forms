@@ -155,6 +155,11 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   work, which takes 0.1 to 1.1 s for 16 bits at 60 fps. The build allows 8 to 20 and says from
   18 on that a phone needs seconds before every message; the schema, the READMEs and the type
   comment say the same.
+- `transport.extra` on a relay form was rendered as hidden inputs, which the script never sent
+  but every plain post without JavaScript did, and the relay refused each as `unknown_field`; on
+  a mailto form they went into the mail body. The extra fields now render only for an
+  `endpoint` and the services, and the build says that they have no effect with the relay or
+  mailto.
 
 ## [0.1.1] - 2026-10-19
 

@@ -844,6 +844,10 @@ function checkForm(form, raw, keyNames, out) {
     default:
       out.problems.push(`${at}.transport.kind: unknown kind ${JSON.stringify(tr.kind)}`);
   }
+  if ((tr.kind === "relay" || tr.kind === "mailto") && Object.keys(tr.extra ?? {}).length > 0)
+    out.hints.push(
+      `${at}.transport.extra: has no effect with ${tr.kind === "relay" ? "the relay" : "mailto"}`
+    );
   if (tr.format !== void 0 && tr.format !== "json" && tr.format !== "form")
     out.problems.push(`${at}.transport.format: json or form`);
   const enc = form.encryption;
@@ -2888,9 +2892,10 @@ function endpointOf(transport, recipient) {
       return `mailto:${recipient ?? ""}`;
   }
 }
+var QF_TAKES_EXTRA = /* @__PURE__ */ new Set(["endpoint", "formspree", "web3forms"]);
 function presetFields(form) {
   const tr = form.transport;
-  const fields = { ...tr.extra ?? {} };
+  const fields = QF_TAKES_EXTRA.has(tr.kind) ? { ...tr.extra ?? {} } : {};
   if (tr.kind === "web3forms" && tr.url) fields.access_key = tr.url;
   return fields;
 }
@@ -4218,5 +4223,5 @@ var FormBox_default = ((userOpts) => {
 });
 
 export { FormBox_default, Forms, defaultOptions, loadKeySources, logHints, resolveOptions, resolveOrThrow, resolveText, templateNames, templateOf, warnOnce };
-//# sourceMappingURL=chunk-WYOPVR6Z.js.map
-//# sourceMappingURL=chunk-WYOPVR6Z.js.map
+//# sourceMappingURL=chunk-G4UBUYSA.js.map
+//# sourceMappingURL=chunk-G4UBUYSA.js.map

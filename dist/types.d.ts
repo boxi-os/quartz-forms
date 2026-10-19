@@ -189,7 +189,10 @@ interface TransportConfig {
     url?: string;
     /** Body encoding for `endpoint`; `relay` always sends JSON. */
     format?: "json" | "form";
-    /** Extra fields sent with every submission (a service's access key, for instance). */
+    /**
+     * Extra fields sent with every submission to an `endpoint` or a service (an access key, for
+     * instance). The relay and `mailto` take none; the build says so.
+     */
     extra?: Record<string, string>;
 }
 interface PgpKeySource {

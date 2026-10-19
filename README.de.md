@@ -129,7 +129,7 @@ Wert dieses Feldes ab und nennt das Muster im Fehlerprotokoll des Servers.
 | `kind`    | `relay`, `endpoint`, `formspree`, `web3forms`, `mailto`           | Das PHP-Relay von quartz-forms; jede POST-URL; zwei Dienst-Voreinstellungen; das Mailprogramm.                    |
 | `url`     | URL oder die Formular-Kennung / der Zugangsschlüssel des Dienstes | Pflicht für `relay`, `endpoint` und die Voreinstellungen.                                                         |
 | `format`  | `json` \| `form`                                                  | Kodierung des Inhalts für `endpoint`. Das Relay bekommt JSON vom Script und ohne JavaScript einen einfachen Post. |
-| `extra`   | `Record<string, string>`                                          | Felder, die mit jeder Sendung gehen.                                                                              |
+| `extra`   | `Record<string, string>`                                          | Felder, die mit jeder Sendung an einen `endpoint` oder Dienst gehen; Relay und `mailto` nehmen keine.             |
 
 ### Spam
 

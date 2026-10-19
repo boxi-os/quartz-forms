@@ -239,6 +239,28 @@ describe("validate: transport, encryption, spam, success", () => {
     expect(
       resolveOptions(options({ spam: { pow: false, powDifficulty: 20 } as never })).hints,
     ).toEqual([]);
+    // `extra` goes to an endpoint or a service; the relay and mailto take no extra fields
+    // (review finding 22, 2026-10-19).
+    expect(
+      resolveOptions(
+        options({ transport: { kind: "relay", url: "https://r.example/x", extra: { to: "s" } } }),
+      ).hints,
+    ).toEqual(["forms.contact.transport.extra: has no effect with the relay"]);
+    expect(
+      resolveOptions(
+        options({
+          forms: { contact: contact({ recipient: "o@example.org" }) },
+          transport: { kind: "mailto", extra: { to: "s" } },
+        }),
+      ).hints,
+    ).toEqual(["forms.contact.transport.extra: has no effect with mailto"]);
+    expect(
+      resolveOptions(
+        options({
+          transport: { kind: "endpoint", url: "https://e.example/x", extra: { to: "s" } },
+        }),
+      ).hints,
+    ).toEqual([]);
     expect(problemsOf({ spam: { captcha: "turnstile" } as never })).toEqual([
       "forms.contact.spam.captchaSiteKey: turnstile needs the site key",
     ]);

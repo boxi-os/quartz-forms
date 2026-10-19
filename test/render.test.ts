@@ -250,6 +250,18 @@ describe("renderForm", () => {
       transport: { kind: "endpoint", url: "https://e.example/x", extra: { to: "sales" } },
     });
     expect(extra.html).toContain('<input type="hidden" name="to" value="sales">');
+    // The relay knows the form's fields alone, and the script never sends `extra` to it; the
+    // hidden inputs made every plain post fail with unknown_field (review finding 22, 2026-10-19).
+    // A mailto form would have written them into the mail body on that path.
+    const relay = render(contact(), {
+      transport: { kind: "relay", url: "https://r.example/send.php", extra: { to: "sales" } },
+    });
+    expect(relay.html).not.toContain('name="to"');
+    expect(relay.config.transport.extra).toEqual({});
+    const mailExtra = render(contact({ recipient: "o@example.org" }), {
+      transport: { kind: "mailto", extra: { to: "sales" } },
+    });
+    expect(mailExtra.html).not.toContain('name="to"');
   });
 
   it("puts the rules the browser needs into the config", () => {

@@ -329,6 +329,10 @@ function checkForm(form: ResolvedForm, raw: FormDefinition, keyNames: string[], 
     default:
       out.problems.push(`${at}.transport.kind: unknown kind ${JSON.stringify(tr.kind)}`);
   }
+  if ((tr.kind === "relay" || tr.kind === "mailto") && Object.keys(tr.extra ?? {}).length > 0)
+    out.hints.push(
+      `${at}.transport.extra: has no effect with ${tr.kind === "relay" ? "the relay" : "mailto"}`,
+    );
   if (tr.format !== undefined && tr.format !== "json" && tr.format !== "form")
     out.problems.push(`${at}.transport.format: json or form`);
 

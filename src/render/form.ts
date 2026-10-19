@@ -10,6 +10,7 @@ import type {
   ScaleField,
   Text,
   TransportConfig,
+  TransportKind,
 } from "../types";
 import { interpolate, resolveText } from "../text";
 import type { RenderContext } from "./context";
@@ -49,10 +50,18 @@ export function endpointOf(transport: TransportConfig, recipient: string | undef
   }
 }
 
-/** Hidden inputs a service wants with every submission (the no-JavaScript path sends them too). */
+/** The transports that take `extra` fields: an endpoint and the services, as flat fields. */
+const QF_TAKES_EXTRA = new Set<TransportKind>(["endpoint", "formspree", "web3forms"]);
+
+/**
+ * Hidden inputs a service wants with every submission (the no-JavaScript path sends them too).
+ * The relay knows the form's fields alone and the script never sent `extra` to it, but the hidden
+ * inputs went with every plain post, which the relay refused as unknown_field (review finding
+ * 22, 2026-10-19); a mailto form wrote them into the mail body. Neither gets them now.
+ */
 export function presetFields(form: ResolvedForm): Record<string, string> {
   const tr = form.transport;
-  const fields: Record<string, string> = { ...(tr.extra ?? {}) };
+  const fields: Record<string, string> = QF_TAKES_EXTRA.has(tr.kind) ? { ...(tr.extra ?? {}) } : {};
   if (tr.kind === "web3forms" && tr.url) fields.access_key = tr.url;
   return fields;
 }
