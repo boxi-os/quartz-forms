@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The README says what encryption does not protect: scripts on the page (captcha, analytics,
   other plugins), and what travels in the clear. The build says it for an encrypting form with a
   captcha (`encryptionCaptcha`).
+- Fixed: a `hidden` value in a step whose condition did not hold was dropped, although hidden
+  fields cannot be conditional. It now takes no step's condition and always arrives.
 
 ## [0.4.0] - 2026-10-19
 

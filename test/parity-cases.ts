@@ -276,6 +276,8 @@ export const conditionFields: FormField[] = [
     required: true,
     showIf: { field: "rate", equals: "5" },
   },
+  // The owner's mark in that step: a hidden value takes no step's condition (third review, N1).
+  { type: "hidden", name: "inStepMark", value: "m" },
 ];
 
 export type ConditionOutcome = "ok" | "required" | "dropped";
@@ -298,7 +300,9 @@ export const conditionCases: ConditionCase[] = [
       ifS1: "dropped",
       inStep: "dropped",
       inStepIf5: "dropped",
+      inStepMark: "ok",
     },
+    note: "a hidden value arrives even from a step that does not count",
   },
   { values: { topic: "a" }, expect: { ifA: "required" } },
   { values: { topic: "a", ifA: "hi" }, expect: { ifA: "ok" } },
@@ -343,6 +347,10 @@ export const conditionCases: ConditionCase[] = [
   {
     values: { box: "yes", ifBox: "t", rate: "5", inStep: "s" },
     expect: { inStep: "ok", inStepIf5: "required" },
+  },
+  {
+    values: { box: "yes", ifBox: "t", inStep: "s" },
+    expect: { inStep: "ok", inStepIf5: "dropped", inStepMark: "ok" },
   },
   {
     values: { rate: "5", inStep: "posted anyway", inStepIf5: "posted anyway" },

@@ -147,7 +147,8 @@ halbe und Drittel-Felder bei jeder Breite nebeneinander.
 String bei einer `scale`. Ein `checkboxes`-Feld erfüllt sie, wenn einer der Werte angehakt ist.
 Bedingungen dürfen sich verketten, und ein Feld, dessen Steuerfeld nicht zählt, zählt auch nicht.
 `hidden`- und `consent`-Felder können nicht bedingt sein (ein `consent`-Feld auch nicht über
-seinen Schritt, siehe Schritte).
+seinen Schritt, siehe Schritte; ein `hidden`-Wert kommt auch aus einem Schritt an, der nicht
+zählt).
 
 Ein Feld, das nicht zählt, ist nicht Pflicht, wird nicht geprüft, nicht gesendet und steht nicht
 in der Mail; ein Wert, der dafür gepostet wird, wird verworfen, nicht abgewiesen. Ohne JavaScript
@@ -159,14 +160,14 @@ es nötig ist („Nur nötig, wenn …“), und das Relay entscheidet.
 Ein Eintrag `{ type: pageBreak, title?, showIf? }` in `fields` beginnt einen Schritt. Er steht
 zwischen Feldern, nie am Anfang, am Ende oder zweimal hintereinander. Mit JavaScript ist ein
 Schritt auf einmal zu sehen, unter „Schritt 2 von 4: Titel“: „Weiter“ (und Return in einem Feld)
-prüft nur den offenen Schritt, „Zurück“ geht ohne Prüfung zurück, und ein Schritt, dessen
-`showIf` nicht gilt oder in dem kein Feld zählt, wird in beide Richtungen übersprungen.
-Verschlüsselung, Captcha und der Senden-Button erscheinen mit dem letzten Schritt. Weist das
-Relay ein Feld ab, öffnet das Formular dessen Schritt. Die Bedingung eines Schritts gilt für
-jedes seiner Felder, das Relay verwirft sie also wie jedes bedingte Feld; ein `consent`-Feld kann
-deshalb nicht in einem Schritt mit `showIf` stehen, der Build weist es dort ab, und keine
-Nachricht geht ohne die Einwilligung hinaus. Ohne JavaScript stehen alle Schritte untereinander,
-jeder unter seinem Titel.
+prüft nur den offenen Schritt, „Zurück“ geht ohne Prüfung zurück, und ein Schritt, dessen `showIf`
+nicht gilt oder in dem kein Feld zählt, wird in beide Richtungen übersprungen. Verschlüsselung,
+Captcha und der Senden-Button erscheinen mit dem letzten Schritt. Weist das Relay ein Feld ab,
+öffnet das Formular dessen Schritt. Die Bedingung eines Schritts gilt für jedes seiner Felder außer
+einem `hidden`-Wert, das Relay verwirft sie also wie jedes bedingte Feld; ein `consent`-Feld kann
+deshalb nicht in einem Schritt mit `showIf` stehen, der Build weist es dort ab, und keine Nachricht
+geht ohne die Einwilligung hinaus. Ohne JavaScript stehen alle Schritte untereinander, jeder unter
+seinem Titel.
 
 ### Transport
 

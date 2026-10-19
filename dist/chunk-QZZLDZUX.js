@@ -683,7 +683,8 @@ function conditionsOf(fields) {
   const out = /* @__PURE__ */ new Map();
   for (const step of stepsOf(fields))
     for (const field of step.fields) {
-      const list = [step.condition, conditionOf(field)].filter((c) => !!c);
+      const fromStep = field.type === "hidden" ? void 0 : step.condition;
+      const list = [fromStep, conditionOf(field)].filter((c) => !!c);
       if (list.length) out.set(field.name, list);
     }
   return out;
@@ -1335,5 +1336,5 @@ function logHints(opts) {
 }
 
 export { __commonJS, __export, __require, __toESM, conditionOf, conditionsOf, defaultOptions, formatMessage, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-5U7LIGXF.js.map
-//# sourceMappingURL=chunk-5U7LIGXF.js.map
+//# sourceMappingURL=chunk-QZZLDZUX.js.map
+//# sourceMappingURL=chunk-QZZLDZUX.js.map

@@ -59,12 +59,18 @@ export function stepsOf(fields: FormField[]): Step[] {
  * its own `showIf`. Written once here and handed to the browser (clientConfig) and the relay
  * (relayData) alike, so both evaluate the same list - in form order, a field also inactive when a
  * field it depends on is.
+ *
+ * A hidden value takes no step's condition: it is the owner's mark ("source: web"), not the
+ * visitor's answer, and "hidden fields cannot be conditional" held only for its own showIf - one
+ * in a skipped step did not arrive (third review, N1, 2026-10-19). A consent field cannot stand
+ * in a conditional step at all (validate.ts, checkSteps).
  */
 export function conditionsOf(fields: FormField[]): Map<string, Condition[]> {
   const out = new Map<string, Condition[]>();
   for (const step of stepsOf(fields))
     for (const field of step.fields) {
-      const list = [step.condition, conditionOf(field)].filter((c): c is Condition => !!c);
+      const fromStep = field.type === "hidden" ? undefined : step.condition;
+      const list = [fromStep, conditionOf(field)].filter((c): c is Condition => !!c);
       if (list.length) out.set(field.name, list);
     }
   return out;
