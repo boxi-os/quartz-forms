@@ -138,11 +138,27 @@ function qfControlsOf(form: HTMLFormElement, name: string): Element[] {
 const QF_EMAIL = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/u;
 const QF_URL = /^https?:\/\/[^\s/?#]+(?:[/?#]\S*)?$/iu;
 const QF_TEL = /^\+?[0-9 ()./-]{5,}$/;
-const QF_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const QF_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+// Decimal notation only, as the relay reads it: Number() also took "0x5" and "Infinity".
+const QF_NUMBER = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i;
 
-/** One field against its rule; `null` when it passes. Mirrors what the relay checks. */
+/** A calendar day: the relay asks checkdate(), Date.parse() took February 30th. */
+function qfIsDay(value: string): boolean {
+  const m = QF_DATE.exec(value);
+  if (!m) return false;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const date = new Date(Date.UTC(y, mo - 1, d));
+  return date.getUTCFullYear() === y && date.getUTCMonth() === mo - 1 && date.getUTCDate() === d;
+}
+
+/**
+ * One field against its rule; `null` when it passes. The same rule as the relay's
+ * `qf_check_field`, measured against one catalog of cases (test/parity-cases.ts): trimmed first,
+ * line breaks as LF, length in UTF-16 units as the browser's maxlength counts them.
+ */
 function qfCheck(cfg: QfConfig, rule: QfRule, value: QfValue): string | null {
   const t = (key: string, values?: Record<string, string | number>) => qfText(cfg, key, values);
+  if (typeof value === "string") value = value.replace(/\r\n?/g, "\n").trim();
   const empty = Array.isArray(value) ? value.length === 0 : value === "";
   if (empty) {
     if (!rule.required) return null;
@@ -169,25 +185,28 @@ function qfCheck(cfg: QfConfig, rule: QfRule, value: QfValue): string | null {
       if (!QF_TEL.test(value)) return t("invalidTel");
       break;
     case "number": {
-      const n = Number(value.replace(",", "."));
-      if (!Number.isFinite(n)) return t("invalidNumber");
+      const decimal = value.replace(",", ".");
+      if (!QF_NUMBER.test(decimal)) return t("invalidNumber");
+      const n = Number(decimal);
       if (rule.min !== undefined && n < rule.min) return t("belowMin", { min: rule.min });
       if (rule.max !== undefined && n > rule.max) return t("aboveMax", { max: rule.max });
       break;
     }
     case "date":
-      if (!QF_DATE.test(value) || Number.isNaN(Date.parse(value))) return t("invalidDate");
+      if (!qfIsDay(value)) return t("invalidDate");
       break;
     case "scale": {
+      if (!/^-?\d+$/.test(value)) return t("chooseOne");
       const n = Number(value);
-      if (
-        !Number.isInteger(n) ||
-        (rule.min !== undefined && n < rule.min) ||
-        (rule.max !== undefined && n > rule.max)
-      )
+      if ((rule.min !== undefined && n < rule.min) || (rule.max !== undefined && n > rule.max))
         return t("chooseOne");
       break;
     }
+    case "checkbox":
+    case "consent":
+      // A tick is "yes" (qfValueOf); anything else is no tick.
+      if (value !== "yes") return t(rule.type === "consent" ? "consentRequired" : "required");
+      break;
     case "select":
     case "radio":
       if (rule.options && !rule.options.includes(value)) return t("chooseOne");

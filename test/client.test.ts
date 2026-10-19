@@ -9,6 +9,7 @@ import { makeContext } from "../src/render/context";
 import { renderForm } from "../src/render/form";
 import type { FormDefinition, QuartzFormsOptions } from "../src/types";
 import { contact, options } from "./helpers";
+import { parityCases, parityFields, type ParityOutcome } from "./parity-cases";
 
 /**
  * Runs the browser script the way Quartz does: compiled to plain JS, evaluated once, driven by
@@ -77,7 +78,8 @@ beforeAll(() => {
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.None },
   });
-  new Function(outputText)();
+  // The field check alone, for the parity catalog (the script keeps nothing on window itself).
+  new Function(`${outputText};window.__qfTest = { qfCheck };`)();
 });
 
 beforeEach(() => {
@@ -1042,5 +1044,40 @@ describe("the message as the recipient reads it", () => {
     expect(decodeURIComponent(url.split("&body=")[1]!)).toBe(
       "Topic: Bug report\nDays: Tuesday\n[ ] Send me news\n[x] I agree.\nMessage:\nhi",
     );
+  });
+});
+
+describe("parity with the relay", () => {
+  it("judges every case of the shared catalog as the relay does (test/parity-cases.ts)", async () => {
+    const form = mount({ recipient: "owner", fields: parityFields, ...quick });
+    await nav();
+    const cfg = JSON.parse(form.querySelector(".quartz-form-config")!.textContent!) as {
+      fields: { name: string }[];
+      texts: Record<string, string>;
+    };
+    const { qfCheck } = (
+      window as unknown as Record<string, { qfCheck: (...a: unknown[]) => string | null }>
+    ).__qfTest!;
+    const t = cfg.texts;
+    const judge = (message: string | null, max?: number): ParityOutcome => {
+      if (message === null) return "ok";
+      if (message === t.required || message === t.consentRequired) return "required";
+      if (max !== undefined && message === t.tooLong!.replace("{max}", String(max)))
+        return "too_long";
+      if (message === t.chooseOne || message === t.chooseAtLeastOne) return "not_an_option";
+      return "invalid";
+    };
+    const disagreements: string[] = [];
+    for (const c of parityCases) {
+      const rule = cfg.fields.find((f) => f.name === c.field) as { maxLength?: number };
+      const got = judge(qfCheck(cfg, rule, c.value), rule.maxLength);
+      const sameVerdict = (got === "ok") === (c.relay === "ok");
+      const sameCode = !["required", "too_long"].includes(c.relay) || got === c.relay;
+      if (!sameVerdict || !sameCode)
+        disagreements.push(
+          `${c.field} ${JSON.stringify(c.value)}: relay ${c.relay}, script ${got}`,
+        );
+    }
+    expect(disagreements).toEqual([]);
   });
 });

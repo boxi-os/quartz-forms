@@ -13,6 +13,8 @@ import YAML from "yaml";
 import { tmpDir } from "./keys";
 
 const root = path.resolve(__dirname, "..");
+import { parityCases, parityFields } from "./parity-cases";
+
 const ORIGIN = "https://site.test";
 const ARMOR = "-----BEGIN PGP MESSAGE-----\n\nabc\n-----END PGP MESSAGE-----";
 
@@ -126,6 +128,7 @@ const siteOptions = {
       pageContext: true,
       fields: [{ type: "text", name: "a", label: "A" }],
     },
+    parity: { recipient: "owner", fields: parityFields },
   },
 };
 
@@ -540,6 +543,22 @@ describe.skipIf(!php)("relay: refusals", () => {
     expect([challenge.status, challenge.json?.error]).toEqual([404, "unknown_form"]);
     const log = fs.readFileSync(path.join(dir, "php.log"), "utf8").slice(logBefore);
     expect(log.match(/Warning|Deprecated|Fatal|TypeError/g) ?? []).toEqual([]);
+  });
+  it("judges every case of the shared catalog as written there (test/parity-cases.ts); the script is measured against the same", async () => {
+    const disagreements: string[] = [];
+    for (const c of parityCases) {
+      const r = await post(env("parity", { req: "x", consent: "yes", [c.field]: c.value }));
+      const errors = errorsOf(r).filter((e) => e.field === c.field);
+      const got =
+        r.status === 200 && errors.length === 0
+          ? "ok"
+          : (errors[0]?.code ?? `status ${r.status} ${r.json?.error}`);
+      if (got !== c.relay)
+        disagreements.push(
+          `${c.field} ${JSON.stringify(c.value)}: expected ${c.relay}, got ${got}`,
+        );
+    }
+    expect(disagreements).toEqual([]);
   });
   it("fields: unknown, required, not an option, too long", async () => {
     const unknown = await post(env("feedback", { rating: "4", bogus: "1" }));

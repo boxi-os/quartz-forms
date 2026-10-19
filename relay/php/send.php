@@ -495,10 +495,32 @@ function qf_newlines(mixed $value): mixed
 // outside ASCII pass on both sides. FILTER_VALIDATE_EMAIL/URL refused `müller@münchen.de` and
 // `https://münchen.de`, which the page had accepted, and the visitor read "please use the
 // requested format" (review finding, 2026-10-19).
-const QF_EMAIL = '/^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/u';
-const QF_URL = '~^https?://[^\s/?#]+(?:[/?#]\S*)?$~iu';
+// (*UCP): `\s` means Unicode whitespace, as in JavaScript; without it PCRE counts ASCII only,
+// and an address with a no-break space passed here and was refused by the script.
+const QF_EMAIL = '/(*UCP)^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/u';
+const QF_URL = '~(*UCP)^https?://[^\s/?#]+(?:[/?#]\S*)?$~iu';
+// Decimal notation only, the same expression as the script's QF_NUMBER (is_numeric agreed, but
+// the script's Number() took "0x5", so both sides now read one rule).
+const QF_NUMBER = '/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i';
 
-/** One field against its rule; null when it passes. Same rules as the browser script. */
+/** Trimmed as JavaScript's trim() trims: Unicode whitespace too, not only ASCII. */
+function qf_trim(string $value): string
+{
+    return preg_replace('/(*UCP)^\s+|\s+$/u', '', $value) ?? trim($value);
+}
+
+/** Length as the browser's maxlength counts it: UTF-16 units, so an emoji counts two. */
+function qf_length(string $value): int
+{
+    return intdiv(strlen(mb_convert_encoding($value, 'UTF-16LE', 'UTF-8')), 2);
+}
+
+/**
+ * One field against its rule; null when it passes. The same rule as the script's qfCheck,
+ * measured against one catalog of cases (test/parity-cases.ts). Before the catalog the two
+ * sides parted on whitespace-only values, Unicode whitespace, the length of an emoji, "0x5" as a
+ * number, February 30th as a date and "3.0" on a scale (2026-10-19).
+ */
 function qf_check_field(array $rule, mixed $value): ?string
 {
     $type = $rule['type'];
@@ -536,16 +558,17 @@ function qf_check_field(array $rule, mixed $value): ?string
         // A form value is a string; `true` became "1" and passed as a scale's first step.
         return 'invalid';
     }
-    $value = trim($value ?? '');
+    $value = $value ?? '';
     if (!mb_check_encoding($value, 'UTF-8')) {
         // Only the plain-form path can deliver this (json_decode refuses it); preg_match would
         // answer false on it, which used to count as a pass.
         return 'invalid';
     }
+    $value = qf_trim($value);
     if ($value === '') {
         return !empty($rule['required']) ? 'required' : null;
     }
-    if (isset($rule['maxLength']) && mb_strlen($value) > (int) $rule['maxLength']) {
+    if (isset($rule['maxLength']) && qf_length($value) > (int) $rule['maxLength']) {
         return 'too_long';
     }
     switch ($type) {
@@ -566,7 +589,7 @@ function qf_check_field(array $rule, mixed $value): ?string
             break;
         case 'number':
             $n = str_replace(',', '.', $value);
-            if (!is_numeric($n)) {
+            if (preg_match(QF_NUMBER, $n) !== 1) {
                 return 'invalid';
             }
             if (isset($rule['min']) && (float) $n < (float) $rule['min']) {
@@ -577,7 +600,8 @@ function qf_check_field(array $rule, mixed $value): ?string
             }
             break;
         case 'date':
-            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) || strtotime($value) === false) {
+            // A calendar day: strtotime() took February 30th and month 00.
+            if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $d) || !checkdate((int) $d[2], (int) $d[3], (int) $d[1])) {
                 return 'invalid';
             }
             break;

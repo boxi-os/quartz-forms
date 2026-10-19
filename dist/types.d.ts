@@ -112,7 +112,10 @@ interface InputField {
     step?: number;
     /** Rows of a `textarea`. */
     rows?: number;
-    /** Maximum length in characters; default from the spam settings. */
+    /**
+     * Maximum length, counted as the browser's `maxlength` counts (UTF-16 units: an emoji is two),
+     * after trimming; default from the spam settings.
+     */
     maxLength?: number;
 }
 interface ChoiceOption {

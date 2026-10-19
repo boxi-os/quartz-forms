@@ -160,6 +160,16 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   a mailto form they went into the mail body. The extra fields now render only for an
   `endpoint` and the services, and the build says that they have no effect with the relay or
   mailto.
+- The browser script and the relay check a field by "the same rule", but no test held them to
+  it. A shared catalog of edge cases (`test/parity-cases.ts`) now runs against `qfCheck` in the
+  client suite and against `qf_check_field` in the relay suite. It found the two sides parting
+  on twelve values: the script accepted a whitespace-only required field, "0x5" as a number,
+  "3.0" on a scale and a wrong tick value, and counted an emoji as two characters where the
+  relay counted one; the relay accepted February 30th and month 00 (`strtotime`), refused an
+  address with a trailing Unicode space the script trimmed, and read `\s` as ASCII whitespace
+  only. Both now trim Unicode whitespace, count length in UTF-16 units as the browser's
+  `maxlength` does, read numbers in decimal notation only, ask for a calendar day, take digits
+  only on a scale, and know a tick as "yes".
 
 ## [0.1.1] - 2026-10-19
 
