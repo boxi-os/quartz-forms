@@ -139,7 +139,11 @@ export function resolveOptions(userOpts?: Partial<QuartzFormsOptions>): Resolved
     hints: [],
   };
 
-  const { problems, hints } = validate(resolved, rawForms);
+  const { problems, hints } = validate(
+    resolved,
+    rawForms,
+    isObject(user.spam) ? withoutNulls(user.spam) : {},
+  );
   resolved.problems = problems;
   resolved.hints = hints;
   return resolved;

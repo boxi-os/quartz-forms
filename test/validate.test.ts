@@ -339,6 +339,30 @@ describe("validate: transport, encryption, spam, success", () => {
     expect(
       resolveOptions(options({ spam: { pow: true, noScript: false } as never })).hints,
     ).toEqual([]);
+    // Finding 4 of the second review (2026-10-19): the stamp too comes only from the script, so
+    // a plain post skips the time trap as well. The default (3 s, noScript) is documented and
+    // says nothing; a minSeconds the owner wrote, globally or for the form, is said.
+    expect(resolveOptions(options()).hints).toEqual([]);
+    expect(resolveOptions(options({ spam: { minSeconds: 10 } as never })).hints).toEqual([
+      "forms.contact.spam.minSeconds: a plain post without JavaScript (noScript: true) carries no stamp and skips it; noScript: false requires the script",
+    ]);
+    expect(
+      resolveOptions(options({ forms: { contact: contact({ spam: { minSeconds: 10 } }) } })).hints,
+    ).toEqual([
+      "forms.contact.spam.minSeconds: a plain post without JavaScript (noScript: true) carries no stamp and skips it; noScript: false requires the script",
+    ]);
+    expect(
+      resolveOptions(options({ spam: { minSeconds: 10, noScript: false } as never })).hints,
+    ).toEqual([]);
+    expect(resolveOptions(options({ spam: { minSeconds: 0 } as never })).hints).toEqual([]);
+    expect(
+      resolveOptions(
+        options({
+          transport: { kind: "endpoint", url: "https://e.example/x" },
+          spam: { minSeconds: 10 } as never,
+        }),
+      ).hints,
+    ).toEqual([]);
     const anonCaptcha = resolveOptions(
       options({
         spam: { captcha: "hcaptcha", captchaSiteKey: "k" } as never,

@@ -887,6 +887,8 @@ describe.skipIf(!php)("relay: accepted submissions and their mail", () => {
 
 describe.skipIf(!php)("relay: a browser without JavaScript (plain form post)", () => {
   it("redirects to the site's thank-you page: absolute, with the request's origin and the base path", async () => {
+    // Neither stamp nor proof: the plain post passes the time trap and the proof of work of this
+    // form by design (finding 4 of the second review, 2026-10-19; the build says so).
     const r = await plain({ form: "contact", lang: "de-DE", ...contactFields });
     expect(r.status).toBe(303);
     expect(r.headers.get("location")).toBe(`${ORIGIN}/site/danke`);

@@ -198,6 +198,13 @@ Fixes from a second review of the changes above (another model, fresh context, 2
   `send.php` does and stops at one PCRE cannot read, such as `\p{Assigned}`, naming PCRE's
   reason, or says that no `php` was there to check (`--skip-pattern-check` writes the config
   anyway, for a host whose PCRE is newer).
+- The time trap holds only the script's post: a plain form post without JavaScript carries no
+  stamp, and with `noScript: true` (the default) the relay accepts it without one, so a bot that
+  posts urlencoded walks past `minSeconds` (honeypot, rate limit and field checks remain). The
+  build said so for `pow: true` since the first review, not for the time trap, and the options
+  table called `minSeconds` "measured by the relay" without the caveat. The build now says so
+  for a `minSeconds` written globally or on a form (the default of 3 s is documented and stays
+  quiet), and the table says on which posts the relay measures.
 
 ## [0.1.1] - 2026-10-19
 

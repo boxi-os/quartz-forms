@@ -6,6 +6,7 @@ import type {
   PgpKeySource,
   ResolvedForm,
   ResolvedOptions,
+  SpamConfig,
   Text,
 } from "./types";
 import { availableLocales, textKeys } from "./i18n";
@@ -315,7 +316,13 @@ export function submissionCapacity(form: ResolvedForm): number {
   return form.encryption.mode === "off" ? bytes : Math.ceil((bytes * 4) / 3) + 1024;
 }
 
-function checkForm(form: ResolvedForm, raw: FormDefinition, keyNames: string[], out: Validation) {
+function checkForm(
+  form: ResolvedForm,
+  raw: FormDefinition,
+  rawSpam: Partial<SpamConfig>,
+  keyNames: string[],
+  out: Validation,
+) {
   const at = `forms.${form.id}`;
   if (!FORM_ID.test(form.id))
     out.problems.push(`${at}: form id must match ${FORM_ID} (lower-case letters, digits, -)`);
@@ -425,11 +432,21 @@ function checkForm(form: ResolvedForm, raw: FormDefinition, keyNames: string[], 
     if (sp.pow) out.hints.push(`${at}.spam.pow: has no effect without the relay`);
     if (sp.rateLimitPerHour > 0 && raw.spam?.rateLimitPerHour !== undefined)
       out.hints.push(`${at}.spam.rateLimitPerHour: has no effect without the relay`);
-  } else if (sp.pow && sp.noScript) {
-    // Only the script supplies a proof, so a plain post walks past it (review finding 5c).
-    out.hints.push(
-      `${at}.spam.pow: a plain post without JavaScript (noScript: true) skips it; noScript: false requires the script`,
-    );
+  } else if (sp.noScript) {
+    // Only the script supplies a proof and a stamp, so a plain post walks past both (review
+    // finding 5c; finding 4 of the second review, 2026-10-19). The default time trap is
+    // documented and says nothing; a minSeconds the owner wrote, globally or here, is said.
+    if (sp.pow)
+      out.hints.push(
+        `${at}.spam.pow: a plain post without JavaScript (noScript: true) skips it; noScript: false requires the script`,
+      );
+    if (
+      sp.minSeconds > 0 &&
+      (raw.spam?.minSeconds !== undefined || rawSpam.minSeconds !== undefined)
+    )
+      out.hints.push(
+        `${at}.spam.minSeconds: a plain post without JavaScript (noScript: true) carries no stamp and skips it; noScript: false requires the script`,
+      );
   }
   if (sp.pow && tr.kind === "relay" && sp.powDifficulty >= 18 && sp.powDifficulty <= 20)
     out.hints.push(
@@ -469,7 +486,11 @@ function checkForm(form: ResolvedForm, raw: FormDefinition, keyNames: string[], 
     out.problems.push(`${at}.success.slug: redirect needs the slug of a page`);
 }
 
-export function validate(opts: ResolvedOptions, rawForms: Record<string, unknown>): Validation {
+export function validate(
+  opts: ResolvedOptions,
+  rawForms: Record<string, unknown>,
+  rawSpam: Partial<SpamConfig> = {},
+): Validation {
   const out: Validation = { problems: [], hints: [] };
   const keyNames = Object.keys(opts.keys);
 
@@ -477,7 +498,7 @@ export function validate(opts: ResolvedOptions, rawForms: Record<string, unknown
 
   for (const form of Object.values(opts.forms)) {
     const raw = rawForms[form.id];
-    checkForm(form, isObject(raw) ? (raw as FormDefinition) : {}, keyNames, out);
+    checkForm(form, isObject(raw) ? (raw as FormDefinition) : {}, rawSpam, keyNames, out);
   }
 
   if (!LANGUAGE_OPTION.test(opts.language))

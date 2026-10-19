@@ -824,7 +824,7 @@ function submissionCapacity(form) {
   const bytes = chars * 3 + 1024;
   return form.encryption.mode === "off" ? bytes : Math.ceil(bytes * 4 / 3) + 1024;
 }
-function checkForm(form, raw, keyNames, out) {
+function checkForm(form, raw, rawSpam, keyNames, out) {
   const at = `forms.${form.id}`;
   if (!FORM_ID.test(form.id))
     out.problems.push(`${at}: form id must match ${FORM_ID} (lower-case letters, digits, -)`);
@@ -920,10 +920,15 @@ function checkForm(form, raw, keyNames, out) {
     if (sp.pow) out.hints.push(`${at}.spam.pow: has no effect without the relay`);
     if (sp.rateLimitPerHour > 0 && raw.spam?.rateLimitPerHour !== void 0)
       out.hints.push(`${at}.spam.rateLimitPerHour: has no effect without the relay`);
-  } else if (sp.pow && sp.noScript) {
-    out.hints.push(
-      `${at}.spam.pow: a plain post without JavaScript (noScript: true) skips it; noScript: false requires the script`
-    );
+  } else if (sp.noScript) {
+    if (sp.pow)
+      out.hints.push(
+        `${at}.spam.pow: a plain post without JavaScript (noScript: true) skips it; noScript: false requires the script`
+      );
+    if (sp.minSeconds > 0 && (raw.spam?.minSeconds !== void 0 || rawSpam.minSeconds !== void 0))
+      out.hints.push(
+        `${at}.spam.minSeconds: a plain post without JavaScript (noScript: true) carries no stamp and skips it; noScript: false requires the script`
+      );
   }
   if (sp.pow && tr.kind === "relay" && sp.powDifficulty >= 18 && sp.powDifficulty <= 20)
     out.hints.push(
@@ -955,13 +960,13 @@ function checkForm(form, raw, keyNames, out) {
   if (form.success.mode === "redirect" && !form.success.slug)
     out.problems.push(`${at}.success.slug: redirect needs the slug of a page`);
 }
-function validate(opts, rawForms) {
+function validate(opts, rawForms, rawSpam = {}) {
   const out = { problems: [], hints: [] };
   const keyNames = Object.keys(opts.keys);
   for (const [name2, src] of Object.entries(opts.keys)) checkKeySource(name2, src, out);
   for (const form of Object.values(opts.forms)) {
     const raw = rawForms[form.id];
-    checkForm(form, isObject(raw) ? raw : {}, keyNames, out);
+    checkForm(form, isObject(raw) ? raw : {}, rawSpam, keyNames, out);
   }
   if (!LANGUAGE_OPTION.test(opts.language))
     out.problems.push(`language: "${opts.language}" is neither auto nor a language code`);
@@ -1092,7 +1097,11 @@ function resolveOptions(userOpts) {
     problems: [],
     hints: []
   };
-  const { problems, hints } = validate(resolved, rawForms);
+  const { problems, hints } = validate(
+    resolved,
+    rawForms,
+    isObject2(user.spam) ? withoutNulls(user.spam) : {}
+  );
   resolved.problems = problems;
   resolved.hints = hints;
   return resolved;
@@ -4268,5 +4277,5 @@ var FormBox_default = ((userOpts) => {
 });
 
 export { FormBox_default, Forms, defaultOptions, loadKeySources, logHints, resolveOptions, resolveOrThrow, resolveText, templateNames, templateOf, warnOnce };
-//# sourceMappingURL=chunk-L4FA7E54.js.map
-//# sourceMappingURL=chunk-L4FA7E54.js.map
+//# sourceMappingURL=chunk-KIVP73YE.js.map
+//# sourceMappingURL=chunk-KIVP73YE.js.map
