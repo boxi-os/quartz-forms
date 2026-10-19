@@ -294,7 +294,10 @@ Jeder Satz, den quartz-forms zeigt, kommt aus `src/i18n/locales/` (`en-US`, `de-
 je Sprache ersetzen: `texts: { de: { submit: "Abschicken" } }`. Schlüssel sind die von `en-US.ts`;
 `{name}`-Platzhalter füllt der Code. Die deutschen Texte und Vorlagen duzen die Besucher. Wer
 siezen will, ersetzt die Sätze über `texts` und schreibt eigene `fields`; die Seite des Relays für
-einen Post ohne JavaScript hat ihre eigenen Sätze und duzt weiter.
+einen Post ohne JavaScript hat ihre eigenen Sätze und duzt weiter. Auch die Nachricht selbst steht
+in der Sprache der Seite, samt ihrer zwei Zeilen vom Plugin (`messagePage`, `messageKey`); in einer
+Mail, die das Relay für einen Post ohne JavaScript schreibt, sind das die Sätze des Plugins, nicht
+die aus `texts`.
 
 ## Das Relay
 

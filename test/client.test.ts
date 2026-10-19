@@ -635,6 +635,7 @@ describe("sending", () => {
       contact({
         ...quick,
         success: { mode: "redirect", slug: "thanks" },
+        pageContext: true,
         fields: [
           { type: "text", name: "name", label: "Name" },
           { type: "textarea", name: "message", label: "Message", required: true },
@@ -657,7 +658,10 @@ describe("sending", () => {
       text: "Nichts wurde gesendet. So wäre die Nachricht angekommen:",
     });
     const output = form.querySelector<HTMLElement>(".quartz-form__demo")!;
-    expect(output.textContent).toBe("Name: Ada\nMessage:\nZeile eins\nZeile zwei");
+    // The plugin's own line in the page's language, like the labels (it was English until 0.5.4).
+    expect(output.textContent).toBe(
+      "Name: Ada\nMessage:\nZeile eins\nZeile zwei\n\nSeite: Page (docs/page)",
+    );
     expect(form.querySelector<HTMLElement>(".quartz-form__fields")!.hidden).toBe(true);
 
     const again = form.querySelector<HTMLButtonElement>(".quartz-form__demo-again")!;

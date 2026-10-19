@@ -823,7 +823,7 @@ describe.skipIf(!php)("relay: refusals", () => {
     }
     expect(mails().length).toBe(before);
     expect((await post(env("tagged", { note: "hi", key: pub }))).json).toEqual({ ok: true });
-    expect(lastMail().body).toContain("Public key of the sender:");
+    expect(lastMail().body).toContain("Öffentlicher Schlüssel des Absenders:");
   });
   it("proof of work: missing, unsolved or forged is refused before the fields are looked at", async () => {
     const bad = { ...contactFields, email: "not-an-address" };
@@ -1154,7 +1154,8 @@ describe.skipIf(!php)("relay: accepted submissions and their mail", () => {
     );
     expect(r.json).toEqual({ ok: true });
     const { headers, body } = lastMail();
-    expect(body).toContain("Page: site/feedback");
+    // the plugin's own line in the submission's language (de-DE here); English until 0.5.4
+    expect(body).toContain("Seite: site/feedback");
     expect(body).toContain("Gute Seite");
     expect(headers).not.toContain("Reply-To");
   });
@@ -1169,16 +1170,17 @@ describe.skipIf(!php)("relay: accepted submissions and their mail", () => {
       ),
     );
     expect(r.json).toEqual({ ok: true });
-    expect(lastMail().body).toContain("Page: Feed back page (site/feedback)");
+    expect(lastMail().body).toContain("Seite: Feed back page (site/feedback)");
     const noScript = await plain({
       form: "feedback",
-      lang: "de-DE",
+      lang: "en",
       rating: "5",
       page: "site/feedback",
       pageTitle: "Feedback",
     });
     expect(noScript.status).toBe(200); // no success slug: the relay's own "sent" page
     expect(lastMail().body).toContain("Page: Feedback (site/feedback)");
+    expect(lastMail().body).not.toContain("Seite:");
     expect(lastMail().body).not.toContain("pageTitle");
   });
   it("an encrypted message carries its page inside the ciphertext only: nothing is written beside the armor", async () => {

@@ -25,11 +25,12 @@ const QF_SECRET_MIN_LENGTH = 32;
 $config = require __DIR__ . '/config.php';
 header_remove('X-Powered-By');
 
-/** The two sentences the no-JavaScript answer page needs, in the submission's language. */
 /**
- * The words of the page a browser without JavaScript gets. The field sentences are a copy of
- * the plugin's `src/i18n/locales/*.ts`, under the same keys; `test/text.test.ts` holds the copy
- * to the original. Keys the locales do not have are this page's own.
+ * The words of the page a browser without JavaScript gets, and the two lines of the plugin's own
+ * in the message (`messagePage`, `messageKey`). Every sentence the locales have is a copy of the
+ * plugin's `src/i18n/locales/*.ts`, under the same key; `test/text.test.ts` holds the copy to the
+ * original. Keys the locales do not have are this page's own. A site's own wording
+ * (`options.texts`) does not reach the relay: these are the plugin's defaults.
  */
 function qf_words(string $lang): array
 {
@@ -52,6 +53,8 @@ function qf_words(string $lang): array
         'consentRequired' => 'Bitte stimme vor dem Senden zu.',
         'keyInvalid' => 'Das ist kein öffentlicher PGP-Schlüssel.',
         'malformed' => 'Dieser Wert konnte nicht gelesen werden.',
+        'messagePage' => 'Seite: {page}',
+        'messageKey' => 'Öffentlicher Schlüssel des Absenders:',
     ];
     $en = [
         'sentTitle' => 'Sent',
@@ -72,6 +75,8 @@ function qf_words(string $lang): array
         'consentRequired' => 'Please agree before sending.',
         'keyInvalid' => 'This is not a PGP public key.',
         'malformed' => 'This value could not be read.',
+        'messagePage' => 'Page: {page}',
+        'messageKey' => 'Public key of the sender:',
     ];
     return str_starts_with(strtolower($lang), 'de') ? $de : $en;
 }
@@ -1056,13 +1061,15 @@ function qf_serialize(array $formCfg, array $fields, string $lang, ?array $page)
         }
         $lines[] = $rule['type'] === 'textarea' ? "$label:\n$shown" : "$label: $shown";
     }
+    // The plugin's own two lines in the submission's language, as the browser writes them.
+    $words = qf_words($lang);
     if ($page !== null) {
         $lines[] = '';
-        $lines[] = 'Page: ' . ($page['title'] !== '' ? $page['title'] . ' (' . $page['slug'] . ')' : $page['slug']);
+        $lines[] = str_replace('{page}', $page['title'] !== '' ? $page['title'] . ' (' . $page['slug'] . ')' : $page['slug'], $words['messagePage']);
     }
     if ($key !== null) {
         $lines[] = '';
-        $lines[] = 'Public key of the sender:';
+        $lines[] = $words['messageKey'];
         $lines[] = $key;
     }
     return implode("\n", $lines);

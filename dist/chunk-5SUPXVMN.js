@@ -557,6 +557,8 @@ var en_US_default = {
   demoSent: "Nothing was sent. This is the message as it would have arrived:",
   demoSentEncrypted: "Nothing was sent. This is the message as it would have arrived, encrypted in your browser:",
   demoAgain: "Try again",
+  messagePage: "Page: {page}",
+  messageKey: "Public key of the sender:",
   errorSummary: "Please check {count} field(s).",
   errorSummaryOne: "Please check one field.",
   onlyWhen: "Only needed if \u201C{field}\u201D is {values}.",
@@ -623,6 +625,8 @@ var deDE = {
   demoSent: "Nichts wurde gesendet. So w\xE4re die Nachricht angekommen:",
   demoSentEncrypted: "Nichts wurde gesendet. So w\xE4re die Nachricht angekommen, in deinem Browser verschl\xFCsselt:",
   demoAgain: "Noch einmal",
+  messagePage: "Seite: {page}",
+  messageKey: "\xD6ffentlicher Schl\xFCssel des Absenders:",
   errorSummary: "Bitte pr\xFCfe {count} Felder.",
   errorSummaryOne: "Bitte pr\xFCfe ein Feld.",
   onlyWhen: "Nur n\xF6tig, wenn bei \u201E{field}\u201C {values} gew\xE4hlt ist.",
@@ -1373,5 +1377,5 @@ function logHints(opts) {
 }
 
 export { __commonJS, __export, __require, __toESM, conditionOf, conditionsOf, defaultOptions, formatMessage, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-SZJZMQHM.js.map
-//# sourceMappingURL=chunk-SZJZMQHM.js.map
+//# sourceMappingURL=chunk-5SUPXVMN.js.map
+//# sourceMappingURL=chunk-5SUPXVMN.js.map

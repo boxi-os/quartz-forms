@@ -57,6 +57,8 @@ const deDE: Translation = {
   demoSentEncrypted:
     "Nichts wurde gesendet. So wäre die Nachricht angekommen, in deinem Browser verschlüsselt:",
   demoAgain: "Noch einmal",
+  messagePage: "Seite: {page}",
+  messageKey: "Öffentlicher Schlüssel des Absenders:",
   errorSummary: "Bitte prüfe {count} Felder.",
   errorSummaryOne: "Bitte prüfe ein Feld.",
   onlyWhen: "Nur nötig, wenn bei „{field}“ {values} gewählt ist.",

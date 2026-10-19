@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed: `relay` created `config.php` with a fresh secret readable for everyone (0644) when no
   operator values were given, and an existing `config.php` kept its mode when the operator values
   overwrote it. Both now end at 0600, as the README already said.
+- Fixed: the message's lines `Page: …` and `Public key of the sender:` were English on a German
+  page while the labels around them were German. They are text keys now (`messagePage`,
+  `messageKey`), in the browser and in the relay.
 
 ## [0.5.3] - 2026-10-19
 

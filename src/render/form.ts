@@ -630,6 +630,8 @@ export function clientConfig(form: ResolvedForm, ctx: RenderContext): ClientConf
       demoSent: t.demoSent,
       demoSentEncrypted: t.demoSentEncrypted,
       demoAgain: t.demoAgain,
+      messagePage: t.messagePage,
+      messageKey: t.messageKey,
     },
   };
 }

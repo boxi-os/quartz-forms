@@ -368,8 +368,13 @@ function qfSerialize(cfg: QfConfig, values: Record<string, QfValue>): string {
     if (shown === "" && !rule.required) continue;
     lines.push(rule.type === "textarea" ? `${rule.label}:\n${shown}` : `${rule.label}: ${shown}`);
   }
-  if (cfg.page) lines.push("", `Page: ${cfg.page.title} (${cfg.page.slug})`);
-  if (key) lines.push("", "Public key of the sender:", key);
+  // The two lines of the plugin's own in the page's language, like the labels; send.php writes
+  // them the same way for a post without JavaScript.
+  if (cfg.page) {
+    const { title, slug } = cfg.page;
+    lines.push("", qfText(cfg, "messagePage", { page: title ? `${title} (${slug})` : slug }));
+  }
+  if (key) lines.push("", qfText(cfg, "messageKey"), key);
   return lines.join("\n");
 }
 

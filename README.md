@@ -282,6 +282,9 @@ replaced per locale: `texts: { de: { submit: "Abschicken" } }`. Keys are those o
 `{name}` placeholders are filled by the code. The German texts and templates address the visitor
 informally (du). For the formal Sie, replace the sentences through `texts` and write your own
 `fields`; the relay's page for a post without JavaScript keeps its own sentences, which say du.
+The message itself is written in the page's language too, including its two lines of the
+plugin's own (`messagePage`, `messageKey`); in a mail the relay writes for a post without
+JavaScript they are the plugin's defaults, not those from `texts`.
 
 ## The relay
 
