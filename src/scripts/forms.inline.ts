@@ -393,36 +393,104 @@ async function qfCheckVisitorKey(
   if (status) status.textContent = accepted ?? "";
 }
 
-/* ---- Third-party captcha: loaded once per page, only when a form on it asks for one ---- */
+/* ---- Third-party captcha: the provider's script once per page life, one widget per form ---- */
 
+// Both providers render implicitly only the containers that are in the DOM when their script
+// runs. A page reached by Quartz' SPA navigation brings a fresh, empty container, and the script
+// (re-added after Quartz patched the head) only warns that it is already loaded: no widget, no
+// token, the check can never be passed (review finding 8, measured in Chrome with the Turnstile
+// test key, 2026-10-19). Hence explicit rendering: the script loads once with `render=explicit`
+// and `data-persist`, which Quartz keeps in the head across navigations, and every bound form
+// renders its own widget and removes it with its cleanup.
 const QF_CAPTCHA_SCRIPTS: Record<string, string> = {
-  turnstile: "https://challenges.cloudflare.com/turnstile/v0/api.js",
-  hcaptcha: "https://js.hcaptcha.com/1/api.js",
+  turnstile: "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit",
+  hcaptcha: "https://js.hcaptcha.com/1/api.js?render=explicit",
 };
 
-function qfLoadCaptcha(provider: string): void {
-  const src = QF_CAPTCHA_SCRIPTS[provider];
-  if (!src) return;
-  if (document.querySelector(`script[src="${src}"]`)) return;
-  const script = document.createElement("script");
-  script.src = src;
-  script.async = true;
-  script.defer = true;
-  document.head.appendChild(script);
+interface QfCaptchaApi {
+  render(container: HTMLElement, options: Record<string, unknown>): string;
+  reset(widgetId?: string): void;
+  remove(widgetId?: string): void;
+  getResponse?(widgetId?: string): string | undefined;
 }
 
-/** The token the widget wrote into the form; both providers add a hidden input. */
+/** The widget each bound form shows, by the id its provider gave it. */
+const qfCaptchaWidgets = new WeakMap<HTMLFormElement, string>();
+
+function qfCaptchaApi(provider: string): QfCaptchaApi | undefined {
+  return (window as unknown as Record<string, QfCaptchaApi | undefined>)[provider];
+}
+
+/** Resolves with the provider's API once its script has run, with null when it cannot load. */
+function qfLoadCaptcha(provider: string): Promise<QfCaptchaApi | null> {
+  const src = QF_CAPTCHA_SCRIPTS[provider];
+  if (!src) return Promise.resolve(null);
+  const loaded = qfCaptchaApi(provider);
+  if (loaded) return Promise.resolve(loaded);
+  return new Promise((resolve) => {
+    let script = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`);
+    if (!script) {
+      script = document.createElement("script");
+      script.src = src;
+      script.async = true;
+      script.defer = true;
+      script.dataset.persist = "";
+      document.head.appendChild(script);
+    }
+    script.addEventListener("error", () => resolve(null));
+    // After `load` the script has run and its API is there; `turnstile.ready()` is not used,
+    // it throws for a script tag with async/defer (measured in Chrome, 2026-10-19).
+    script.addEventListener("load", () => resolve(qfCaptchaApi(provider) ?? null));
+  });
+}
+
+/** Renders the form's widget as soon as the provider is there, and removes it with the cleanup. */
+function qfMountCaptcha(form: HTMLFormElement, provider: string): void {
+  const container = form.querySelector<HTMLElement>(".quartz-form__captcha");
+  if (!container) return;
+  let gone = false;
+  void qfLoadCaptcha(provider).then((api) => {
+    if (!api || gone || !container.isConnected) return;
+    container.replaceChildren();
+    try {
+      const id = api.render(container, { sitekey: container.dataset.sitekey ?? "" });
+      qfCaptchaWidgets.set(form, id);
+    } catch {
+      // the provider refused the container; the visitor is asked to complete the check
+    }
+  });
+  window.addCleanup(() => {
+    gone = true;
+    const id = qfCaptchaWidgets.get(form);
+    qfCaptchaWidgets.delete(form);
+    if (id === undefined) return;
+    try {
+      qfCaptchaApi(provider)?.remove(id);
+    } catch {
+      // the widget is already gone
+    }
+  });
+}
+
+/** The token the widget wrote into the form (both providers add a hidden field), else asked for. */
 function qfCaptchaToken(form: HTMLFormElement, provider: string): string {
   const name = provider === "turnstile" ? "cf-turnstile-response" : "h-captcha-response";
   const el = form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement | null;
-  return el ? String(el.value ?? "") : "";
+  const written = el ? String(el.value ?? "") : "";
+  if (written) return written;
+  const id = qfCaptchaWidgets.get(form);
+  try {
+    return (id !== undefined && qfCaptchaApi(provider)?.getResponse?.(id)) || "";
+  } catch {
+    return "";
+  }
 }
 
-function qfResetCaptcha(provider: string): void {
-  const w = window as unknown as { turnstile?: { reset(): void }; hcaptcha?: { reset(): void } };
+function qfResetCaptcha(form: HTMLFormElement, provider: string): void {
+  const id = qfCaptchaWidgets.get(form);
+  if (id === undefined) return;
   try {
-    if (provider === "turnstile") w.turnstile?.reset();
-    else if (provider === "hcaptcha") w.hcaptcha?.reset();
+    qfCaptchaApi(provider)?.reset(id);
   } catch {
     // the widget is not there yet
   }
@@ -642,7 +710,7 @@ function qfBind(form: HTMLFormElement): void {
     encryptToggle.checked = true;
   }
   if (cfg.encryption.mode !== "off") void qfShowFingerprint(form, cfg);
-  if (cfg.spam.captcha !== "none" && !cfg.anonymous) qfLoadCaptcha(cfg.spam.captcha);
+  if (cfg.spam.captcha !== "none" && !cfg.anonymous) qfMountCaptcha(form, cfg.spam.captcha);
 
   const onBlur = (event: Event) => {
     const target = event.target as HTMLElement | null;
@@ -719,7 +787,7 @@ function qfBind(form: HTMLFormElement): void {
         }
       }
       const result = await qfSend(cfg, values, ciphertext, captchaToken, ticket);
-      if (!result.ok && cfg.spam.captcha !== "none") qfResetCaptcha(cfg.spam.captcha);
+      if (!result.ok && cfg.spam.captcha !== "none") qfResetCaptcha(form, cfg.spam.captcha);
       if (result.ok) {
         qfFinish(form, cfg, encrypt);
         return;

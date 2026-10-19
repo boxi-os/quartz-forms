@@ -591,22 +591,41 @@ describe("proof of work", () => {
   });
 });
 
+/** A stand-in for the provider's API (`window.turnstile` / `window.hcaptcha`). */
+function fakeProvider() {
+  let n = 0;
+  return {
+    render: vi.fn((_el: HTMLElement, _opts: unknown) => `w${++n}`),
+    reset: vi.fn(),
+    remove: vi.fn(),
+    getResponse: vi.fn(() => ""),
+  };
+}
+const turnstileForm = (siteKey = "site-key") =>
+  contact({ ...quick, spam: { minSeconds: 0, captcha: "turnstile", captchaSiteKey: siteKey } });
+
 describe("captcha", () => {
-  it("loads the provider script once, refuses to send without a token and sends the token along", async () => {
-    const form = mount(
-      contact({
-        ...quick,
-        spam: { minSeconds: 0, captcha: "turnstile", captchaSiteKey: "site-key" },
-      }),
-    );
+  afterEach(() => {
+    delete (window as unknown as { turnstile?: unknown }).turnstile;
+    delete (window as unknown as { hcaptcha?: unknown }).hcaptcha;
+    document.head.querySelectorAll("script").forEach((s) => s.remove());
+  });
+
+  it("loads the provider script once, explicitly and persisted, and renders the widget when it arrives", async () => {
+    const form = mount(turnstileForm());
     expect(
       form.querySelector(".quartz-form__captcha.cf-turnstile")?.getAttribute("data-sitekey"),
     ).toBe("site-key");
     await nav();
-    const scripts = document.head.querySelectorAll(
-      'script[src="https://challenges.cloudflare.com/turnstile/v0/api.js"]',
+    const scripts = document.head.querySelectorAll<HTMLScriptElement>(
+      'script[src^="https://challenges.cloudflare.com"]',
     );
     expect(scripts.length).toBe(1);
+    // Explicit rendering, and Quartz keeps the element in the head across SPA navigations.
+    expect(scripts[0]!.src).toBe(
+      "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit",
+    );
+    expect(scripts[0]!.hasAttribute("data-persist")).toBe(true);
     await nav();
     expect(
       document.head.querySelectorAll('script[src^="https://challenges.cloudflare.com"]').length,
@@ -616,6 +635,17 @@ describe("captcha", () => {
     await submit(form);
     expect(fetchMock).not.toHaveBeenCalled();
     expect(status(form).text).toBe("Please complete the check below before sending.");
+
+    // The script arrives: the one bound form gets one widget, in its container, with its key.
+    const turnstile = fakeProvider();
+    (window as unknown as { turnstile: unknown }).turnstile = turnstile;
+    scripts[0]!.dispatchEvent(new Event("load"));
+    await tick();
+    expect(turnstile.render).toHaveBeenCalledTimes(1);
+    expect(turnstile.render.mock.calls[0]).toEqual([
+      form.querySelector(".quartz-form__captcha"),
+      { sitekey: "site-key" },
+    ]);
 
     // the widget writes its token into a hidden input inside the container
     const token = document.createElement("input");
@@ -627,7 +657,44 @@ describe("captcha", () => {
     await submit(form);
     const body = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
     expect(body.captcha).toBe("tok-123");
-    document.head.querySelectorAll("script").forEach((s) => s.remove());
+  });
+
+  it("renders a widget on a page reached by SPA navigation, removes the old one and resets after a failed send", async () => {
+    // Review finding 8 (2026-10-19): with implicit rendering the provider rendered only the
+    // containers present when its script ran; the form of the next page stayed without a widget
+    // (measured in Chrome: empty container, "complete the check" for ever).
+    const turnstile = fakeProvider();
+    (window as unknown as { turnstile: unknown }).turnstile = turnstile;
+    const a = mount(turnstileForm());
+    await nav();
+    expect(turnstile.render).toHaveBeenCalledTimes(1);
+    expect(turnstile.render.mock.calls[0]![0]).toBe(a.querySelector(".quartz-form__captcha"));
+    // No second script: the provider is already there.
+    expect(document.head.querySelectorAll('script[src^="https://challenges"]').length).toBe(0);
+
+    const b = mount(turnstileForm("other-key"));
+    await nav();
+    expect(turnstile.remove).toHaveBeenCalledWith("w1");
+    expect(turnstile.render).toHaveBeenCalledTimes(2);
+    expect(turnstile.render.mock.calls[1]).toEqual([
+      b.querySelector(".quartz-form__captcha"),
+      { sitekey: "other-key" },
+    ]);
+
+    fill(b, "message", "x");
+    await submit(b);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(status(b).text).toBe("Please complete the check below before sending.");
+
+    // Without a hidden field, the token is asked from the provider for this form's widget.
+    turnstile.getResponse.mockImplementation(((id: string) =>
+      id === "w2" ? "tok-b" : "") as never);
+    fetchMock.mockResolvedValueOnce(ok({ ok: false, error: "captcha" }, { status: 400 }));
+    await submit(b);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
+    expect(body.captcha).toBe("tok-b");
+    expect(turnstile.reset).toHaveBeenCalledWith("w2");
   });
 
   it("renders no widget and loads no script for an anonymous form", async () => {
@@ -671,7 +738,6 @@ describe("captcha", () => {
     expect(url).toBe("https://formspree.io/f/abc");
     expect(JSON.parse(String(init.body))["h-captcha-response"]).toBe("h-tok");
     expect(errorOf(form, "message")).toBe("should be text");
-    document.head.querySelectorAll("script").forEach((s) => s.remove());
   });
 });
 

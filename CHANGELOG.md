@@ -60,6 +60,13 @@ Fixes from an independent review of 0.1.1 (another model, fresh context, 2026-10
   the proof-of-work challenge) with a signed stamp of that moment, sends it as `ts`, and the
   relay measures on it with its own clock. A stamp that is not the relay's is `400 stamp`. The
   build says that `pow: true` with `noScript: true` is skipped by a plain post.
+- The captcha widget did not appear on a page reached by Quartz' SPA navigation. Turnstile and
+  hCaptcha render implicitly only the containers present when their script runs; the next page
+  brought a fresh container, Quartz had dropped the script from the head, and the re-added copy
+  only warned that it was already loaded: no widget, no token, "please complete the check" for
+  ever (measured in Chrome with the Turnstile test key). The script now loads once with
+  `render=explicit` and `data-persist`, and every bound form renders its own widget, removes it
+  with its cleanup and resets it by id after a failed send.
 
 ## [0.1.1] - 2026-10-19
 
