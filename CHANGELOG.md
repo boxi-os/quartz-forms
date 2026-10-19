@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-10-19
+
 - Fixed: the stylesheet reached the page twice, once through the component (which Quartz puts in
   `@layer quartz-base`) and once through the transformer, unlayered. The unlayered copy loaded
   last and beat a site's `custom.scss` at the same specificity, so `.quartz-form {
