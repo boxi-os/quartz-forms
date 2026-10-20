@@ -1291,15 +1291,25 @@ function qfBind(form: HTMLFormElement): void {
     // pointerup, mouseup and click are one task; a timer runs after the click.
     if (queued.length > 0) setTimeout(() => queued.forEach(checkLeft), 0);
   };
+  // A release the page never sees ends the press too: the window lost the focus during it (a
+  // switch to another window or tab) or the page was hidden. Otherwise every form's check waited
+  // for the next release anywhere (fifty-second review, N1).
+  const onHidden = () => {
+    if (document.visibilityState === "hidden") onRelease();
+  };
   form.addEventListener("focusout", onBlur);
   document.addEventListener("pointerdown", onPress, true);
   document.addEventListener("pointerup", onRelease, true);
   document.addEventListener("pointercancel", onRelease, true);
+  window.addEventListener("blur", onRelease);
+  document.addEventListener("visibilitychange", onHidden);
   window.addCleanup(() => {
     form.removeEventListener("focusout", onBlur);
     document.removeEventListener("pointerdown", onPress, true);
     document.removeEventListener("pointerup", onRelease, true);
     document.removeEventListener("pointercancel", onRelease, true);
+    window.removeEventListener("blur", onRelease);
+    document.removeEventListener("visibilitychange", onHidden);
   });
 
   const keyRule = cfg.fields.find((r) => r.type === "pgpKey");

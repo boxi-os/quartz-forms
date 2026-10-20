@@ -281,6 +281,41 @@ describe("validation in the browser", () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(errorOf(first, "email")).toBe("Please enter a valid e-mail address.");
   });
+
+  it("ends a press whose release the page never sees: the window lost the focus, the page was hidden", async () => {
+    // Fifty-second review, N1: a press on the page, then a switch to another window; the release
+    // went elsewhere, and every form's check waited for the next release anywhere.
+    const form = mount(
+      contact({ ...quick, fields: [{ type: "email", name: "email", label: "E" }] }),
+    );
+    await nav();
+    const email = form.elements.namedItem("email") as HTMLInputElement;
+    const tick = () => new Promise((r) => setTimeout(r, 0));
+
+    email.value = "bad";
+    document.body.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    email.dispatchEvent(new Event("focusout", { bubbles: true }));
+    expect(errorOf(form, "email")).toBeNull();
+    window.dispatchEvent(new Event("blur"));
+    await tick();
+    expect(errorOf(form, "email")).toBe("Please enter a valid e-mail address.");
+
+    email.value = "bad@";
+    document.body.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    email.dispatchEvent(new Event("focusout", { bubbles: true }));
+    const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("visible");
+    document.dispatchEvent(new Event("visibilitychange") as never);
+    await tick();
+    // Shown again, but by the check of before: the press still holds this one.
+    fill(form, "email", "ok@example.org");
+    email.dispatchEvent(new Event("focusout", { bubbles: true }));
+    expect(errorOf(form, "email")).toBe("Please enter a valid e-mail address.");
+    visibility.mockReturnValue("hidden");
+    document.dispatchEvent(new Event("visibilitychange") as never);
+    await tick();
+    expect(errorOf(form, "email")).toBeNull();
+    visibility.mockRestore();
+  });
 });
 
 describe("sending", () => {
