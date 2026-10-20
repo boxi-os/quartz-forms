@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   now holds the check for a press anywhere on the page.
 - Added: a key of version 6 (RFC 9580) gets a notice whatever its algorithm (`pgpVersion6`).
   GnuPG 2.5.22 refuses an RSA or P-256 key of version 6 as well, which passed without a word.
+- Fixed: the build stopped a demo form with a captcha but no site key ("needs the site key") and
+  said the captcha's script could read the message, although a demo loads no captcha. A
+  `minSeconds` written for a demo form is now said to have no effect (`demoNoEffect`).
 
 ## [0.5.6] - 2026-10-20
 

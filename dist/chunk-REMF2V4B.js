@@ -1168,12 +1168,15 @@ function checkForm(form, raw, rawSpam, keyNames, out) {
     problem(out, `${at}.spam.powDifficulty`, "powDifficultyValue");
   if (!["none", "turnstile", "hcaptcha"].includes(sp.captcha))
     problem(out, `${at}.spam.captcha`, "captchaValue");
-  if (sp.captcha !== "none" && !sp.captchaSiteKey && !form.anonymous)
+  const loadsCaptcha = sp.captcha !== "none" && !form.anonymous && tr.kind !== "demo";
+  if (loadsCaptcha && !sp.captchaSiteKey)
     problem(out, `${at}.spam.captchaSiteKey`, "siteKeyNeeded", { provider: sp.captcha });
   if (sp.captcha !== "none" && form.anonymous)
     hint(out, at, "anonymousCaptcha", { provider: sp.captcha });
-  if (sp.captcha !== "none" && !form.anonymous && enc.mode !== "off")
+  if (loadsCaptcha && enc.mode !== "off")
     hint(out, `${at}.spam.captcha`, "encryptionCaptcha", { provider: sp.captcha });
+  if (tr.kind === "demo" && sp.minSeconds > 0 && (raw.spam?.minSeconds !== void 0 || rawSpam.minSeconds !== void 0))
+    hint(out, `${at}.spam.minSeconds`, "demoNoEffect");
   if (tr.kind !== "relay") {
     if (sp.pow) hint(out, `${at}.spam.pow`, "noRelayEffect");
     if (sp.rateLimitPerHour > 0 && (raw.spam?.rateLimitPerHour !== void 0 || rawSpam.rateLimitPerHour !== void 0))
@@ -1387,5 +1390,5 @@ function logHints(opts) {
 }
 
 export { __commonJS, __export, __require, __toESM, conditionOf, conditionsOf, defaultOptions, formatMessage, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-I5PGUKSV.js.map
-//# sourceMappingURL=chunk-I5PGUKSV.js.map
+//# sourceMappingURL=chunk-REMF2V4B.js.map
+//# sourceMappingURL=chunk-REMF2V4B.js.map

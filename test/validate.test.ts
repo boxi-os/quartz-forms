@@ -505,6 +505,29 @@ describe("validate: transport, encryption, spam, success", () => {
         }),
       ).hints,
     ).toContain("forms.contact.success.text: has no effect with demo, which sends nothing");
+    // A captcha the demo does not load needs no site key and reads no plaintext; a time trap the
+    // demo does not set is said (fifty-first review, N3).
+    const demoSpam = resolveOptions(
+      options({
+        forms: {
+          contact: contact({
+            spam: { captcha: "turnstile", minSeconds: 5 },
+            encryption: { mode: "required", keys: ["owner"] },
+          }),
+        },
+        keys: { owner: { armored: ARMORED } },
+        transport: { kind: "demo" },
+      }),
+    );
+    expect(demoSpam.problems).toEqual([]);
+    expect(demoSpam.hints).toEqual([
+      "forms.contact.spam.captcha: with demo the turnstile widget is not loaded: nothing is sent that it could protect",
+      "forms.contact.spam.minSeconds: has no effect with demo, which sends nothing",
+    ]);
+    expect(
+      resolveOptions(options({ spam: { minSeconds: 4 } as never, transport: { kind: "demo" } }))
+        .hints,
+    ).toEqual(["forms.contact.spam.minSeconds: has no effect with demo, which sends nothing"]);
     expect(problemsOf({ spam: { captcha: "turnstile" } as never })).toEqual([
       "forms.contact.spam.captchaSiteKey: turnstile needs the site key",
     ]);

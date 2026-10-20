@@ -583,14 +583,24 @@ function checkForm(
     problem(out, `${at}.spam.powDifficulty`, "powDifficultyValue");
   if (!["none", "turnstile", "hcaptcha"].includes(sp.captcha))
     problem(out, `${at}.spam.captcha`, "captchaValue");
-  if (sp.captcha !== "none" && !sp.captchaSiteKey && !form.anonymous)
+  // A demo loads no captcha (fiftieth review, M3), so it needs no site key and its script reads
+  // nothing; demoCaptcha above says so (fifty-first review, N3).
+  const loadsCaptcha = sp.captcha !== "none" && !form.anonymous && tr.kind !== "demo";
+  if (loadsCaptcha && !sp.captchaSiteKey)
     problem(out, `${at}.spam.captchaSiteKey`, "siteKeyNeeded", { provider: sp.captcha });
   if (sp.captcha !== "none" && form.anonymous)
     hint(out, at, "anonymousCaptcha", { provider: sp.captcha });
   // The provider's script runs with the whole page, where the message is typed before it is
   // encrypted (third review, M3, 2026-10-19: any script on the page read the plaintext field).
-  if (sp.captcha !== "none" && !form.anonymous && enc.mode !== "off")
+  if (loadsCaptcha && enc.mode !== "off")
     hint(out, `${at}.spam.captcha`, "encryptionCaptcha", { provider: sp.captcha });
+  // The demo sets no time trap (0.5.6); a minSeconds the owner wrote is said, the default is not.
+  if (
+    tr.kind === "demo" &&
+    sp.minSeconds > 0 &&
+    (raw.spam?.minSeconds !== undefined || rawSpam.minSeconds !== undefined)
+  )
+    hint(out, `${at}.spam.minSeconds`, "demoNoEffect");
   if (tr.kind !== "relay") {
     if (sp.pow) hint(out, `${at}.spam.pow`, "noRelayEffect");
     // Written by the owner, globally or for the form; the default of 60 says nothing.
