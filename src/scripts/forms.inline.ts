@@ -1446,8 +1446,8 @@ function qfBind(form: HTMLFormElement): void {
     }
   };
   form.addEventListener("submit", onSubmit);
-  // The flag only guards against binding twice within one page load (the stylesheet and the
-  // script travel with the transformer and the component alike); a cleanup frees the form again.
+  // The flag only guards against binding twice within one page load (a site may still carry the
+  // script twice, from an older build or its own copy); a cleanup frees the form again.
   window.addCleanup(() => {
     form.removeEventListener("submit", onSubmit);
     delete form.dataset.qfBound;

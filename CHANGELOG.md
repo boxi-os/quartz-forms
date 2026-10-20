@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   browser sends without the box; the relay now writes `[ ] label` for it, as for the script's post.
 - Fixed: the relay trimmed a plain post's values with PHP's `trim()`, which leaves a no-break space
   and the other Unicode spaces; it trims them as the script does now.
+- Changed: the layout component `FormBox` brings no stylesheet and no script of its own. The
+  transformer brings both to every page; the component's copies went out on every page too, even
+  without a layout form (6 KB of CSS and 20 KB of script twice).
 
 ## [0.5.5] - 2026-10-20
 

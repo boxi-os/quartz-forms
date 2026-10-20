@@ -10,9 +10,6 @@ import { makeContext, pageLanguage } from "../render/context";
 import { renderForm } from "../render/form";
 import type { FormsFileData } from "../transformer";
 import { frontmatterForms } from "../transformer";
-import style from "./styles/forms.scss";
-// @ts-expect-error: bundled to a browser-ready string by the inline-script loader in tsup.config.ts
-import script from "../scripts/forms.inline";
 
 /**
  * The form placed through the layout block of the plugin entry (`options.layoutForm`). A page
@@ -53,7 +50,9 @@ export default ((userOpts?: Partial<QuartzFormsOptions>) => {
     );
   };
 
-  FormBox.css = style;
-  FormBox.afterDOMLoaded = script;
+  // No css and no afterDOMLoaded of its own: the transformer brings stylesheet and script to every
+  // page, and Quartz instantiates every category of an enabled plugin, so it runs wherever this
+  // box can. Both copies went out on every page, the component's even without a layout form
+  // (fiftieth review, side list: 6 KB of CSS and 20 KB of script twice).
   return FormBox;
 }) satisfies QuartzComponentConstructor<Partial<QuartzFormsOptions>>;

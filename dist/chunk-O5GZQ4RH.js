@@ -559,6 +559,7 @@ var en_US_default = {
   demoSent: "Nothing was sent. This is the message as it would have arrived:",
   demoSentEncrypted: "Nothing was sent. This is the message as it would have arrived, encrypted in your browser:",
   demoAgain: "Try again",
+  demoNoScript: "This demonstration needs JavaScript to show what would have been sent.",
   messagePage: "Page: {page}",
   messageKey: "Public key of the sender:",
   errorSummary: "Please check {count} field(s).",
@@ -627,6 +628,7 @@ var deDE = {
   demoSent: "Nichts wurde gesendet. So w\xE4re die Nachricht angekommen:",
   demoSentEncrypted: "Nichts wurde gesendet. So w\xE4re die Nachricht angekommen, in deinem Browser verschl\xFCsselt:",
   demoAgain: "Noch einmal",
+  demoNoScript: "Diese Vorf\xFChrung braucht JavaScript, um zu zeigen, was gesendet worden w\xE4re.",
   messagePage: "Seite: {page}",
   messageKey: "\xD6ffentlicher Schl\xFCssel des Absenders:",
   errorSummary: "Bitte pr\xFCfe {count} Felder.",
@@ -1383,5 +1385,5 @@ function logHints(opts) {
 }
 
 export { __commonJS, __export, __require, __toESM, conditionOf, conditionsOf, defaultOptions, formatMessage, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-4RQDHCYL.js.map
-//# sourceMappingURL=chunk-4RQDHCYL.js.map
+//# sourceMappingURL=chunk-O5GZQ4RH.js.map
+//# sourceMappingURL=chunk-O5GZQ4RH.js.map

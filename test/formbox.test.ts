@@ -23,7 +23,7 @@ describe("FormBox", () => {
     expect(C(props({}))).toBeNull();
   });
 
-  it("renders the layout form with the page language and wires css and script", () => {
+  it("renders the layout form with the page language, leaving css and script to the transformer", () => {
     const C = FormBox(options({ layoutForm: "contact" }));
     const html = render(C(props({ frontmatter: { title: "Seite", lang: "de" } })) as never);
     expect(html).toContain('<div class="quartz-form-box">');
@@ -34,8 +34,8 @@ describe("FormBox", () => {
       '<script type="application/json" class="quartz-form-config">{"id":"contact"',
     );
     expect(html).not.toContain("&quot;id&quot;");
-    expect(String(C.css)).toContain(".quartz-form");
-    expect(typeof C.afterDOMLoaded).toBe("string");
+    expect(C.css).toBeUndefined();
+    expect(C.afterDOMLoaded).toBeUndefined();
   });
 
   it("follows a fixed language option", () => {

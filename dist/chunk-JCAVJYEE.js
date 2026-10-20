@@ -1,5 +1,5 @@
 import { createRequire } from 'module';
-import { __commonJS, __export, __toESM, publicKeyBlock, resolveOrThrow, logHints, warnOnce, wording, conditionsOf, stepsOf, conditionOf, isNamed } from './chunk-4RQDHCYL.js';
+import { __commonJS, __export, __toESM, publicKeyBlock, resolveOrThrow, logHints, warnOnce, wording, conditionsOf, stepsOf, conditionOf, isNamed } from './chunk-O5GZQ4RH.js';
 import fs from 'fs';
 import path from 'path';
 import { jsx, jsxs, Fragment } from 'preact/jsx-runtime';
@@ -2442,7 +2442,8 @@ function clientConfig(form, ctx) {
     return rule;
   });
   const anonymous = form.anonymous;
-  const noCaptcha = anonymous || form.transport.kind === "demo";
+  const demo = form.transport.kind === "demo";
+  const noCaptcha = anonymous || demo;
   return {
     id: form.id,
     lang: ctx.lang,
@@ -2463,7 +2464,7 @@ function clientConfig(form, ctx) {
     subject: resolveText(form.subject, ctx.lang),
     spam: {
       honeypot: form.spam.honeypot,
-      minSeconds: form.spam.minSeconds,
+      minSeconds: demo ? 0 : form.spam.minSeconds,
       pow: form.spam.pow && form.transport.kind === "relay",
       powDifficulty: form.spam.powDifficulty,
       captcha: noCaptcha ? "none" : form.spam.captcha,
@@ -2635,7 +2636,9 @@ function renderForm(form, ctx) {
         h(
           "p",
           { className: ["quartz-form__note", "quartz-form__note--noscript"] },
-          required ? t.noScript : scriptOnly ? t.needsScript : t.noScriptPlain
+          // A demo sends nothing, with or without the script: "needs JavaScript to send" was
+          // not true of it (fiftieth review, side list).
+          form.transport.kind === "demo" ? t.demoNoScript : required ? t.noScript : scriptOnly ? t.needsScript : t.noScriptPlain
         )
       ]) : null,
       // The fields in a grid of their own: the form's other children (title, notes, actions,
@@ -3562,11 +3565,9 @@ var FormBox_default = ((userOpts) => {
     const tree = renderForm(form, ctx);
     return /* @__PURE__ */ jsx("div", { class: ["quartz-form-box", props.displayClass].filter(Boolean).join(" "), children: htmlToJsx(tree) });
   };
-  FormBox.css = forms_default;
-  FormBox.afterDOMLoaded = forms_inline_default;
   return FormBox;
 });
 
 export { FormBox_default, Forms, loadKeySources, resolveText };
-//# sourceMappingURL=chunk-HMZFBKZM.js.map
-//# sourceMappingURL=chunk-HMZFBKZM.js.map
+//# sourceMappingURL=chunk-JCAVJYEE.js.map
+//# sourceMappingURL=chunk-JCAVJYEE.js.map

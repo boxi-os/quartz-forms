@@ -1,5 +1,5 @@
 import { createRequire } from 'module';
-import { messageText } from './chunk-4RQDHCYL.js';
+import { messageText } from './chunk-O5GZQ4RH.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
@@ -94,5 +94,5 @@ async function checkKey(name, armored) {
 }
 
 export { BROWSER_FILES, checkKey, pluginRoot, vendorDir };
-//# sourceMappingURL=chunk-IJCJU6QC.js.map
-//# sourceMappingURL=chunk-IJCJU6QC.js.map
+//# sourceMappingURL=chunk-TT7CQ7DW.js.map
+//# sourceMappingURL=chunk-TT7CQ7DW.js.map
