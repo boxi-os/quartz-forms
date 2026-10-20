@@ -1201,6 +1201,18 @@ describe.skipIf(!php)("relay: accepted submissions and their mail", () => {
     expect(noScript.status).toBe(200);
     expect(lastMail().body).toBe(fromScript);
   });
+  it("a plain post's value is trimmed as the script trims it, no-break spaces included", async () => {
+    // Fiftieth review, side list: qf_serialize trimmed with PHP's trim(), the script with
+    // JavaScript's, which also strips U+00A0 and the other Unicode spaces.
+    const noScript = await plain({
+      form: "boxes",
+      lang: "en",
+      name: "\u00a0Ada\u2003",
+      news: "yes",
+    });
+    expect(noScript.status).toBe(200);
+    expect(lastMail().body.replace(/\r\n/g, "\n").trim()).toBe("Name: Ada\n[x] Newsletter");
+  });
   it("an encrypted message carries its page inside the ciphertext only: nothing is written beside the armor", async () => {
     const r = await post(
       env("encpage", {}, { encrypted: true, ciphertext: ARMOR, page: "site/x", pageTitle: "X" }),

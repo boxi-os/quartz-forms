@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   nothing either way.
 - Fixed: an unticked checkbox was missing from the mail of a post without JavaScript, which the
   browser sends without the box; the relay now writes `[ ] label` for it, as for the script's post.
+- Fixed: the relay trimmed a plain post's values with PHP's `trim()`, which leaves a no-break space
+  and the other Unicode spaces; it trims them as the script does now.
 
 ## [0.5.5] - 2026-10-20
 

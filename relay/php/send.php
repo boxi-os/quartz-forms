@@ -1039,7 +1039,7 @@ function qf_serialize(array $formCfg, array $fields, string $lang, ?array $page)
         $value = $fields[$name];
         if ($rule['type'] === 'pgpKey') {
             if (is_string($value) && $value !== '') {
-                $key = trim($value);
+                $key = qf_trim($value);
             }
             continue;
         }
@@ -1055,7 +1055,9 @@ function qf_serialize(array $formCfg, array $fields, string $lang, ?array $page)
                 ? qf_text($labels[(string) $v], $lang, (string) $v)
                 : (string) $v;
         };
-        $shown = is_array($value) ? implode(', ', array_map($named, $value)) : $named(trim((string) $value));
+        // Trimmed as the script trims its values (JavaScript's list, qf_trim): PHP's trim() left a
+        // no-break space around a plain post's value (fiftieth review, side list).
+        $shown = is_array($value) ? implode(', ', array_map($named, $value)) : $named(qf_trim((string) $value));
         if ($shown === '' && empty($rule['required'])) {
             continue;
         }
