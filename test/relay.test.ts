@@ -13,7 +13,15 @@ import YAML from "yaml";
 import { tmpDir } from "./keys";
 
 const root = path.resolve(__dirname, "..");
-import { conditionCases, conditionFields, parityCases, parityFields } from "./parity-cases";
+import {
+  conditionCases,
+  conditionFields,
+  mailCases,
+  mailFields,
+  mailPage,
+  parityCases,
+  parityFields,
+} from "./parity-cases";
 
 const ORIGIN = "https://site.test";
 const ARMOR = "-----BEGIN PGP MESSAGE-----\n\nabc\n-----END PGP MESSAGE-----";
@@ -162,6 +170,12 @@ const siteOptions = {
     },
     parity: { recipient: "owner", fields: parityFields },
     cond: { recipient: "owner", spam: { rateLimitPerHour: 0 }, fields: conditionFields },
+    mail: {
+      recipient: "owner",
+      pageContext: true,
+      spam: { rateLimitPerHour: 0 },
+      fields: mailFields,
+    },
   },
 };
 
@@ -370,7 +384,10 @@ async function post(
   return { status: res.status, json, text, headers: res.headers };
 }
 /** The plain-form path: what a browser without JavaScript sends. */
-function plain(fields: Record<string, string>, accept = "text/html,application/xhtml+xml") {
+function plain(
+  fields: Record<string, string> | [string, string][],
+  accept = "text/html,application/xhtml+xml",
+) {
   return post(new URLSearchParams(fields).toString(), {
     raw: true,
     headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: accept },
@@ -700,6 +717,35 @@ describe.skipIf(!php)("relay: refusals", () => {
         );
     }
     expect(disagreements).toEqual([]);
+  });
+  it("writes the mail of the shared catalog from the script's post and from a plain post (test/parity-cases.ts, mailCases)", async () => {
+    // Fifty-first review, side list: the catalog held the checks, not the mail.
+    const page = { page: mailPage.slug, pageTitle: mailPage.title };
+    const differences: string[] = [];
+    for (const c of mailCases) {
+      const { name, topics, msg, news } = c.typed;
+      const script = await post(
+        env("mail", { name, topics, msg, news: news ? "yes" : "" }, { lang: "en-US", ...page }),
+      );
+      const fromScript = lastMail().body.replace(/\r\n/g, "\n").trim();
+      // As a browser posts the form: one pair per ticked box, CRLF in the text area, no unticked box.
+      const noScript = await plain([
+        ["form", "mail"],
+        ["lang", "en-US"],
+        ["page", page.page],
+        ["pageTitle", page.pageTitle],
+        ["name", name],
+        ...topics.map((t): [string, string] => ["topics", t]),
+        ["msg", msg.replace(/\n/g, "\r\n")],
+        ...(news ? [["news", "yes"] as [string, string]] : []),
+      ]);
+      const fromPlain = lastMail().body.replace(/\r\n/g, "\n").trim();
+      if (script.status !== 200 || fromScript !== c.mail)
+        differences.push(`${c.note}, script ${script.status}: ${JSON.stringify(fromScript)}`);
+      if (noScript.status !== 200 || fromPlain !== c.mail)
+        differences.push(`${c.note}, plain ${noScript.status}: ${JSON.stringify(fromPlain)}`);
+    }
+    expect(differences).toEqual([]);
   });
   it("decides which conditional fields count as the shared catalog says, by JSON and by a plain post", async () => {
     const disagreements: string[] = [];

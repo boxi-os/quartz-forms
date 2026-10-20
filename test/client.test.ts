@@ -13,6 +13,9 @@ import { contact, options } from "./helpers";
 import {
   conditionCases,
   conditionFields,
+  mailCases,
+  mailFields,
+  mailPage,
   parityCases,
   parityFields,
   type ParityOutcome,
@@ -26,13 +29,18 @@ const cleanups: (() => void)[] = [];
 const fetchMock = vi.fn();
 const navigateMock = vi.fn();
 
-function mount(def: FormDefinition, extra: Partial<QuartzFormsOptions> = {}, lang = "en") {
+function mount(
+  def: FormDefinition,
+  extra: Partial<QuartzFormsOptions> = {},
+  lang = "en",
+  page = { title: "Page", slug: "docs/page" },
+) {
   const opts = resolveOrThrow(options({ forms: { f: def }, ...extra }));
   const form = opts.forms.f!;
   const ctx = makeContext(opts, form, {
     lang,
     idPrefix: "qf-f",
-    page: { title: "Page", slug: "docs/page" },
+    page,
     serve: false,
   });
   document.body.dataset.basepath = "";
@@ -1782,6 +1790,37 @@ describe("parity with the relay", () => {
       }
     }
     expect(disagreements).toEqual([]);
+  });
+
+  it("writes the mail the relay writes (test/parity-cases.ts, mailCases)", async () => {
+    const differences: string[] = [];
+    for (const c of mailCases) {
+      navigateMock.mockReset();
+      const form = mount(
+        {
+          recipient: "o@example.org",
+          transport: { kind: "mailto" },
+          pageContext: true,
+          fields: mailFields,
+          ...quick,
+        },
+        {},
+        "en",
+        mailPage,
+      );
+      await nav();
+      fill(form, "name", c.typed.name);
+      for (const value of c.typed.topics)
+        (form.querySelector(`input[name="topics"][value="${value}"]`) as HTMLInputElement).checked =
+          true;
+      fill(form, "msg", c.typed.msg);
+      (form.elements.namedItem("news") as HTMLInputElement).checked = c.typed.news;
+      await submit(form);
+      const url = navigateMock.mock.calls[0]![0] as string;
+      const mail = decodeURIComponent(url.split("&body=")[1]!);
+      if (mail !== c.mail) differences.push(`${c.note}: ${JSON.stringify(mail)}`);
+    }
+    expect(differences).toEqual([]);
   });
 
   it("the relay's whitespace list (QF_WS in send.php) is this engine's \\s, over every code point", () => {

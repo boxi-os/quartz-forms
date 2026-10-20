@@ -358,3 +358,54 @@ export const conditionCases: ConditionCase[] = [
     note: "a field's own condition holds, but its step's does not",
   },
 ];
+
+/**
+ * The mail as the recipient reads it: the script's `qfSerialize` (the text of mailto and of a
+ * service) and the relay's `qf_serialize` (from the script's post and from a post without
+ * JavaScript) write the same lines. The fifty-first review measured five pairs word for word by
+ * hand; these cases keep the parts each path reads its own way: a list of choices (a plain post
+ * repeats the name, or sends one string), a text area (the browser posts CRLF), the page and an
+ * unticked box. `typed` is what the visitor entered; each suite posts it the way its path does.
+ */
+export const mailFields: FormField[] = [
+  { type: "text", name: "name", label: "Name" },
+  {
+    type: "checkboxes",
+    name: "topics",
+    label: "Topics",
+    options: [
+      { value: "bug", label: "Bug report" },
+      { value: "idea", label: "Idea" },
+    ],
+  },
+  { type: "textarea", name: "msg", label: "Message" },
+  { type: "checkbox", name: "news", label: "Newsletter" },
+];
+
+export const mailPage = { title: "Feedback", slug: "site/feedback" };
+
+export interface MailCase {
+  /** A string for a text, the ticked values of `topics`, `news` ticked or not. */
+  typed: { name: string; topics: string[]; msg: string; news: boolean };
+  /** The body, lines joined with `\n`. */
+  mail: string;
+  note?: string;
+}
+
+export const mailCases: MailCase[] = [
+  {
+    typed: { name: " Ada ", topics: ["bug", "idea"], msg: "one\ntwo", news: true },
+    mail: "Name: Ada\nTopics: Bug report, Idea\nMessage:\none\ntwo\n[x] Newsletter\n\nPage: Feedback (site/feedback)",
+    note: "everything filled: two choices, two lines of text",
+  },
+  {
+    typed: { name: "Bo", topics: ["idea"], msg: "", news: false },
+    mail: "Name: Bo\nTopics: Idea\n[ ] Newsletter\n\nPage: Feedback (site/feedback)",
+    note: "one choice, which a plain post sends as a string; an empty optional text has no line",
+  },
+  {
+    typed: { name: "", topics: [], msg: "", news: false },
+    mail: "[ ] Newsletter\n\nPage: Feedback (site/feedback)",
+    note: "nothing filled: only the box and the page",
+  },
+];
