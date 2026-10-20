@@ -571,12 +571,6 @@ function qf_refund(?string $counted, ?string $marked): void
 }
 
 /**
- * A form-urlencoded body as the browser sends it: a name that occurs more than once (the boxes
- * of a `checkboxes` field all share the field's name) becomes a list. `parse_str` kept only the
- * last value, so every ticked `checkboxes` field was refused as `invalid` on the plain-form path
- * (review finding, 2026-10-19).
- */
-/**
  * Bytes of a plain post once decoded: its names and values. The URL encoding triples every
  * non-ASCII byte, so the raw body says little about the content it carries (second review,
  * finding 8, 2026-10-19: 15 000 CJK characters, 45 kB as JSON, arrived as 135 kB).
@@ -599,6 +593,12 @@ function qf_accept_language(): string
     return preg_match('/^\s*([A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*)/', $header, $m) ? $m[1] : 'en';
 }
 
+/**
+ * A form-urlencoded body as the browser sends it: a name that occurs more than once (the boxes
+ * of a `checkboxes` field all share the field's name) becomes a list. `parse_str` kept only the
+ * last value, so every ticked `checkboxes` field was refused as `invalid` on the plain-form path
+ * (review finding, 2026-10-19).
+ */
 function qf_parse_form(string $raw): array
 {
     $out = [];
