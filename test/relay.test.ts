@@ -153,6 +153,13 @@ const siteOptions = {
       spam: { captcha: "turnstile", captchaSiteKey: "k" },
       fields: [{ type: "text", name: "a", label: "A" }],
     },
+    boxes: {
+      recipient: "owner",
+      fields: [
+        { type: "text", name: "name", label: "Name" },
+        { type: "checkbox", name: "news", label: "Newsletter" },
+      ],
+    },
     parity: { recipient: "owner", fields: parityFields },
     cond: { recipient: "owner", spam: { rateLimitPerHour: 0 }, fields: conditionFields },
   },
@@ -1182,6 +1189,17 @@ describe.skipIf(!php)("relay: accepted submissions and their mail", () => {
     expect(lastMail().body).toContain("Page: Feedback (site/feedback)");
     expect(lastMail().body).not.toContain("Seite:");
     expect(lastMail().body).not.toContain("pageTitle");
+  });
+  it("an unticked checkbox reads the same from a plain post as from the script: [ ] and its label", async () => {
+    // Fiftieth review, side list: a browser without JavaScript does not post an unticked box,
+    // and the line was missing from that mail only.
+    const script = await post(env("boxes", { name: "Ada", news: "" }));
+    expect(script.json).toEqual({ ok: true });
+    const fromScript = lastMail().body;
+    expect(fromScript).toContain("[ ] Newsletter");
+    const noScript = await plain({ form: "boxes", lang: "en", name: "Ada" });
+    expect(noScript.status).toBe(200);
+    expect(lastMail().body).toBe(fromScript);
   });
   it("an encrypted message carries its page inside the ciphertext only: nothing is written beside the armor", async () => {
     const r = await post(

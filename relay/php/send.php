@@ -1358,6 +1358,12 @@ if ($encrypted) {
             $fields[$name] = (string) ($rule['value'] ?? '');
             continue;
         }
+        if ($rule['type'] === 'checkbox' && !array_key_exists($name, $fields)) {
+            // A browser posts an unticked box not at all, the script posts it empty: the mail
+            // says "[ ] label" either way (fiftieth review, side list: the line went missing
+            // from a plain post).
+            $fields[$name] = '';
+        }
         $code = qf_check_field($rule, $fields[$name] ?? null);
         if ($code !== null) {
             $errors[] = ['field' => $name, 'code' => $code];

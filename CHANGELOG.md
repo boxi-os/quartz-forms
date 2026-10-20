@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added: the text `demoNoScript`, the `<noscript>` sentence of a demo form. It read "This form needs
   JavaScript to send" (or, encrypting, "sends encrypted and needs JavaScript") of a form that sends
   nothing either way.
+- Fixed: an unticked checkbox was missing from the mail of a post without JavaScript, which the
+  browser sends without the box; the relay now writes `[ ] label` for it, as for the script's post.
 
 ## [0.5.5] - 2026-10-20
 
