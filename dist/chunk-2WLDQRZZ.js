@@ -1080,7 +1080,7 @@ function submissionCapacity(form) {
   const bytes = chars * 3 + 1024;
   return form.encryption.mode === "off" ? bytes : Math.ceil(bytes * 4 / 3) + 1024;
 }
-function checkForm(form, raw, rawSpam, keyNames, out) {
+function checkForm(form, raw, rawSpam, keyNames, globalKind, out) {
   const at = `forms.${form.id}`;
   if (!FORM_ID.test(form.id)) problem(out, at, "formIdPattern", { pattern: String(FORM_ID) });
   if (raw.template !== void 0 && !isTemplateName(raw.template))
@@ -1112,6 +1112,8 @@ function checkForm(form, raw, rawSpam, keyNames, out) {
     checkSteps(form.fields, at, out);
   }
   const tr = form.transport;
+  const ownTransport = isObject(raw.transport) ? raw.transport : {};
+  const written = (key) => ownTransport[key] !== void 0 || globalKind === tr.kind;
   switch (tr.kind) {
     case "relay":
     case "endpoint": {
@@ -1135,7 +1137,7 @@ function checkForm(form, raw, rawSpam, keyNames, out) {
         problem(out, `${at}.recipient`, "mailtoRecipient");
       break;
     case "demo":
-      if (tr.url) hint(out, `${at}.transport.url`, "demoNoEffect");
+      if (tr.url && written("url")) hint(out, `${at}.transport.url`, "demoNoEffect");
       if (form.success.mode === "redirect") hint(out, `${at}.success`, "demoRedirect");
       if (form.success.text !== void 0) hint(out, `${at}.success.text`, "demoNoEffect");
       if (form.spam.captcha !== "none" && !form.anonymous)
@@ -1144,7 +1146,7 @@ function checkForm(form, raw, rawSpam, keyNames, out) {
     default:
       problem(out, `${at}.transport.kind`, "kindUnknown", { kind: JSON.stringify(tr.kind) });
   }
-  if ((tr.kind === "relay" || tr.kind === "mailto" || tr.kind === "demo") && Object.keys(tr.extra ?? {}).length > 0)
+  if ((tr.kind === "relay" || tr.kind === "mailto" || tr.kind === "demo") && Object.keys(tr.extra ?? {}).length > 0 && written("extra"))
     hint(
       out,
       `${at}.transport.extra`,
@@ -1204,8 +1206,8 @@ function checkForm(form, raw, rawSpam, keyNames, out) {
   }
   if (form.anonymous) {
     if (raw.pageContext === true) hint(out, `${at}.pageContext`, "pageContextAnonymous");
-    const written = raw.fields ?? (isTemplateName(raw.template) ? templateOf(raw.template).fields : void 0);
-    written?.forEach((field, i) => {
+    const written2 = raw.fields ?? (isTemplateName(raw.template) ? templateOf(raw.template).fields : void 0);
+    written2?.forEach((field, i) => {
       if (isObject(field) && "required" in field && field.required && isPersonalField(field))
         hint(out, `${at}.fields[${i}]`, "personalOptional", {
           name: String(field.name),
@@ -1224,7 +1226,14 @@ function validate(opts, rawForms, rawSpam = {}) {
   for (const [name, src] of Object.entries(opts.keys)) checkKeySource(name, src, out);
   for (const form of Object.values(opts.forms)) {
     const raw = rawForms[form.id];
-    checkForm(form, isObject(raw) ? raw : {}, rawSpam, keyNames, out);
+    checkForm(
+      form,
+      isObject(raw) ? raw : {},
+      rawSpam,
+      keyNames,
+      opts.transport.kind,
+      out
+    );
   }
   if (!LANGUAGE_OPTION.test(opts.language))
     problem(out, "language", "languageValue", { value: opts.language });
@@ -1390,5 +1399,5 @@ function logHints(opts) {
 }
 
 export { __commonJS, __export, __require, __toESM, conditionOf, conditionsOf, defaultOptions, formatMessage, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-REMF2V4B.js.map
-//# sourceMappingURL=chunk-REMF2V4B.js.map
+//# sourceMappingURL=chunk-2WLDQRZZ.js.map
+//# sourceMappingURL=chunk-2WLDQRZZ.js.map

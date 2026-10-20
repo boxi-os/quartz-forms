@@ -474,6 +474,7 @@ function checkForm(
   raw: FormDefinition,
   rawSpam: Partial<SpamConfig>,
   keyNames: string[],
+  globalKind: string,
   out: Validation,
 ) {
   const at = `forms.${form.id}`;
@@ -512,6 +513,12 @@ function checkForm(
 
   // Transport
   const tr = form.transport;
+  // A value of the global transport is the form's only if the form keeps the global kind: a demo
+  // form under a global relay was told the relay's url and extra had no effect (fifty-second
+  // review, side list).
+  const ownTransport = isObject(raw.transport) ? raw.transport : {};
+  const written = (key: "url" | "extra") =>
+    ownTransport[key] !== undefined || globalKind === tr.kind;
   switch (tr.kind) {
     case "relay":
     case "endpoint": {
@@ -539,7 +546,7 @@ function checkForm(
       break;
     case "demo":
       // Sends nothing, so a target is a sign the owner meant another kind.
-      if (tr.url) hint(out, `${at}.transport.url`, "demoNoEffect");
+      if (tr.url && written("url")) hint(out, `${at}.transport.url`, "demoNoEffect");
       if (form.success.mode === "redirect") hint(out, `${at}.success`, "demoRedirect");
       if (form.success.text !== undefined) hint(out, `${at}.success.text`, "demoNoEffect");
       if (form.spam.captcha !== "none" && !form.anonymous)
@@ -550,7 +557,8 @@ function checkForm(
   }
   if (
     (tr.kind === "relay" || tr.kind === "mailto" || tr.kind === "demo") &&
-    Object.keys(tr.extra ?? {}).length > 0
+    Object.keys(tr.extra ?? {}).length > 0 &&
+    written("extra")
   )
     hint(
       out,
@@ -680,7 +688,14 @@ export function validate(
 
   for (const form of Object.values(opts.forms)) {
     const raw = rawForms[form.id];
-    checkForm(form, isObject(raw) ? (raw as FormDefinition) : {}, rawSpam, keyNames, out);
+    checkForm(
+      form,
+      isObject(raw) ? (raw as FormDefinition) : {},
+      rawSpam,
+      keyNames,
+      opts.transport.kind,
+      out,
+    );
   }
 
   if (!LANGUAGE_OPTION.test(opts.language))

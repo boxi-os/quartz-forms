@@ -505,6 +505,20 @@ describe("validate: transport, encryption, spam, success", () => {
         }),
       ).hints,
     ).toContain("forms.contact.success.text: has no effect with demo, which sends nothing");
+    // A demo form under a global relay inherits the relay's url and extra, which it did not write
+    // (fifty-second review, side list); what it writes itself is still said.
+    const underRelay = (own: Partial<FormDefinition["transport"]>) =>
+      resolveOptions(
+        options({
+          forms: { contact: contact({ transport: { kind: "demo", ...own } }) },
+          transport: { kind: "relay", url: "https://e.example/send.php", extra: { site: "x" } },
+        }),
+      ).hints.filter((h) => h.includes(".transport."));
+    expect(underRelay({})).toEqual([]);
+    expect(underRelay({ url: "https://e.example/other", extra: { to: "s" } })).toEqual([
+      "forms.contact.transport.url: has no effect with demo, which sends nothing",
+      "forms.contact.transport.extra: has no effect with demo, which sends nothing",
+    ]);
     // A captcha the demo does not load needs no site key and reads no plaintext; a time trap the
     // demo does not set is said (fifty-first review, N3).
     const demoSpam = resolveOptions(
