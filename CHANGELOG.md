@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.6] - 2026-10-20
+
+The side list of the fourth independent review.
+
 - Changed: a form with `demo` sets no time trap. A reader who tried a demo within `minSeconds`
   was asked to wait before sending what is never sent.
 - Added: the text `demoNoScript`, the `<noscript>` sentence of a demo form. It read "This form needs
