@@ -249,6 +249,30 @@ describe("validation in the browser", () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(errorOf(form, "email")).toBe("Please enter a valid e-mail address.");
   });
+
+  it("holds the check for a press anywhere on the page: a second form's button slid too", async () => {
+    // Fifty-first review, N1: the wait listened for presses in its own form only. Focus in the
+    // first form, a press on the second form's button below: the first form's error line
+    // appeared, the second button slid 28px and the click was lost.
+    const first = mount(
+      contact({ ...quick, fields: [{ type: "email", name: "email", label: "E" }] }),
+    );
+    const main = document.querySelector("main")!;
+    main.insertAdjacentHTML("beforeend", main.innerHTML);
+    await nav();
+    const second = document.querySelectorAll<HTMLFormElement>("form.quartz-form")[1]!;
+    expect(second.dataset.qfBound).toBe("1");
+    const email = first.elements.namedItem("email") as HTMLInputElement;
+    const button = second.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+
+    email.value = "bad";
+    button.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    email.dispatchEvent(new Event("focusout", { bubbles: true }));
+    expect(errorOf(first, "email")).toBeNull();
+    button.dispatchEvent(new Event("pointerup", { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(errorOf(first, "email")).toBe("Please enter a valid e-mail address.");
+  });
 });
 
 describe("sending", () => {

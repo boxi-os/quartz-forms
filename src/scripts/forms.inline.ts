@@ -1270,7 +1270,9 @@ function qfBind(form: HTMLFormElement): void {
   // A press on a button takes the focus from the field first, and the line that check shows or
   // hides changes the form's height: the button slid from under the pointer, mouseup landed
   // elsewhere and the click was lost (fiftieth review, M1: 14px, "Senden" needed a second click).
-  // While a pointer is down in the form, the check waits until after the click.
+  // While a pointer is down anywhere on the page, the check waits until after the click: the
+  // button below may be another form's (fifty-first review, N1: a layout form under the page's).
+  // Capture, so that a site's stopPropagation() cannot hide the press or the release.
   let pressed = false;
   let left: (HTMLElement | null)[] = [];
   const onBlur = (event: Event) => {
@@ -1290,14 +1292,14 @@ function qfBind(form: HTMLFormElement): void {
     if (queued.length > 0) setTimeout(() => queued.forEach(checkLeft), 0);
   };
   form.addEventListener("focusout", onBlur);
-  form.addEventListener("pointerdown", onPress);
-  document.addEventListener("pointerup", onRelease);
-  document.addEventListener("pointercancel", onRelease);
+  document.addEventListener("pointerdown", onPress, true);
+  document.addEventListener("pointerup", onRelease, true);
+  document.addEventListener("pointercancel", onRelease, true);
   window.addCleanup(() => {
     form.removeEventListener("focusout", onBlur);
-    form.removeEventListener("pointerdown", onPress);
-    document.removeEventListener("pointerup", onRelease);
-    document.removeEventListener("pointercancel", onRelease);
+    document.removeEventListener("pointerdown", onPress, true);
+    document.removeEventListener("pointerup", onRelease, true);
+    document.removeEventListener("pointercancel", onRelease, true);
   });
 
   const keyRule = cfg.fields.find((r) => r.type === "pgpKey");
