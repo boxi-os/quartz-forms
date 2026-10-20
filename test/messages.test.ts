@@ -136,7 +136,7 @@ describe("the command line in German", () => {
       "forms.contact.recipient: das Relay braucht den Namen des Empfängers",
     );
     expect(run(["frobnicate", "--lang", "de"]).json.error).toBe(
-      "unbekannter Befehl „frobnicate“ (relay, check, key)",
+      "unbekannter Befehl „frobnicate“ (relay, check, key, texts)",
     );
   });
 });

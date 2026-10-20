@@ -7,6 +7,7 @@
  *   node dist/cli.js relay --site <dir> --out <dir> [--skip-pattern-check] [--json]
  *   node dist/cli.js check --site <dir> [--json]
  *   node dist/cli.js key   --site <dir> (--file <path> | armored text in QF_KEY_ARMORED) [--json]
+ *   node dist/cli.js texts [--json]
  *
  * `--lang de` gives every message a caller shows (problems, hints, key problems, refusals,
  * warnings) in German; English without it, as the build log has them. The status lines of a run
@@ -40,6 +41,7 @@ import {
   type RelayOperator,
 } from "./relay/generate";
 import type { QuartzFormsOptions, ResolvedOptions } from "./types";
+import { availableLocales, i18n } from "./i18n";
 import {
   formatMessage,
   messageLang,
@@ -354,6 +356,15 @@ async function commandRelay(args: Args, say: Say, warn: Say): Promise<Record<str
   };
 }
 
+/**
+ * The plugin's own wording of every text, by locale: what `options.texts` lays its entries over
+ * (`wording()`), so that an editor can show each text with the words that apply while it is
+ * unset. A key the plugin does not have here is ignored by the build.
+ */
+function commandTexts(): Record<string, unknown> {
+  return { ok: true, locales: Object.fromEntries(availableLocales().map((l) => [l, i18n(l)])) };
+}
+
 export async function main(argv: string[]): Promise<number> {
   const json = argv.includes("--json");
   const lines: string[] = [];
@@ -369,6 +380,7 @@ export async function main(argv: string[]): Promise<number> {
     if (args.command === "relay") result = await commandRelay(args, say, warn);
     else if (args.command === "check") result = await commandCheck(args);
     else if (args.command === "key") result = await commandKey(args);
+    else if (args.command === "texts") result = commandTexts();
     else throw new Refusal(m("cliUnknownCommand", { command: args.command }), {}, 2);
     if (json) process.stdout.write(JSON.stringify({ ...result, warnings }) + "\n");
     else if (args.command !== "relay") console.log(JSON.stringify(result, null, 2));
@@ -383,7 +395,7 @@ export async function main(argv: string[]): Promise<number> {
       console.error(refusal.message);
       if (refusal.status === 2)
         console.error(
-          "usage: quartz-forms relay --site <dir> --out <dir> [--skip-pattern-check] | check --site <dir> | key --site <dir> --file <path>  [--json] [--lang de|en]",
+          "usage: quartz-forms relay --site <dir> --out <dir> [--skip-pattern-check] | check --site <dir> | key --site <dir> --file <path> | texts  [--json] [--lang de|en]",
         );
     }
     return refusal.status;

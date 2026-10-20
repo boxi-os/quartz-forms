@@ -176,337 +176,6 @@ function isTemplateName(name) {
   return typeof name === "string" && name in templates;
 }
 
-// src/messages/en.ts
-var s = (p, key) => String(p[key] ?? "");
-var en = {
-  // texts
-  textEmpty: () => "empty text",
-  textShape: () => "a text is a string or a record of language \u2192 string",
-  textRecordEmpty: () => "empty text record",
-  // fields
-  fieldShape: () => "a field is an object with a type and a name",
-  fieldNamePattern: (p) => `field name ${s(p, "name")} must match ${s(p, "pattern")} (a letter, then letters, digits, _ or -)`,
-  fieldNameReserved: (p) => `field name "${s(p, "name")}" is reserved by the submission envelope`,
-  minAboveMax: (p) => `min ${s(p, "min")} is above max ${s(p, "max")}`,
-  maxLengthMin: () => "maxLength must be at least 1",
-  patternJsU: () => "`\\u` escapes are JavaScript only, the relay's PCRE cannot read them: write the character itself, or `\\xHH` below U+0100",
-  patternJsNegClass: () => "`[^]` is JavaScript only, the relay's PCRE cannot read it: write `[\\s\\S]`",
-  patternJsEmptyClass: () => "`[]` is JavaScript only (it matches nothing), the relay's PCRE cannot read it",
-  patternJsLookbehind: () => "a lookbehind of unlimited length is JavaScript only, the relay's PCRE cannot read it",
-  patternInvalid: (p) => `pattern is not a regular expression (${s(p, "error")})`,
-  optionsNeeded: (p) => `a ${s(p, "type")} field needs at least one option`,
-  optionShape: () => "an option is { value, label } with a value",
-  optionTwice: (p) => `value "${s(p, "value")}" twice`,
-  optionSpace: (p) => `value "${s(p, "value")}" begins or ends with whitespace, which is trimmed from what is sent: it can never be chosen`,
-  scaleInteger: () => "a scale has integer min and max",
-  scaleOrder: (p) => `scale min ${s(p, "min")} must be below max ${s(p, "max")}`,
-  scaleSpan: () => "a scale spans at most 21 steps",
-  consentText: () => "a consent field needs a text",
-  hiddenValue: () => "a hidden field needs a value",
-  fieldTypeUnknown: (p) => `unknown field type ${s(p, "type")}`,
-  labelNeeded: (p) => `a ${s(p, "type")} field needs a label`,
-  widthValue: () => "full, half or third",
-  layoutValue: () => "stacked or inline",
-  layoutSelect: () => "has no effect on a select, whose options are a list to open",
-  showIfNotAllowed: (p) => `a ${s(p, "type")} field cannot be conditional`,
-  showIfShape: () => "{ field, equals } with the name of a field and one value or a list of them",
-  showIfUnknown: (p) => `no field "${s(p, "field")}" in this form`,
-  showIfLater: (p) => `"${s(p, "field")}" must come before the field that depends on it`,
-  showIfController: (p) => `"${s(p, "field")}" is a ${s(p, "type")} field; a condition needs a select, radio, checkboxes, checkbox or scale`,
-  showIfValue: (p) => `"${s(p, "field")}" cannot have the value "${s(p, "value")}"`,
-  pageBreakEdge: () => "a page break stands between fields, not first or last",
-  pageBreakTwice: () => "two page breaks in a row leave a step without fields",
-  consentInConditionalStep: () => "a consent field cannot stand in a step with a condition: when the step is skipped, the message would go without it",
-  stepOnlyHidden: (p) => `step ${s(p, "step")} holds only hidden values and shows the visitor nothing`,
-  // keys in the options
-  keyShape: () => "a key is { file } or { armored }",
-  keyExactlyOne: () => "exactly one of file or armored",
-  keyOutside: (p) => `${s(p, "file")} lies outside the site`,
-  keyUnreadable: (p) => `${s(p, "file")} not found or not readable`,
-  keyFileBlock: (p, t2) => `${s(p, "file")}: ${t2(s(p, "problem"), p)}`,
-  // armor (src/pgp/armor.ts)
-  armorPrivate: () => "holds a private key block; export only the public key (gpg --export --armor)",
-  armorNone: () => "not an armored PGP public key block",
-  armorIncomplete: () => "holds an incomplete armor block",
-  armorOther: (p) => `holds a PGP ${s(p, "kind")} besides the public key`,
-  armorMany: (p) => `holds ${s(p, "count")} key blocks; one public key per source`,
-  // a key as OpenPGP.js reads it (src/pgp/check.ts)
-  pgpUnreadable: (p) => `not a readable PGP key (${s(p, "error")})`,
-  pgpPrivate: () => "this is a private key; the site needs the public key",
-  pgpRevoked: () => "this key is revoked",
-  pgpExpired: (p) => `this key expired on ${s(p, "date")}`,
-  pgpNoEncrypt: () => "this key cannot encrypt (no encryption subkey)",
-  pgpNewAlgorithm: (p) => `this key encrypts with ${s(p, "algorithm")} as RFC 9580 writes it, which GnuPG cannot read: gpg does not decrypt mails sent to it`,
-  pgpVersion6: () => "this is a version 6 key as RFC 9580 writes it, which GnuPG cannot read: gpg does not decrypt mails sent to it",
-  keyMissingSource: () => "neither file nor armored",
-  keyFileUnreadable: () => "not found or not readable",
-  // a form
-  formIdPattern: (p) => `form id must match ${s(p, "pattern")} (lower-case letters, digits, -)`,
-  templateUnknown: (p) => `unknown template ${s(p, "name")}`,
-  noFields: () => "no fields (write fields or choose a template)",
-  fieldNameTwice: (p) => `field name "${s(p, "name")}" twice`,
-  onePgpKey: () => "at most one pgpKey field",
-  // transport
-  urlNeeded: (p) => `${s(p, "kind")} needs a URL`,
-  urlNotHttp: (p) => `${s(p, "url")} is not an http(s) URL`,
-  urlPlainHttp: (p) => `${s(p, "url")} sends submissions unencrypted in transit (http)`,
-  relayRecipient: () => "the relay needs the recipient's name",
-  presetUrl: (p) => `${s(p, "kind")} needs the form id or access key`,
-  anonymousService: (p) => `anonymous, but ${s(p, "kind")} sees the sender's address; see the README`,
-  mailtoRecipient: () => "mailto needs an e-mail address",
-  kindUnknown: (p) => `unknown kind ${s(p, "kind")}`,
-  extraRelay: () => "has no effect with the relay",
-  extraMailto: () => "has no effect with mailto",
-  demoNoEffect: () => "has no effect with demo, which sends nothing",
-  demoRedirect: () => "demo shows what would have been sent below the form and does not redirect",
-  demoCaptcha: (p) => `with demo the ${s(p, "provider")} widget is not loaded: nothing is sent that it could protect`,
-  formatValue: () => "json or form",
-  // encryption
-  modeValue: () => "required, optional or off",
-  noKeys: () => "no keys to encrypt to",
-  keyUnknown: (p) => `unknown key "${s(p, "name")}"`,
-  mailtoEncrypted: () => "encrypted mailto puts the whole ciphertext into the mail body",
-  // spam
-  minSecondsValue: () => "a whole number of seconds, 0 or more",
-  powDifficultyValue: () => "an integer from 8 to 20",
-  captchaValue: () => "none, turnstile or hcaptcha",
-  siteKeyNeeded: (p) => `${s(p, "provider")} needs the site key`,
-  anonymousCaptcha: (p) => `anonymous, so the ${s(p, "provider")} captcha is not loaded`,
-  noRelayEffect: () => "has no effect without the relay",
-  encryptionCaptcha: (p) => `the ${s(p, "provider")} script runs on the page where the message is typed before it is encrypted, and can read it (see the README)`,
-  powNoScript: () => "a plain post without JavaScript (noScript: true) skips it; noScript: false requires the script",
-  minSecondsNoScript: () => "a plain post without JavaScript (noScript: true) carries no stamp and skips it; noScript: false requires the script",
-  rateLimitLever: (p) => `one client can send the hour's ${s(p, "count")} mails by itself, and the form takes no more from anyone until the hour is over; a captcha, or pow with noScript: false, makes that cost something (see the README)`,
-  powSlow: (p) => `${s(p, "bits")} bits take seconds on a phone before every message`,
-  positiveInteger: () => "a positive integer",
-  maxBytesLow: (p) => `${s(p, "maxBytes")} is below what the fields may hold (about ${s(p, "capacity")} bytes${p.encrypted ? " once encrypted" : ""}); a long message would be refused as too large`,
-  // anonymous
-  pageContextAnonymous: () => "anonymous, so the page is not sent along",
-  personalOptional: (p) => `anonymous, so "${s(p, "name")}" (${s(p, "type")}) cannot be required and is made optional`,
-  // success
-  successMode: () => "inline or redirect",
-  successSlug: () => "redirect needs the slug of a page",
-  // the entry
-  languageValue: (p) => `"${s(p, "value")}" is neither auto nor a language code`,
-  frontmatterKeyEmpty: () => "empty",
-  layoutFormUnknown: (p) => `no form "${s(p, "id")}"`,
-  codeBlockLangValue: () => "one word without spaces",
-  textsLocaleUnknown: () => "the plugin has no texts in this language; they are used as written",
-  textsShape: () => "a record of text key \u2192 wording",
-  textsKeyUnknown: () => "no such text key",
-  // the command line (src/cli.ts) and the relay generator (src/relay/generate.ts)
-  cliNeedsValue: (p) => `${s(p, "arg")} needs a value`,
-  cliUnknownArgument: (p) => `unknown argument ${s(p, "arg")}`,
-  cliNoSite: () => "no site directory given (--site)",
-  cliConfigMissing: (p) => `${s(p, "path")} not found`,
-  // Quartz names a plugin by the end of its source, so a folder of another name is not this one.
-  cliNoEntry: (p) => `no quartz-forms entry in ${s(p, "path")}: an entry's source must end in quartz-forms (github:boxi-os/quartz-forms, or a folder named quartz-forms)`,
-  cliEntries: (p) => `${s(p, "count")} quartz-forms entries; taking the first`,
-  cliNoOut: () => "no output directory given (--out)",
-  cliUnknownCommand: (p) => `unknown command "${s(p, "command")}" (relay, check, key)`,
-  cliNoKey: () => "no key given (--file, or the armored text in QF_KEY_ARMORED)",
-  cliKeyUnreadable: (p) => `${s(p, "file")}: not found or not readable`,
-  cliOperatorJson: () => "QF_RELAY_OPERATOR: not JSON",
-  cliOperatorProblems: (p) => `${s(p, "count")} problem(s) in the operator values`,
-  cliOptionProblems: (p) => `[forms] ${s(p, "count")} problem(s) in the quartz-forms options:`,
-  cliNoPhp: (p) => `${s(p, "count")} pattern(s) not checked against PCRE: no php on the PATH. The relay refuses every value of a field whose pattern its PCRE cannot read.`,
-  cliPhpFailed: (p) => `php could not check the patterns:
-${s(p, "message")}`,
-  cliPhpFailedShort: () => "php could not check the patterns",
-  cliPatternUnreadable: (p) => `forms.${s(p, "form")} field "${s(p, "field")}": PCRE cannot read the pattern "${s(p, "pattern")}" (${s(p, "why")}); the relay would refuse every value of this field`,
-  cliPatternRefusal: () => "a pattern PCRE cannot read",
-  cliNothingWritten: () => "nothing written; fix the pattern, or pass --skip-pattern-check when the host's PCRE is newer than this machine's",
-  cliWrittenAnyway: () => "written anyway (--skip-pattern-check)",
-  cliMissingRecipient: (p) => `no address for the recipient "${s(p, "name")}"; the relay refuses its forms`,
-  operatorNotObject: () => "operator: not an object",
-  operatorSecret: () => "operator.secret: at least 32 characters",
-  operatorOrigins: () => "operator.allowedOrigins: a list of origins",
-  operatorFrom: () => "operator.from: the sender's e-mail address",
-  operatorMailer: () => 'operator.mailer: "mail", { sendmail } or { file }',
-  operatorRecord: (p) => `operator.${s(p, "key")}: a record of name \u2192 text`,
-  operatorText: (p) => `operator.${s(p, "key")}: a text`,
-  operatorCounterDir: () => "operator.counterDir: an absolute path on the server"
-};
-var en_default = en;
-
-// src/messages/de.ts
-var s2 = (p, key) => String(p[key] ?? "");
-var de = {
-  textEmpty: () => "leerer Text",
-  textShape: () => "ein Text ist ein String oder ein Record Sprache \u2192 String",
-  textRecordEmpty: () => "leerer Text-Record",
-  fieldShape: () => "ein Feld ist ein Objekt mit type und name",
-  fieldNamePattern: (p) => `der Feldname ${s2(p, "name")} muss ${s2(p, "pattern")} entsprechen (ein Buchstabe, dann Buchstaben, Ziffern, _ oder -)`,
-  fieldNameReserved: (p) => `der Feldname \u201E${s2(p, "name")}\u201C ist f\xFCr die Sendung selbst reserviert`,
-  minAboveMax: (p) => `min ${s2(p, "min")} liegt \xFCber max ${s2(p, "max")}`,
-  maxLengthMin: () => "maxLength muss mindestens 1 sein",
-  patternJsU: () => "`\\u`-Escapes gibt es nur in JavaScript, das PCRE des Relays kann sie nicht lesen: schreib das Zeichen selbst oder `\\xHH` unter U+0100",
-  patternJsNegClass: () => "`[^]` gibt es nur in JavaScript, das PCRE des Relays kann es nicht lesen: schreib `[\\s\\S]`",
-  patternJsEmptyClass: () => "`[]` gibt es nur in JavaScript (es trifft nichts), das PCRE des Relays kann es nicht lesen",
-  patternJsLookbehind: () => "ein Lookbehind unbegrenzter L\xE4nge gibt es nur in JavaScript, das PCRE des Relays kann ihn nicht lesen",
-  patternInvalid: (p) => `pattern ist kein regul\xE4rer Ausdruck (${s2(p, "error")})`,
-  optionsNeeded: (p) => `ein Feld vom Typ ${s2(p, "type")} braucht mindestens eine Option`,
-  optionShape: () => "eine Option ist { value, label } mit einem Wert",
-  optionTwice: (p) => `Wert \u201E${s2(p, "value")}\u201C doppelt`,
-  optionSpace: (p) => `Wert \u201E${s2(p, "value")}\u201C beginnt oder endet mit Leerraum, der beim Senden entfernt wird: er ist nie w\xE4hlbar`,
-  scaleInteger: () => "eine Skala hat ganzzahlige min und max",
-  scaleOrder: (p) => `min ${s2(p, "min")} der Skala muss unter max ${s2(p, "max")} liegen`,
-  scaleSpan: () => "eine Skala umfasst h\xF6chstens 21 Stufen",
-  consentText: () => "ein Einwilligungsfeld braucht einen Text",
-  hiddenValue: () => "ein verborgenes Feld braucht einen Wert",
-  fieldTypeUnknown: (p) => `unbekannter Feldtyp ${s2(p, "type")}`,
-  labelNeeded: (p) => `ein Feld vom Typ ${s2(p, "type")} braucht eine Beschriftung (label)`,
-  widthValue: () => "full, half oder third",
-  layoutValue: () => "stacked oder inline",
-  layoutSelect: () => "wirkt nicht bei select, dessen Optionen eine aufklappende Liste sind",
-  showIfNotAllowed: (p) => `ein Feld vom Typ ${s2(p, "type")} kann nicht bedingt sein`,
-  showIfShape: () => "{ field, equals } mit dem Namen eines Felds und einem Wert oder einer Liste davon",
-  showIfUnknown: (p) => `kein Feld \u201E${s2(p, "field")}\u201C in diesem Formular`,
-  showIfLater: (p) => `\u201E${s2(p, "field")}\u201C muss vor dem Feld stehen, das davon abh\xE4ngt`,
-  showIfController: (p) => `\u201E${s2(p, "field")}\u201C ist ein Feld vom Typ ${s2(p, "type")}; eine Bedingung braucht select, radio, checkboxes, checkbox oder scale`,
-  showIfValue: (p) => `\u201E${s2(p, "field")}\u201C kann den Wert \u201E${s2(p, "value")}\u201C nicht haben`,
-  pageBreakEdge: () => "ein Seitenumbruch steht zwischen Feldern, nicht am Anfang oder Ende",
-  pageBreakTwice: () => "zwei Seitenumbr\xFCche hintereinander lassen einen Schritt ohne Felder",
-  consentInConditionalStep: () => "eine Einwilligung kann nicht in einem Schritt mit Bedingung stehen: Wird der Schritt \xFCbersprungen, ginge die Nachricht ohne sie hinaus",
-  stepOnlyHidden: (p) => `Schritt ${s2(p, "step")} enth\xE4lt nur verborgene Werte und zeigt dem Besucher nichts`,
-  keyShape: () => "ein Schl\xFCssel ist { file } oder { armored }",
-  keyExactlyOne: () => "genau eines von file oder armored",
-  keyOutside: (p) => `${s2(p, "file")} liegt au\xDFerhalb der Website`,
-  keyUnreadable: (p) => `${s2(p, "file")} fehlt oder ist nicht lesbar`,
-  keyFileBlock: (p, t2) => `${s2(p, "file")}: ${t2(s2(p, "problem"), p)}`,
-  armorPrivate: () => "enth\xE4lt einen privaten Schl\xFCssel; exportiere nur den \xF6ffentlichen (gpg --export --armor)",
-  armorNone: () => "kein \xF6ffentlicher PGP-Schl\xFCssel im Textformat",
-  armorIncomplete: () => "enth\xE4lt einen unvollst\xE4ndigen Armor-Block",
-  armorOther: (p) => `enth\xE4lt neben dem \xF6ffentlichen Schl\xFCssel einen PGP ${s2(p, "kind")}`,
-  armorMany: (p) => `enth\xE4lt ${s2(p, "count")} Schl\xFCsselbl\xF6cke; ein \xF6ffentlicher Schl\xFCssel je Quelle`,
-  pgpUnreadable: (p) => `kein lesbarer PGP-Schl\xFCssel (${s2(p, "error")})`,
-  pgpPrivate: () => "das ist ein privater Schl\xFCssel; die Website braucht den \xF6ffentlichen",
-  pgpRevoked: () => "dieser Schl\xFCssel ist widerrufen",
-  pgpExpired: (p) => `dieser Schl\xFCssel ist am ${s2(p, "date")} abgelaufen`,
-  pgpNoEncrypt: () => "dieser Schl\xFCssel kann nicht verschl\xFCsseln (kein Verschl\xFCsselungs-Unterschl\xFCssel)",
-  pgpNewAlgorithm: (p) => `dieser Schl\xFCssel verschl\xFCsselt mit ${s2(p, "algorithm")} in der Form von RFC 9580, die GnuPG nicht lesen kann: Mails an ihn entschl\xFCsselt gpg nicht`,
-  pgpVersion6: () => "dieser Schl\xFCssel hat die Version 6 aus RFC 9580, die GnuPG nicht lesen kann: Mails an ihn entschl\xFCsselt gpg nicht",
-  keyMissingSource: () => "weder file noch armored",
-  keyFileUnreadable: () => "fehlt oder ist nicht lesbar",
-  formIdPattern: (p) => `die Kennung des Formulars muss ${s2(p, "pattern")} entsprechen (Kleinbuchstaben, Ziffern, -)`,
-  templateUnknown: (p) => `unbekannte Vorlage ${s2(p, "name")}`,
-  noFields: () => "keine Felder (schreib Felder oder w\xE4hle eine Vorlage)",
-  fieldNameTwice: (p) => `Feldname \u201E${s2(p, "name")}\u201C doppelt`,
-  onePgpKey: () => "h\xF6chstens ein Feld vom Typ pgpKey",
-  urlNeeded: (p) => `${s2(p, "kind")} braucht eine Adresse`,
-  urlNotHttp: (p) => `${s2(p, "url")} ist keine http(s)-Adresse`,
-  urlPlainHttp: (p) => `${s2(p, "url")} \xFCbertr\xE4gt Sendungen unverschl\xFCsselt (http)`,
-  relayRecipient: () => "das Relay braucht den Namen des Empf\xE4ngers",
-  presetUrl: (p) => `${s2(p, "kind")} braucht die Formular-ID oder den Zugangsschl\xFCssel`,
-  anonymousService: (p) => `anonym, aber ${s2(p, "kind")} sieht die Adresse des Absenders; siehe README`,
-  mailtoRecipient: () => "mailto braucht eine E-Mail-Adresse",
-  kindUnknown: (p) => `unbekannter Versandweg ${s2(p, "kind")}`,
-  extraRelay: () => "wirkt nicht beim Relay",
-  extraMailto: () => "wirkt nicht bei mailto",
-  demoNoEffect: () => "wirkt nicht bei demo, das nichts sendet",
-  demoRedirect: () => "demo zeigt unter dem Formular, was gesendet worden w\xE4re, und leitet nicht weiter",
-  demoCaptcha: (p) => `bei demo wird das Widget von ${s2(p, "provider")} nicht geladen: Es wird nichts gesendet, das es sch\xFCtzen k\xF6nnte`,
-  formatValue: () => "json oder form",
-  modeValue: () => "required, optional oder off",
-  noKeys: () => "keine Schl\xFCssel, an die verschl\xFCsselt werden kann",
-  keyUnknown: (p) => `unbekannter Schl\xFCssel \u201E${s2(p, "name")}\u201C`,
-  mailtoEncrypted: () => "ein verschl\xFCsseltes mailto schreibt das ganze Chiffrat in die Mail",
-  minSecondsValue: () => "eine ganze Zahl Sekunden, 0 oder mehr",
-  powDifficultyValue: () => "eine ganze Zahl von 8 bis 20",
-  captchaValue: () => "none, turnstile oder hcaptcha",
-  siteKeyNeeded: (p) => `${s2(p, "provider")} braucht den Site-Key`,
-  anonymousCaptcha: (p) => `anonym, deshalb wird das Captcha von ${s2(p, "provider")} nicht geladen`,
-  encryptionCaptcha: (p) => `das Skript von ${s2(p, "provider")} l\xE4uft auf der Seite, auf der die Nachricht vor dem Verschl\xFCsseln getippt wird, und kann sie lesen (siehe README)`,
-  noRelayEffect: () => "wirkt nur mit dem Relay",
-  powNoScript: () => "ein einfacher Post ohne JavaScript (noScript: true) umgeht es; noScript: false verlangt das Skript",
-  minSecondsNoScript: () => "ein einfacher Post ohne JavaScript (noScript: true) tr\xE4gt keinen Stempel und umgeht es; noScript: false verlangt das Skript",
-  rateLimitLever: (p) => `ein einzelner Client kann die ${s2(p, "count")} Mails der Stunde selbst senden, danach nimmt das Formular bis zum Ende der Stunde von niemandem mehr etwas an; ein Captcha oder pow mit noScript: false macht das teuer (siehe README)`,
-  powSlow: (p) => `${s2(p, "bits")} Bit dauern auf einem Telefon vor jeder Nachricht Sekunden`,
-  positiveInteger: () => "eine positive ganze Zahl",
-  maxBytesLow: (p) => `${s2(p, "maxBytes")} ist kleiner als das, was die Felder fassen (etwa ${s2(p, "capacity")} Bytes${p.encrypted ? " verschl\xFCsselt" : ""}); eine lange Nachricht w\xFCrde als zu gro\xDF abgewiesen`,
-  pageContextAnonymous: () => "anonym, deshalb wird die Seite nicht mitgeschickt",
-  personalOptional: (p) => `anonym, deshalb kann \u201E${s2(p, "name")}\u201C (${s2(p, "type")}) kein Pflichtfeld sein und wird optional`,
-  successMode: () => "inline oder redirect",
-  successSlug: () => "redirect braucht den Slug einer Seite",
-  languageValue: (p) => `\u201E${s2(p, "value")}\u201C ist weder auto noch ein Sprachcode`,
-  frontmatterKeyEmpty: () => "leer",
-  layoutFormUnknown: (p) => `kein Formular \u201E${s2(p, "id")}\u201C`,
-  codeBlockLangValue: () => "ein Wort ohne Leerzeichen",
-  textsLocaleUnknown: () => "das Plugin hat keine Texte in dieser Sprache; sie gelten, wie sie dastehen",
-  textsShape: () => "ein Record Textschl\xFCssel \u2192 Wortlaut",
-  textsKeyUnknown: () => "diesen Textschl\xFCssel gibt es nicht",
-  cliNeedsValue: (p) => `${s2(p, "arg")} braucht einen Wert`,
-  cliUnknownArgument: (p) => `unbekanntes Argument ${s2(p, "arg")}`,
-  cliNoSite: () => "kein Website-Ordner angegeben (--site)",
-  cliConfigMissing: (p) => `${s2(p, "path")} fehlt`,
-  cliNoEntry: (p) => `kein quartz-forms-Eintrag in ${s2(p, "path")}: die source eines Eintrags muss auf quartz-forms enden (github:boxi-os/quartz-forms oder ein Ordner namens quartz-forms)`,
-  cliEntries: (p) => `${s2(p, "count")} Eintr\xE4ge von quartz-forms; es gilt der erste`,
-  cliNoOut: () => "kein Ausgabeordner angegeben (--out)",
-  cliUnknownCommand: (p) => `unbekannter Befehl \u201E${s2(p, "command")}\u201C (relay, check, key)`,
-  cliNoKey: () => "kein Schl\xFCssel angegeben (--file oder der Text in QF_KEY_ARMORED)",
-  cliKeyUnreadable: (p) => `${s2(p, "file")}: fehlt oder ist nicht lesbar`,
-  cliOperatorJson: () => "QF_RELAY_OPERATOR: kein JSON",
-  cliOperatorProblems: (p) => `${s2(p, "count")} Problem(e) in den Werten des Betreibers`,
-  cliOptionProblems: (p) => `[forms] ${s2(p, "count")} Problem(e) in den Optionen von quartz-forms:`,
-  cliNoPhp: (p) => `${s2(p, "count")} Muster nicht gegen PCRE gepr\xFCft: kein php im PATH. Das Relay weist jeden Wert eines Felds ab, dessen Muster sein PCRE nicht lesen kann.`,
-  cliPhpFailed: (p) => `php konnte die Muster nicht pr\xFCfen:
-${s2(p, "message")}`,
-  cliPhpFailedShort: () => "php konnte die Muster nicht pr\xFCfen",
-  cliPatternUnreadable: (p) => `forms.${s2(p, "form")} Feld \u201E${s2(p, "field")}\u201C: PCRE kann das Muster \u201E${s2(p, "pattern")}\u201C nicht lesen (${s2(p, "why")}); das Relay w\xFCrde jeden Wert dieses Felds abweisen`,
-  cliPatternRefusal: () => "ein Muster, das PCRE nicht lesen kann",
-  cliNothingWritten: () => "nichts geschrieben; korrigiere das Muster oder gib --skip-pattern-check an, wenn das PCRE des Hosts neuer ist als das dieses Rechners",
-  cliWrittenAnyway: () => "trotzdem geschrieben (--skip-pattern-check)",
-  cliMissingRecipient: (p) => `keine Adresse f\xFCr den Empf\xE4nger \u201E${s2(p, "name")}\u201C; das Relay weist seine Formulare ab`,
-  operatorNotObject: () => "operator: kein Objekt",
-  operatorSecret: () => "operator.secret: mindestens 32 Zeichen",
-  operatorOrigins: () => "operator.allowedOrigins: eine Liste von Origins",
-  operatorFrom: () => "operator.from: die E-Mail-Adresse des Absenders",
-  operatorMailer: () => 'operator.mailer: "mail", { sendmail } oder { file }',
-  operatorRecord: (p) => `operator.${s2(p, "key")}: ein Record Name \u2192 Text`,
-  operatorText: (p) => `operator.${s2(p, "key")}: ein Text`,
-  operatorCounterDir: () => "operator.counterDir: ein absoluter Pfad auf dem Server"
-};
-var de_default = de;
-
-// src/messages/index.ts
-var MESSAGE_LANGS = ["en", "de"];
-var catalogs = {
-  en: en_default,
-  de: de_default
-};
-function messageLang(code) {
-  const primary = (code ?? "").toLowerCase().split(/[-_]/)[0];
-  return MESSAGE_LANGS.includes(primary ?? "") ? primary : "en";
-}
-function messageText(code, params = {}, lang = "en") {
-  const catalog = catalogs[lang];
-  const t2 = (c, p) => c in catalog ? catalog[c](p ?? {}, t2) : c;
-  return catalog[code](params, t2);
-}
-function formatMessage(message, lang = "en") {
-  const text = messageText(message.code, message.params, lang);
-  return message.path ? `${message.path}: ${text}` : text;
-}
-
-// src/pgp/armor.ts
-var BLOCK = /-----BEGIN PGP ([A-Z ]+?)-----[\s\S]*?-----END PGP \1-----/g;
-var PUBLIC = "PUBLIC KEY BLOCK";
-function refused(code, params) {
-  return { problem: messageText(code, params), code, ...params ? { params } : {} };
-}
-function publicKeyBlock(text) {
-  if (/-----BEGIN PGP PRIVATE KEY BLOCK-----/.test(text)) return refused("armorPrivate");
-  const blocks = [...text.matchAll(BLOCK)];
-  const begins = text.match(/-----BEGIN PGP /g)?.length ?? 0;
-  const first = blocks[0];
-  if (!first) return refused("armorNone");
-  if (begins > blocks.length) return refused("armorIncomplete");
-  const other = blocks.find((b) => b[1] !== PUBLIC);
-  if (other) return refused("armorOther", { kind: other[1] });
-  if (blocks.length > 1) return refused("armorMany", { count: blocks.length });
-  return { armored: first[0] };
-}
-
 // src/i18n/locales/en-US.ts
 var en_US_default = {
   submit: "Send",
@@ -678,6 +347,337 @@ function availableLocales() {
 }
 function textKeys() {
   return Object.keys(en_US_default);
+}
+
+// src/messages/en.ts
+var s = (p, key) => String(p[key] ?? "");
+var en = {
+  // texts
+  textEmpty: () => "empty text",
+  textShape: () => "a text is a string or a record of language \u2192 string",
+  textRecordEmpty: () => "empty text record",
+  // fields
+  fieldShape: () => "a field is an object with a type and a name",
+  fieldNamePattern: (p) => `field name ${s(p, "name")} must match ${s(p, "pattern")} (a letter, then letters, digits, _ or -)`,
+  fieldNameReserved: (p) => `field name "${s(p, "name")}" is reserved by the submission envelope`,
+  minAboveMax: (p) => `min ${s(p, "min")} is above max ${s(p, "max")}`,
+  maxLengthMin: () => "maxLength must be at least 1",
+  patternJsU: () => "`\\u` escapes are JavaScript only, the relay's PCRE cannot read them: write the character itself, or `\\xHH` below U+0100",
+  patternJsNegClass: () => "`[^]` is JavaScript only, the relay's PCRE cannot read it: write `[\\s\\S]`",
+  patternJsEmptyClass: () => "`[]` is JavaScript only (it matches nothing), the relay's PCRE cannot read it",
+  patternJsLookbehind: () => "a lookbehind of unlimited length is JavaScript only, the relay's PCRE cannot read it",
+  patternInvalid: (p) => `pattern is not a regular expression (${s(p, "error")})`,
+  optionsNeeded: (p) => `a ${s(p, "type")} field needs at least one option`,
+  optionShape: () => "an option is { value, label } with a value",
+  optionTwice: (p) => `value "${s(p, "value")}" twice`,
+  optionSpace: (p) => `value "${s(p, "value")}" begins or ends with whitespace, which is trimmed from what is sent: it can never be chosen`,
+  scaleInteger: () => "a scale has integer min and max",
+  scaleOrder: (p) => `scale min ${s(p, "min")} must be below max ${s(p, "max")}`,
+  scaleSpan: () => "a scale spans at most 21 steps",
+  consentText: () => "a consent field needs a text",
+  hiddenValue: () => "a hidden field needs a value",
+  fieldTypeUnknown: (p) => `unknown field type ${s(p, "type")}`,
+  labelNeeded: (p) => `a ${s(p, "type")} field needs a label`,
+  widthValue: () => "full, half or third",
+  layoutValue: () => "stacked or inline",
+  layoutSelect: () => "has no effect on a select, whose options are a list to open",
+  showIfNotAllowed: (p) => `a ${s(p, "type")} field cannot be conditional`,
+  showIfShape: () => "{ field, equals } with the name of a field and one value or a list of them",
+  showIfUnknown: (p) => `no field "${s(p, "field")}" in this form`,
+  showIfLater: (p) => `"${s(p, "field")}" must come before the field that depends on it`,
+  showIfController: (p) => `"${s(p, "field")}" is a ${s(p, "type")} field; a condition needs a select, radio, checkboxes, checkbox or scale`,
+  showIfValue: (p) => `"${s(p, "field")}" cannot have the value "${s(p, "value")}"`,
+  pageBreakEdge: () => "a page break stands between fields, not first or last",
+  pageBreakTwice: () => "two page breaks in a row leave a step without fields",
+  consentInConditionalStep: () => "a consent field cannot stand in a step with a condition: when the step is skipped, the message would go without it",
+  stepOnlyHidden: (p) => `step ${s(p, "step")} holds only hidden values and shows the visitor nothing`,
+  // keys in the options
+  keyShape: () => "a key is { file } or { armored }",
+  keyExactlyOne: () => "exactly one of file or armored",
+  keyOutside: (p) => `${s(p, "file")} lies outside the site`,
+  keyUnreadable: (p) => `${s(p, "file")} not found or not readable`,
+  keyFileBlock: (p, t2) => `${s(p, "file")}: ${t2(s(p, "problem"), p)}`,
+  // armor (src/pgp/armor.ts)
+  armorPrivate: () => "holds a private key block; export only the public key (gpg --export --armor)",
+  armorNone: () => "not an armored PGP public key block",
+  armorIncomplete: () => "holds an incomplete armor block",
+  armorOther: (p) => `holds a PGP ${s(p, "kind")} besides the public key`,
+  armorMany: (p) => `holds ${s(p, "count")} key blocks; one public key per source`,
+  // a key as OpenPGP.js reads it (src/pgp/check.ts)
+  pgpUnreadable: (p) => `not a readable PGP key (${s(p, "error")})`,
+  pgpPrivate: () => "this is a private key; the site needs the public key",
+  pgpRevoked: () => "this key is revoked",
+  pgpExpired: (p) => `this key expired on ${s(p, "date")}`,
+  pgpNoEncrypt: () => "this key cannot encrypt (no encryption subkey)",
+  pgpNewAlgorithm: (p) => `this key encrypts with ${s(p, "algorithm")} as RFC 9580 writes it, which GnuPG cannot read: gpg does not decrypt mails sent to it`,
+  pgpVersion6: () => "this is a version 6 key as RFC 9580 writes it, which GnuPG cannot read: gpg does not decrypt mails sent to it",
+  keyMissingSource: () => "neither file nor armored",
+  keyFileUnreadable: () => "not found or not readable",
+  // a form
+  formIdPattern: (p) => `form id must match ${s(p, "pattern")} (lower-case letters, digits, -)`,
+  templateUnknown: (p) => `unknown template ${s(p, "name")}`,
+  noFields: () => "no fields (write fields or choose a template)",
+  fieldNameTwice: (p) => `field name "${s(p, "name")}" twice`,
+  onePgpKey: () => "at most one pgpKey field",
+  // transport
+  urlNeeded: (p) => `${s(p, "kind")} needs a URL`,
+  urlNotHttp: (p) => `${s(p, "url")} is not an http(s) URL`,
+  urlPlainHttp: (p) => `${s(p, "url")} sends submissions unencrypted in transit (http)`,
+  relayRecipient: () => "the relay needs the recipient's name",
+  presetUrl: (p) => `${s(p, "kind")} needs the form id or access key`,
+  anonymousService: (p) => `anonymous, but ${s(p, "kind")} sees the sender's address; see the README`,
+  mailtoRecipient: () => "mailto needs an e-mail address",
+  kindUnknown: (p) => `unknown kind ${s(p, "kind")}`,
+  extraRelay: () => "has no effect with the relay",
+  extraMailto: () => "has no effect with mailto",
+  demoNoEffect: () => "has no effect with demo, which sends nothing",
+  demoRedirect: () => "demo shows what would have been sent below the form and does not redirect",
+  demoCaptcha: (p) => `with demo the ${s(p, "provider")} widget is not loaded: nothing is sent that it could protect`,
+  formatValue: () => "json or form",
+  // encryption
+  modeValue: () => "required, optional or off",
+  noKeys: () => "no keys to encrypt to",
+  keyUnknown: (p) => `unknown key "${s(p, "name")}"`,
+  mailtoEncrypted: () => "encrypted mailto puts the whole ciphertext into the mail body",
+  // spam
+  minSecondsValue: () => "a whole number of seconds, 0 or more",
+  powDifficultyValue: () => "an integer from 8 to 20",
+  captchaValue: () => "none, turnstile or hcaptcha",
+  siteKeyNeeded: (p) => `${s(p, "provider")} needs the site key`,
+  anonymousCaptcha: (p) => `anonymous, so the ${s(p, "provider")} captcha is not loaded`,
+  noRelayEffect: () => "has no effect without the relay",
+  encryptionCaptcha: (p) => `the ${s(p, "provider")} script runs on the page where the message is typed before it is encrypted, and can read it (see the README)`,
+  powNoScript: () => "a plain post without JavaScript (noScript: true) skips it; noScript: false requires the script",
+  minSecondsNoScript: () => "a plain post without JavaScript (noScript: true) carries no stamp and skips it; noScript: false requires the script",
+  rateLimitLever: (p) => `one client can send the hour's ${s(p, "count")} mails by itself, and the form takes no more from anyone until the hour is over; a captcha, or pow with noScript: false, makes that cost something (see the README)`,
+  powSlow: (p) => `${s(p, "bits")} bits take seconds on a phone before every message`,
+  positiveInteger: () => "a positive integer",
+  maxBytesLow: (p) => `${s(p, "maxBytes")} is below what the fields may hold (about ${s(p, "capacity")} bytes${p.encrypted ? " once encrypted" : ""}); a long message would be refused as too large`,
+  // anonymous
+  pageContextAnonymous: () => "anonymous, so the page is not sent along",
+  personalOptional: (p) => `anonymous, so "${s(p, "name")}" (${s(p, "type")}) cannot be required and is made optional`,
+  // success
+  successMode: () => "inline or redirect",
+  successSlug: () => "redirect needs the slug of a page",
+  // the entry
+  languageValue: (p) => `"${s(p, "value")}" is neither auto nor a language code`,
+  frontmatterKeyEmpty: () => "empty",
+  layoutFormUnknown: (p) => `no form "${s(p, "id")}"`,
+  codeBlockLangValue: () => "one word without spaces",
+  textsLocaleUnknown: () => "the plugin has no texts in this language; they are used as written",
+  textsShape: () => "a record of text key \u2192 wording",
+  textsKeyUnknown: () => "no such text key",
+  // the command line (src/cli.ts) and the relay generator (src/relay/generate.ts)
+  cliNeedsValue: (p) => `${s(p, "arg")} needs a value`,
+  cliUnknownArgument: (p) => `unknown argument ${s(p, "arg")}`,
+  cliNoSite: () => "no site directory given (--site)",
+  cliConfigMissing: (p) => `${s(p, "path")} not found`,
+  // Quartz names a plugin by the end of its source, so a folder of another name is not this one.
+  cliNoEntry: (p) => `no quartz-forms entry in ${s(p, "path")}: an entry's source must end in quartz-forms (github:boxi-os/quartz-forms, or a folder named quartz-forms)`,
+  cliEntries: (p) => `${s(p, "count")} quartz-forms entries; taking the first`,
+  cliNoOut: () => "no output directory given (--out)",
+  cliUnknownCommand: (p) => `unknown command "${s(p, "command")}" (relay, check, key, texts)`,
+  cliNoKey: () => "no key given (--file, or the armored text in QF_KEY_ARMORED)",
+  cliKeyUnreadable: (p) => `${s(p, "file")}: not found or not readable`,
+  cliOperatorJson: () => "QF_RELAY_OPERATOR: not JSON",
+  cliOperatorProblems: (p) => `${s(p, "count")} problem(s) in the operator values`,
+  cliOptionProblems: (p) => `[forms] ${s(p, "count")} problem(s) in the quartz-forms options:`,
+  cliNoPhp: (p) => `${s(p, "count")} pattern(s) not checked against PCRE: no php on the PATH. The relay refuses every value of a field whose pattern its PCRE cannot read.`,
+  cliPhpFailed: (p) => `php could not check the patterns:
+${s(p, "message")}`,
+  cliPhpFailedShort: () => "php could not check the patterns",
+  cliPatternUnreadable: (p) => `forms.${s(p, "form")} field "${s(p, "field")}": PCRE cannot read the pattern "${s(p, "pattern")}" (${s(p, "why")}); the relay would refuse every value of this field`,
+  cliPatternRefusal: () => "a pattern PCRE cannot read",
+  cliNothingWritten: () => "nothing written; fix the pattern, or pass --skip-pattern-check when the host's PCRE is newer than this machine's",
+  cliWrittenAnyway: () => "written anyway (--skip-pattern-check)",
+  cliMissingRecipient: (p) => `no address for the recipient "${s(p, "name")}"; the relay refuses its forms`,
+  operatorNotObject: () => "operator: not an object",
+  operatorSecret: () => "operator.secret: at least 32 characters",
+  operatorOrigins: () => "operator.allowedOrigins: a list of origins",
+  operatorFrom: () => "operator.from: the sender's e-mail address",
+  operatorMailer: () => 'operator.mailer: "mail", { sendmail } or { file }',
+  operatorRecord: (p) => `operator.${s(p, "key")}: a record of name \u2192 text`,
+  operatorText: (p) => `operator.${s(p, "key")}: a text`,
+  operatorCounterDir: () => "operator.counterDir: an absolute path on the server"
+};
+var en_default = en;
+
+// src/messages/de.ts
+var s2 = (p, key) => String(p[key] ?? "");
+var de = {
+  textEmpty: () => "leerer Text",
+  textShape: () => "ein Text ist ein String oder ein Record Sprache \u2192 String",
+  textRecordEmpty: () => "leerer Text-Record",
+  fieldShape: () => "ein Feld ist ein Objekt mit type und name",
+  fieldNamePattern: (p) => `der Feldname ${s2(p, "name")} muss ${s2(p, "pattern")} entsprechen (ein Buchstabe, dann Buchstaben, Ziffern, _ oder -)`,
+  fieldNameReserved: (p) => `der Feldname \u201E${s2(p, "name")}\u201C ist f\xFCr die Sendung selbst reserviert`,
+  minAboveMax: (p) => `min ${s2(p, "min")} liegt \xFCber max ${s2(p, "max")}`,
+  maxLengthMin: () => "maxLength muss mindestens 1 sein",
+  patternJsU: () => "`\\u`-Escapes gibt es nur in JavaScript, das PCRE des Relays kann sie nicht lesen: schreib das Zeichen selbst oder `\\xHH` unter U+0100",
+  patternJsNegClass: () => "`[^]` gibt es nur in JavaScript, das PCRE des Relays kann es nicht lesen: schreib `[\\s\\S]`",
+  patternJsEmptyClass: () => "`[]` gibt es nur in JavaScript (es trifft nichts), das PCRE des Relays kann es nicht lesen",
+  patternJsLookbehind: () => "ein Lookbehind unbegrenzter L\xE4nge gibt es nur in JavaScript, das PCRE des Relays kann ihn nicht lesen",
+  patternInvalid: (p) => `pattern ist kein regul\xE4rer Ausdruck (${s2(p, "error")})`,
+  optionsNeeded: (p) => `ein Feld vom Typ ${s2(p, "type")} braucht mindestens eine Option`,
+  optionShape: () => "eine Option ist { value, label } mit einem Wert",
+  optionTwice: (p) => `Wert \u201E${s2(p, "value")}\u201C doppelt`,
+  optionSpace: (p) => `Wert \u201E${s2(p, "value")}\u201C beginnt oder endet mit Leerraum, der beim Senden entfernt wird: er ist nie w\xE4hlbar`,
+  scaleInteger: () => "eine Skala hat ganzzahlige min und max",
+  scaleOrder: (p) => `min ${s2(p, "min")} der Skala muss unter max ${s2(p, "max")} liegen`,
+  scaleSpan: () => "eine Skala umfasst h\xF6chstens 21 Stufen",
+  consentText: () => "ein Einwilligungsfeld braucht einen Text",
+  hiddenValue: () => "ein verborgenes Feld braucht einen Wert",
+  fieldTypeUnknown: (p) => `unbekannter Feldtyp ${s2(p, "type")}`,
+  labelNeeded: (p) => `ein Feld vom Typ ${s2(p, "type")} braucht eine Beschriftung (label)`,
+  widthValue: () => "full, half oder third",
+  layoutValue: () => "stacked oder inline",
+  layoutSelect: () => "wirkt nicht bei select, dessen Optionen eine aufklappende Liste sind",
+  showIfNotAllowed: (p) => `ein Feld vom Typ ${s2(p, "type")} kann nicht bedingt sein`,
+  showIfShape: () => "{ field, equals } mit dem Namen eines Felds und einem Wert oder einer Liste davon",
+  showIfUnknown: (p) => `kein Feld \u201E${s2(p, "field")}\u201C in diesem Formular`,
+  showIfLater: (p) => `\u201E${s2(p, "field")}\u201C muss vor dem Feld stehen, das davon abh\xE4ngt`,
+  showIfController: (p) => `\u201E${s2(p, "field")}\u201C ist ein Feld vom Typ ${s2(p, "type")}; eine Bedingung braucht select, radio, checkboxes, checkbox oder scale`,
+  showIfValue: (p) => `\u201E${s2(p, "field")}\u201C kann den Wert \u201E${s2(p, "value")}\u201C nicht haben`,
+  pageBreakEdge: () => "ein Seitenumbruch steht zwischen Feldern, nicht am Anfang oder Ende",
+  pageBreakTwice: () => "zwei Seitenumbr\xFCche hintereinander lassen einen Schritt ohne Felder",
+  consentInConditionalStep: () => "eine Einwilligung kann nicht in einem Schritt mit Bedingung stehen: Wird der Schritt \xFCbersprungen, ginge die Nachricht ohne sie hinaus",
+  stepOnlyHidden: (p) => `Schritt ${s2(p, "step")} enth\xE4lt nur verborgene Werte und zeigt dem Besucher nichts`,
+  keyShape: () => "ein Schl\xFCssel ist { file } oder { armored }",
+  keyExactlyOne: () => "genau eines von file oder armored",
+  keyOutside: (p) => `${s2(p, "file")} liegt au\xDFerhalb der Website`,
+  keyUnreadable: (p) => `${s2(p, "file")} fehlt oder ist nicht lesbar`,
+  keyFileBlock: (p, t2) => `${s2(p, "file")}: ${t2(s2(p, "problem"), p)}`,
+  armorPrivate: () => "enth\xE4lt einen privaten Schl\xFCssel; exportiere nur den \xF6ffentlichen (gpg --export --armor)",
+  armorNone: () => "kein \xF6ffentlicher PGP-Schl\xFCssel im Textformat",
+  armorIncomplete: () => "enth\xE4lt einen unvollst\xE4ndigen Armor-Block",
+  armorOther: (p) => `enth\xE4lt neben dem \xF6ffentlichen Schl\xFCssel einen PGP ${s2(p, "kind")}`,
+  armorMany: (p) => `enth\xE4lt ${s2(p, "count")} Schl\xFCsselbl\xF6cke; ein \xF6ffentlicher Schl\xFCssel je Quelle`,
+  pgpUnreadable: (p) => `kein lesbarer PGP-Schl\xFCssel (${s2(p, "error")})`,
+  pgpPrivate: () => "das ist ein privater Schl\xFCssel; die Website braucht den \xF6ffentlichen",
+  pgpRevoked: () => "dieser Schl\xFCssel ist widerrufen",
+  pgpExpired: (p) => `dieser Schl\xFCssel ist am ${s2(p, "date")} abgelaufen`,
+  pgpNoEncrypt: () => "dieser Schl\xFCssel kann nicht verschl\xFCsseln (kein Verschl\xFCsselungs-Unterschl\xFCssel)",
+  pgpNewAlgorithm: (p) => `dieser Schl\xFCssel verschl\xFCsselt mit ${s2(p, "algorithm")} in der Form von RFC 9580, die GnuPG nicht lesen kann: Mails an ihn entschl\xFCsselt gpg nicht`,
+  pgpVersion6: () => "dieser Schl\xFCssel hat die Version 6 aus RFC 9580, die GnuPG nicht lesen kann: Mails an ihn entschl\xFCsselt gpg nicht",
+  keyMissingSource: () => "weder file noch armored",
+  keyFileUnreadable: () => "fehlt oder ist nicht lesbar",
+  formIdPattern: (p) => `die Kennung des Formulars muss ${s2(p, "pattern")} entsprechen (Kleinbuchstaben, Ziffern, -)`,
+  templateUnknown: (p) => `unbekannte Vorlage ${s2(p, "name")}`,
+  noFields: () => "keine Felder (schreib Felder oder w\xE4hle eine Vorlage)",
+  fieldNameTwice: (p) => `Feldname \u201E${s2(p, "name")}\u201C doppelt`,
+  onePgpKey: () => "h\xF6chstens ein Feld vom Typ pgpKey",
+  urlNeeded: (p) => `${s2(p, "kind")} braucht eine Adresse`,
+  urlNotHttp: (p) => `${s2(p, "url")} ist keine http(s)-Adresse`,
+  urlPlainHttp: (p) => `${s2(p, "url")} \xFCbertr\xE4gt Sendungen unverschl\xFCsselt (http)`,
+  relayRecipient: () => "das Relay braucht den Namen des Empf\xE4ngers",
+  presetUrl: (p) => `${s2(p, "kind")} braucht die Formular-ID oder den Zugangsschl\xFCssel`,
+  anonymousService: (p) => `anonym, aber ${s2(p, "kind")} sieht die Adresse des Absenders; siehe README`,
+  mailtoRecipient: () => "mailto braucht eine E-Mail-Adresse",
+  kindUnknown: (p) => `unbekannter Versandweg ${s2(p, "kind")}`,
+  extraRelay: () => "wirkt nicht beim Relay",
+  extraMailto: () => "wirkt nicht bei mailto",
+  demoNoEffect: () => "wirkt nicht bei demo, das nichts sendet",
+  demoRedirect: () => "demo zeigt unter dem Formular, was gesendet worden w\xE4re, und leitet nicht weiter",
+  demoCaptcha: (p) => `bei demo wird das Widget von ${s2(p, "provider")} nicht geladen: Es wird nichts gesendet, das es sch\xFCtzen k\xF6nnte`,
+  formatValue: () => "json oder form",
+  modeValue: () => "required, optional oder off",
+  noKeys: () => "keine Schl\xFCssel, an die verschl\xFCsselt werden kann",
+  keyUnknown: (p) => `unbekannter Schl\xFCssel \u201E${s2(p, "name")}\u201C`,
+  mailtoEncrypted: () => "ein verschl\xFCsseltes mailto schreibt das ganze Chiffrat in die Mail",
+  minSecondsValue: () => "eine ganze Zahl Sekunden, 0 oder mehr",
+  powDifficultyValue: () => "eine ganze Zahl von 8 bis 20",
+  captchaValue: () => "none, turnstile oder hcaptcha",
+  siteKeyNeeded: (p) => `${s2(p, "provider")} braucht den Site-Key`,
+  anonymousCaptcha: (p) => `anonym, deshalb wird das Captcha von ${s2(p, "provider")} nicht geladen`,
+  encryptionCaptcha: (p) => `das Skript von ${s2(p, "provider")} l\xE4uft auf der Seite, auf der die Nachricht vor dem Verschl\xFCsseln getippt wird, und kann sie lesen (siehe README)`,
+  noRelayEffect: () => "wirkt nur mit dem Relay",
+  powNoScript: () => "ein einfacher Post ohne JavaScript (noScript: true) umgeht es; noScript: false verlangt das Skript",
+  minSecondsNoScript: () => "ein einfacher Post ohne JavaScript (noScript: true) tr\xE4gt keinen Stempel und umgeht es; noScript: false verlangt das Skript",
+  rateLimitLever: (p) => `ein einzelner Client kann die ${s2(p, "count")} Mails der Stunde selbst senden, danach nimmt das Formular bis zum Ende der Stunde von niemandem mehr etwas an; ein Captcha oder pow mit noScript: false macht das teuer (siehe README)`,
+  powSlow: (p) => `${s2(p, "bits")} Bit dauern auf einem Telefon vor jeder Nachricht Sekunden`,
+  positiveInteger: () => "eine positive ganze Zahl",
+  maxBytesLow: (p) => `${s2(p, "maxBytes")} ist kleiner als das, was die Felder fassen (etwa ${s2(p, "capacity")} Bytes${p.encrypted ? " verschl\xFCsselt" : ""}); eine lange Nachricht w\xFCrde als zu gro\xDF abgewiesen`,
+  pageContextAnonymous: () => "anonym, deshalb wird die Seite nicht mitgeschickt",
+  personalOptional: (p) => `anonym, deshalb kann \u201E${s2(p, "name")}\u201C (${s2(p, "type")}) kein Pflichtfeld sein und wird optional`,
+  successMode: () => "inline oder redirect",
+  successSlug: () => "redirect braucht den Slug einer Seite",
+  languageValue: (p) => `\u201E${s2(p, "value")}\u201C ist weder auto noch ein Sprachcode`,
+  frontmatterKeyEmpty: () => "leer",
+  layoutFormUnknown: (p) => `kein Formular \u201E${s2(p, "id")}\u201C`,
+  codeBlockLangValue: () => "ein Wort ohne Leerzeichen",
+  textsLocaleUnknown: () => "das Plugin hat keine Texte in dieser Sprache; sie gelten, wie sie dastehen",
+  textsShape: () => "ein Record Textschl\xFCssel \u2192 Wortlaut",
+  textsKeyUnknown: () => "diesen Textschl\xFCssel gibt es nicht",
+  cliNeedsValue: (p) => `${s2(p, "arg")} braucht einen Wert`,
+  cliUnknownArgument: (p) => `unbekanntes Argument ${s2(p, "arg")}`,
+  cliNoSite: () => "kein Website-Ordner angegeben (--site)",
+  cliConfigMissing: (p) => `${s2(p, "path")} fehlt`,
+  cliNoEntry: (p) => `kein quartz-forms-Eintrag in ${s2(p, "path")}: die source eines Eintrags muss auf quartz-forms enden (github:boxi-os/quartz-forms oder ein Ordner namens quartz-forms)`,
+  cliEntries: (p) => `${s2(p, "count")} Eintr\xE4ge von quartz-forms; es gilt der erste`,
+  cliNoOut: () => "kein Ausgabeordner angegeben (--out)",
+  cliUnknownCommand: (p) => `unbekannter Befehl \u201E${s2(p, "command")}\u201C (relay, check, key, texts)`,
+  cliNoKey: () => "kein Schl\xFCssel angegeben (--file oder der Text in QF_KEY_ARMORED)",
+  cliKeyUnreadable: (p) => `${s2(p, "file")}: fehlt oder ist nicht lesbar`,
+  cliOperatorJson: () => "QF_RELAY_OPERATOR: kein JSON",
+  cliOperatorProblems: (p) => `${s2(p, "count")} Problem(e) in den Werten des Betreibers`,
+  cliOptionProblems: (p) => `[forms] ${s2(p, "count")} Problem(e) in den Optionen von quartz-forms:`,
+  cliNoPhp: (p) => `${s2(p, "count")} Muster nicht gegen PCRE gepr\xFCft: kein php im PATH. Das Relay weist jeden Wert eines Felds ab, dessen Muster sein PCRE nicht lesen kann.`,
+  cliPhpFailed: (p) => `php konnte die Muster nicht pr\xFCfen:
+${s2(p, "message")}`,
+  cliPhpFailedShort: () => "php konnte die Muster nicht pr\xFCfen",
+  cliPatternUnreadable: (p) => `forms.${s2(p, "form")} Feld \u201E${s2(p, "field")}\u201C: PCRE kann das Muster \u201E${s2(p, "pattern")}\u201C nicht lesen (${s2(p, "why")}); das Relay w\xFCrde jeden Wert dieses Felds abweisen`,
+  cliPatternRefusal: () => "ein Muster, das PCRE nicht lesen kann",
+  cliNothingWritten: () => "nichts geschrieben; korrigiere das Muster oder gib --skip-pattern-check an, wenn das PCRE des Hosts neuer ist als das dieses Rechners",
+  cliWrittenAnyway: () => "trotzdem geschrieben (--skip-pattern-check)",
+  cliMissingRecipient: (p) => `keine Adresse f\xFCr den Empf\xE4nger \u201E${s2(p, "name")}\u201C; das Relay weist seine Formulare ab`,
+  operatorNotObject: () => "operator: kein Objekt",
+  operatorSecret: () => "operator.secret: mindestens 32 Zeichen",
+  operatorOrigins: () => "operator.allowedOrigins: eine Liste von Origins",
+  operatorFrom: () => "operator.from: die E-Mail-Adresse des Absenders",
+  operatorMailer: () => 'operator.mailer: "mail", { sendmail } oder { file }',
+  operatorRecord: (p) => `operator.${s2(p, "key")}: ein Record Name \u2192 Text`,
+  operatorText: (p) => `operator.${s2(p, "key")}: ein Text`,
+  operatorCounterDir: () => "operator.counterDir: ein absoluter Pfad auf dem Server"
+};
+var de_default = de;
+
+// src/messages/index.ts
+var MESSAGE_LANGS = ["en", "de"];
+var catalogs = {
+  en: en_default,
+  de: de_default
+};
+function messageLang(code) {
+  const primary = (code ?? "").toLowerCase().split(/[-_]/)[0];
+  return MESSAGE_LANGS.includes(primary ?? "") ? primary : "en";
+}
+function messageText(code, params = {}, lang = "en") {
+  const catalog = catalogs[lang];
+  const t2 = (c, p) => c in catalog ? catalog[c](p ?? {}, t2) : c;
+  return catalog[code](params, t2);
+}
+function formatMessage(message, lang = "en") {
+  const text = messageText(message.code, message.params, lang);
+  return message.path ? `${message.path}: ${text}` : text;
+}
+
+// src/pgp/armor.ts
+var BLOCK = /-----BEGIN PGP ([A-Z ]+?)-----[\s\S]*?-----END PGP \1-----/g;
+var PUBLIC = "PUBLIC KEY BLOCK";
+function refused(code, params) {
+  return { problem: messageText(code, params), code, ...params ? { params } : {} };
+}
+function publicKeyBlock(text) {
+  if (/-----BEGIN PGP PRIVATE KEY BLOCK-----/.test(text)) return refused("armorPrivate");
+  const blocks = [...text.matchAll(BLOCK)];
+  const begins = text.match(/-----BEGIN PGP /g)?.length ?? 0;
+  const first = blocks[0];
+  if (!first) return refused("armorNone");
+  if (begins > blocks.length) return refused("armorIncomplete");
+  const other = blocks.find((b) => b[1] !== PUBLIC);
+  if (other) return refused("armorOther", { kind: other[1] });
+  if (blocks.length > 1) return refused("armorMany", { count: blocks.length });
+  return { armored: first[0] };
 }
 
 // src/conditions.ts
@@ -1398,6 +1398,6 @@ function logHints(opts) {
   for (const hint2 of opts.hints) warnOnce(hint2, hint2);
 }
 
-export { __commonJS, __export, __require, __toESM, conditionOf, conditionsOf, defaultOptions, formatMessage, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-2WLDQRZZ.js.map
-//# sourceMappingURL=chunk-2WLDQRZZ.js.map
+export { __commonJS, __export, __require, __toESM, availableLocales, conditionOf, conditionsOf, defaultOptions, formatMessage, i18n, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
+//# sourceMappingURL=chunk-WTAFSTKO.js.map
+//# sourceMappingURL=chunk-WTAFSTKO.js.map

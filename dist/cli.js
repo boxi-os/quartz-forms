@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
-import { pluginRoot, checkKey } from './chunk-2IQQJKT3.js';
-import { __commonJS, __require, __toESM, messageLang, publicKeyBlock, messageText, formatMessage, conditionsOf, isNamed, resolveOptions } from './chunk-2WLDQRZZ.js';
+import { pluginRoot, checkKey } from './chunk-VNOCDB2P.js';
+import { __commonJS, __require, __toESM, messageLang, publicKeyBlock, availableLocales, i18n, messageText, formatMessage, conditionsOf, isNamed, resolveOptions } from './chunk-WTAFSTKO.js';
 import fs from 'fs';
 import path from 'path';
 import { spawnSync } from 'child_process';
@@ -7767,6 +7767,9 @@ async function commandRelay(args, say, warn) {
     patterns
   };
 }
+function commandTexts() {
+  return { ok: true, locales: Object.fromEntries(availableLocales().map((l) => [l, i18n(l)])) };
+}
 async function main(argv) {
   const json = argv.includes("--json");
   const lines = [];
@@ -7781,6 +7784,7 @@ async function main(argv) {
     if (args.command === "relay") result = await commandRelay(args, say, warn);
     else if (args.command === "check") result = await commandCheck(args);
     else if (args.command === "key") result = await commandKey(args);
+    else if (args.command === "texts") result = commandTexts();
     else throw new Refusal(m("cliUnknownCommand", { command: args.command }), {}, 2);
     if (json) process.stdout.write(JSON.stringify({ ...result, warnings }) + "\n");
     else if (args.command !== "relay") console.log(JSON.stringify(result, null, 2));
@@ -7795,7 +7799,7 @@ async function main(argv) {
       console.error(refusal.message);
       if (refusal.status === 2)
         console.error(
-          "usage: quartz-forms relay --site <dir> --out <dir> [--skip-pattern-check] | check --site <dir> | key --site <dir> --file <path>  [--json] [--lang de|en]"
+          "usage: quartz-forms relay --site <dir> --out <dir> [--skip-pattern-check] | check --site <dir> | key --site <dir> --file <path> | texts  [--json] [--lang de|en]"
         );
     }
     return refusal.status;

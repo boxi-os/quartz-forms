@@ -207,7 +207,9 @@ describe("cli relay", () => {
 
   it("answers a usage error with status 2", () => {
     expect(run(["relay", "--site", site(relayOptions)]).status).toBe(2);
-    expect(run(["frobnicate"]).json.error).toBe('unknown command "frobnicate" (relay, check, key)');
+    expect(run(["frobnicate"]).json.error).toBe(
+      'unknown command "frobnicate" (relay, check, key, texts)',
+    );
     const none = tmpDir("cli-none");
     fs.writeFileSync(path.join(none, "quartz.config.yaml"), "plugins: []\n");
     expect(run(["check", "--site", none]).json.error).toMatch(/^no quartz-forms entry in /);
@@ -314,6 +316,18 @@ describe("cli check and key", () => {
     expect(
       (run(["key"], { QF_KEY_ARMORED: both.publicKey }).json.key as { notice?: string }).notice,
     ).toMatch(/^this is a version 6 key/);
+  });
+});
+
+describe("cli texts", () => {
+  it("gives the plugin's wording of every text in every locale, without a site", () => {
+    const r = run(["texts"]);
+    expect(r.status).toBe(0);
+    const locales = r.json.locales as Record<string, Record<string, string>>;
+    expect(Object.keys(locales).sort()).toEqual(["de-DE", "en-US"]);
+    expect(locales["de-DE"]!.submit).toBe("Senden");
+    expect(locales["en-US"]!.submit).toBe("Send");
+    expect(Object.keys(locales["de-DE"]!).sort()).toEqual(Object.keys(locales["en-US"]!).sort());
   });
 });
 

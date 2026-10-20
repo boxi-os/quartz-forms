@@ -154,7 +154,7 @@ const de: { [K in keyof typeof en]: (p: Params, t: Translate) => string } = {
     `kein quartz-forms-Eintrag in ${s(p, "path")}: die source eines Eintrags muss auf quartz-forms enden (github:boxi-os/quartz-forms oder ein Ordner namens quartz-forms)`,
   cliEntries: (p) => `${s(p, "count")} Einträge von quartz-forms; es gilt der erste`,
   cliNoOut: () => "kein Ausgabeordner angegeben (--out)",
-  cliUnknownCommand: (p) => `unbekannter Befehl „${s(p, "command")}“ (relay, check, key)`,
+  cliUnknownCommand: (p) => `unbekannter Befehl „${s(p, "command")}“ (relay, check, key, texts)`,
   cliNoKey: () => "kein Schlüssel angegeben (--file oder der Text in QF_KEY_ARMORED)",
   cliKeyUnreadable: (p) => `${s(p, "file")}: fehlt oder ist nicht lesbar`,
   cliOperatorJson: () => "QF_RELAY_OPERATOR: kein JSON",

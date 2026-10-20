@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added: `dist/cli.js texts` gives the plugin's wording of every text in every locale, the
+  words `options.texts` lays its entries over. QuartzControl shows them in its Texte section.
+
 ## [0.5.8] - 2026-10-20
 
 The sixth independent review and its side list.

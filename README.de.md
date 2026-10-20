@@ -344,6 +344,7 @@ Derselbe Generator liegt als Kommandozeile bei und läuft aus einer installierte
 node dist/cli.js relay --site <site> --out <ordner> [--skip-pattern-check] [--json]
 node dist/cli.js check --site <site> [--json]   # Probleme, Hinweise, jeder Schlüssel mit Fingerabdruck
 node dist/cli.js key   --site <site> --file <key.asc> [--json]
+node dist/cli.js texts [--json]                 # der Wortlaut jedes Textes des Plugins, je Sprache
 ```
 
 `--lang de` gibt Probleme, Hinweise, Schlüsselprobleme und Ablehnungen auf Deutsch aus (ohne

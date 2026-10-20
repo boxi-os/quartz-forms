@@ -168,7 +168,8 @@ const en = {
     `no quartz-forms entry in ${s(p, "path")}: an entry's source must end in quartz-forms (github:boxi-os/quartz-forms, or a folder named quartz-forms)`,
   cliEntries: (p: Params) => `${s(p, "count")} quartz-forms entries; taking the first`,
   cliNoOut: () => "no output directory given (--out)",
-  cliUnknownCommand: (p: Params) => `unknown command "${s(p, "command")}" (relay, check, key)`,
+  cliUnknownCommand: (p: Params) =>
+    `unknown command "${s(p, "command")}" (relay, check, key, texts)`,
   cliNoKey: () => "no key given (--file, or the armored text in QF_KEY_ARMORED)",
   cliKeyUnreadable: (p: Params) => `${s(p, "file")}: not found or not readable`,
   cliOperatorJson: () => "QF_RELAY_OPERATOR: not JSON",

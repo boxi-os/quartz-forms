@@ -329,6 +329,7 @@ in a site), without `npm install`:
 node dist/cli.js relay --site <site> --out <dir> [--skip-pattern-check] [--json]
 node dist/cli.js check --site <site> [--json]   # problems, hints, every key with its fingerprint
 node dist/cli.js key   --site <site> --file <key.asc> [--json]
+node dist/cli.js texts [--json]                 # the plugin's wording of every text, by locale
 ```
 
 `--lang de` gives the problems, hints, key problems and refusals in German (English without it;
