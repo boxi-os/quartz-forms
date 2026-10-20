@@ -542,8 +542,10 @@ export function clientConfig(form: ResolvedForm, ctx: RenderContext): ClientConf
   const anonymous = form.anonymous;
   // No third-party captcha where nothing goes to a third party, and none where nothing is sent:
   // a demo loaded the provider's script and made the visitor solve it for nothing (fiftieth
-  // review, M3).
-  const noCaptcha = anonymous || form.transport.kind === "demo";
+  // review, M3). The time trap goes with it: a reader who tried the demo within three seconds
+  // was asked to wait before sending what is never sent (fiftieth review, side list).
+  const demo = form.transport.kind === "demo";
+  const noCaptcha = anonymous || demo;
   return {
     id: form.id,
     lang: ctx.lang,
@@ -566,7 +568,7 @@ export function clientConfig(form: ResolvedForm, ctx: RenderContext): ClientConf
     subject: resolveText(form.subject, ctx.lang),
     spam: {
       honeypot: form.spam.honeypot,
-      minSeconds: form.spam.minSeconds,
+      minSeconds: demo ? 0 : form.spam.minSeconds,
       pow: form.spam.pow && form.transport.kind === "relay",
       powDifficulty: form.spam.powDifficulty,
       captcha: noCaptcha ? "none" : form.spam.captcha,

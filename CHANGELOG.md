@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Changed: a form with `demo` sets no time trap. A reader who tried a demo within `minSeconds`
+  was asked to wait before sending what is never sent.
+
 ## [0.5.5] - 2026-10-20
 
 The fixes of the fourth independent review (0.4.1 to 0.5.4).

@@ -189,7 +189,8 @@ seinem Titel.
 `demo` sendet nichts. Das Formular prüft die Eingaben, verschlüsselt sie, wenn es verschlüsselt,
 und zeigt unter sich die Nachricht so, wie der Empfänger sie gelesen hätte, mit einem Button für
 einen zweiten Versuch. Es braucht weder `url` noch `recipient`, übergeht `success.mode: redirect`
-und hat ohne JavaScript kein Ziel. Gedacht ist es für eine Website, die ein Formular zeigt, ohne
+und hat ohne JavaScript kein Ziel. Es lädt kein Captcha und stellt keine Zeitfalle (`minSeconds`):
+Es wird nichts gesendet, das eines von beiden schützen könnte. Gedacht ist es für eine Website, die ein Formular zeigt, ohne
 dass jemand es empfängt, etwa ein Handbuch auf einem Host ohne PHP.
 
 ### Spam

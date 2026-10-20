@@ -180,6 +180,7 @@ the consent. Without JavaScript all steps show one after the other, each under i
 `demo` sends nothing. The form checks what was typed, encrypts it if it encrypts, and shows below
 itself the message as the recipient would have read it, with a button to try again. It needs no
 `url` and no `recipient`, ignores `success.mode: redirect` and has no target without JavaScript.
+It loads no captcha and sets no time trap (`minSeconds`): nothing is sent that either could protect.
 It is meant for a site that shows a form without anyone to receive it, such as a handbook on a
 host without PHP.
 

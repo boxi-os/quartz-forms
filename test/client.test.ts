@@ -728,6 +728,19 @@ describe("sending", () => {
     });
   });
 
+  it("lets a demo be tried at once: the time trap protects nothing that is never sent", async () => {
+    // Fiftieth review, side list: a reader quicker than three seconds read "please wait".
+    const form = mount(contact({ spam: { minSeconds: 3 } }), { transport: { kind: "demo" } }, "de");
+    await nav();
+    fill(form, "name", "Ada");
+    fill(form, "message", "Hallo");
+    await submit(form);
+    expect(status(form)).toEqual({
+      state: "success",
+      text: "Nichts wurde gesendet. So wäre die Nachricht angekommen:",
+    });
+  });
+
   it("posts flat fields to an endpoint, as JSON or as a form body, with the extra fields", async () => {
     const json = mount(contact(quick), {
       transport: { kind: "endpoint", url: "https://e.example/x", extra: { to: "sales" } },
