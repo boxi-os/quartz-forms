@@ -10,6 +10,8 @@ export interface OpenpgpKey {
   isRevoked(): Promise<boolean>;
   getEncryptionKey(): Promise<{ getAlgorithmInfo(): { algorithm: string } }>;
   getUserIDs(): string[];
+  /** 4, or 6 for a key in RFC 9580's new format. */
+  keyPacket: { version: number };
 }
 
 export interface OpenpgpModule {

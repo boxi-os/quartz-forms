@@ -55,9 +55,19 @@ export async function checkKey(name: string, armored: string): Promise<KeyReport
   } catch {
     return withProblem(report, "pgpNoEncrypt");
   }
+  // Not a reason to stop the build, a reason to say it: the browser encrypts to these keys, but
+  // GnuPG cannot decrypt (2.5.22, measured). A key of version 6 (RFC 9580) it refuses whatever
+  // the algorithm, "Invalid keyring" for RSA and P-256 too (fifty-first review, N2); the version
+  // is said first because it is the reason that stays when the algorithm is changed.
+  if (key.keyPacket.version === 6) {
+    return {
+      ...report,
+      notice: messageText("pgpVersion6"),
+      noticeCode: "pgpVersion6",
+    };
+  }
   // X25519 and X448 under the ids RFC 9580 gave them (25, 26), as OpenPGP.js 6 writes them for
-  // `curve25519` and `curve448`: the browser encrypts to them, but GnuPG cannot decrypt (2.5.22,
-  // measured; fiftieth review, M2). Not a reason to stop the build, a reason to say it.
+  // `curve25519` and `curve448`, in a version 4 key too (fiftieth review, M2).
   if (algorithm === "x25519" || algorithm === "x448") {
     const noticeParams = { algorithm: algorithm.toUpperCase() };
     return {

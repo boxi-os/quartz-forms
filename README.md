@@ -254,8 +254,9 @@ recipient key is shown under the form so a visitor can compare it with the one y
 The build checks every key in use: readable, public, not revoked, not expired, able to encrypt;
 it logs the fingerprint and stops on a problem. A key whose encryption subkey is X25519 or X448 in
 the form RFC 9580 gave them (what OpenPGP.js 6 creates for `curve25519` and `curve448`) passes, but
-GnuPG cannot read it (measured with 2.5.22) and decrypts nothing sent to it; the build says so. A
-key made with `gpg` (cv25519, RSA) has no such problem.
+GnuPG cannot read it (measured with 2.5.22) and decrypts nothing sent to it; the build says so. The
+same holds for any key of version 6 (RFC 9580), whatever its algorithm. A key made with `gpg`
+(cv25519, RSA) has no such problem.
 
 Encryption protects the message on its way and in your mailbox, not on the page. Every script on
 the page where the visitor types can read the fields before they are encrypted: the captcha

@@ -294,6 +294,27 @@ describe("cli check and key", () => {
     const plain = run(["key"], { QF_KEY_ARMORED: nist.publicKey });
     expect(plain.json.key).not.toHaveProperty("notice");
   });
+
+  it("says of a version 6 key that gpg cannot read it, whatever its algorithm", async () => {
+    // Fifty-first review, N2: the notice hung on X25519/X448, but gpg 2.5.22 refuses every
+    // version 6 key ("Invalid keyring"), a P-256 or RSA one too.
+    const v6 = await generatePair({ nist: true, v6: true });
+    const en = run(["key"], { QF_KEY_ARMORED: v6.publicKey });
+    const key = en.json.key as { problem?: string; notice?: string };
+    expect(key.problem).toBeUndefined();
+    expect(key.notice).toBe(
+      "this is a version 6 key as RFC 9580 writes it, which GnuPG cannot read: gpg does not decrypt mails sent to it",
+    );
+    const de = run(["key", "--lang", "de"], { QF_KEY_ARMORED: v6.publicKey });
+    expect((de.json.key as { notice?: string }).notice).toMatch(
+      /^dieser Schlüssel hat die Version 6 aus RFC 9580/,
+    );
+    // an X25519 key of version 6 is told the version, the reason that weighs more
+    const both = await generatePair({ v6: true });
+    expect(
+      (run(["key"], { QF_KEY_ARMORED: both.publicKey }).json.key as { notice?: string }).notice,
+    ).toMatch(/^this is a version 6 key/);
+  });
 });
 
 describe("cli from an installed copy", () => {

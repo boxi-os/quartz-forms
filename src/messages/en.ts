@@ -83,6 +83,8 @@ const en = {
   pgpNoEncrypt: () => "this key cannot encrypt (no encryption subkey)",
   pgpNewAlgorithm: (p: Params) =>
     `this key encrypts with ${s(p, "algorithm")} as RFC 9580 writes it, which GnuPG cannot read: gpg does not decrypt mails sent to it`,
+  pgpVersion6: () =>
+    "this is a version 6 key as RFC 9580 writes it, which GnuPG cannot read: gpg does not decrypt mails sent to it",
   keyMissingSource: () => "neither file nor armored",
   keyFileUnreadable: () => "not found or not readable",
 

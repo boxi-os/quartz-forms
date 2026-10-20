@@ -10,14 +10,16 @@ export interface TestKeyPair {
 
 /** A fresh key pair per test run; the public key also lands in test/.tmp/ for file-based cases. */
 export async function generatePair(
-  args: { expired?: boolean; name?: string; nist?: boolean } = {},
+  args: { expired?: boolean; name?: string; nist?: boolean; v6?: boolean } = {},
 ): Promise<TestKeyPair> {
   const base = {
     // OpenPGP.js 6's curve25519 is the RFC 9580 X25519, which GnuPG cannot read; `nist` gives a
-    // key both read (ECDH on P-256).
+    // key both read (ECDH on P-256). `v6` writes the key in RFC 9580's version 6, which GnuPG
+    // reads with no algorithm.
     ...(args.nist
       ? { type: "ecc" as const, curve: "nistP256" as const }
       : { type: "curve25519" as const }),
+    ...(args.v6 ? { config: { v6Keys: true } } : {}),
     userIDs: [{ name: args.name ?? "Form Owner", email: "owner@example.org" }],
     format: "armored" as const,
   };

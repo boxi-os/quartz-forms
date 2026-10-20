@@ -1,5 +1,5 @@
 import { createRequire } from 'module';
-import { messageText } from './chunk-O5GZQ4RH.js';
+import { messageText } from './chunk-I5PGUKSV.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
@@ -81,6 +81,13 @@ async function checkKey(name, armored) {
   } catch {
     return withProblem(report, "pgpNoEncrypt");
   }
+  if (key.keyPacket.version === 6) {
+    return {
+      ...report,
+      notice: messageText("pgpVersion6"),
+      noticeCode: "pgpVersion6"
+    };
+  }
   if (algorithm === "x25519" || algorithm === "x448") {
     const noticeParams = { algorithm: algorithm.toUpperCase() };
     return {
@@ -94,5 +101,5 @@ async function checkKey(name, armored) {
 }
 
 export { BROWSER_FILES, checkKey, pluginRoot, vendorDir };
-//# sourceMappingURL=chunk-TT7CQ7DW.js.map
-//# sourceMappingURL=chunk-TT7CQ7DW.js.map
+//# sourceMappingURL=chunk-NAB4ZO74.js.map
+//# sourceMappingURL=chunk-NAB4ZO74.js.map

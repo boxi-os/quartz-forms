@@ -76,6 +76,8 @@ const de: { [K in keyof typeof en]: (p: Params, t: Translate) => string } = {
     "dieser Schlüssel kann nicht verschlüsseln (kein Verschlüsselungs-Unterschlüssel)",
   pgpNewAlgorithm: (p) =>
     `dieser Schlüssel verschlüsselt mit ${s(p, "algorithm")} in der Form von RFC 9580, die GnuPG nicht lesen kann: Mails an ihn entschlüsselt gpg nicht`,
+  pgpVersion6: () =>
+    "dieser Schlüssel hat die Version 6 aus RFC 9580, die GnuPG nicht lesen kann: Mails an ihn entschlüsselt gpg nicht",
   keyMissingSource: () => "weder file noch armored",
   keyFileUnreadable: () => "fehlt oder ist nicht lesbar",
 
