@@ -2924,8 +2924,8 @@ var Forms = (userOpts) => {
         }
       ];
     },
-    externalResources() {
-      if (Object.keys(opts.forms).length === 0) return {};
+    externalResources(ctx) {
+      if (Object.keys(opts.forms).length === 0 && !ctx.argv.serve) return {};
       return {
         // In the layer Quartz puts component CSS into (`FormBox.css` lands there by itself), so a
         // site's unlayered custom.scss wins with a plain `.quartz-form { --quartz-forms-*: … }`.
@@ -3570,5 +3570,5 @@ var FormBox_default = ((userOpts) => {
 });
 
 export { FormBox_default, Forms, loadKeySources, resolveText };
-//# sourceMappingURL=chunk-T3DK572F.js.map
-//# sourceMappingURL=chunk-T3DK572F.js.map
+//# sourceMappingURL=chunk-XRGERM72.js.map
+//# sourceMappingURL=chunk-XRGERM72.js.map

@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed: a demo form under a global transport of another kind was told that the global `url`
   and `extra` had no effect with demo, although it wrote neither. Only what the form writes, or
   a global demo transport, is said now.
+- Fixed: with `forms: {}` the dev server showed the note on an unknown form as a bare paragraph,
+  without its dashed box, since 0.5.7 left the stylesheet out. The dev server gets stylesheet and
+  script again; a build for the site still gets neither.
 
 ## [0.5.7] - 2026-10-20
 

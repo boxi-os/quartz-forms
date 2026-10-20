@@ -228,10 +228,12 @@ export const Forms: QuartzTransformerPlugin<Partial<QuartzFormsOptions>> = (user
       ];
     },
 
-    externalResources() {
+    externalResources(ctx) {
       // No forms, nothing to style or bind: the stylesheet and the script went onto every page of
-      // a site that only had the plugin installed (26 kB a page, fifty-first review).
-      if (Object.keys(opts.forms).length === 0) return {};
+      // a site that only had the plugin installed (26 kB a page, fifty-first review). The dev
+      // server keeps them: there a page that embeds an unknown form shows a note, and without the
+      // stylesheet it was a bare paragraph (fifty-second review, side list).
+      if (Object.keys(opts.forms).length === 0 && !ctx.argv.serve) return {};
       return {
         // In the layer Quartz puts component CSS into (`FormBox.css` lands there by itself), so a
         // site's unlayered custom.scss wins with a plain `.quartz-form { --quartz-forms-*: … }`.

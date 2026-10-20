@@ -229,9 +229,11 @@ describe("unknown forms and redirects", () => {
     expect(res.js?.[0]).toMatchObject({ loadTime: "afterDOMReady", contentType: "inline" });
   });
 
-  it("ships nothing when there are no forms", () => {
+  it("ships nothing when there are no forms, except to the dev server, which shows a note for an unknown one", () => {
     const res = Forms({ forms: {} }).externalResources!(buildCtx())!;
     expect(res.css ?? []).toEqual([]);
     expect(res.js ?? []).toEqual([]);
+    const serve = Forms({ forms: {} }).externalResources!(buildCtx({ serve: true }))!;
+    expect(String(serve.css?.[0]?.content)).toContain("--missing");
   });
 });
