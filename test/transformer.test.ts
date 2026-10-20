@@ -228,4 +228,10 @@ describe("unknown forms and redirects", () => {
     expect(String(res.css?.[0]?.content)).not.toContain("revert");
     expect(res.js?.[0]).toMatchObject({ loadTime: "afterDOMReady", contentType: "inline" });
   });
+
+  it("ships nothing when there are no forms", () => {
+    const res = Forms({ forms: {} }).externalResources!(buildCtx())!;
+    expect(res.css ?? []).toEqual([]);
+    expect(res.js ?? []).toEqual([]);
+  });
 });

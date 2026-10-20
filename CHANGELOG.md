@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed: the build stopped a demo form with a captcha but no site key ("needs the site key") and
   said the captcha's script could read the message, although a demo loads no captcha. A
   `minSeconds` written for a demo form is now said to have no effect (`demoNoEffect`).
+- Changed: a site without forms gets no stylesheet and no script from the plugin. Installed with
+  `forms: {}`, it put 26 kB onto every page.
 
 ## [0.5.6] - 2026-10-20
 
