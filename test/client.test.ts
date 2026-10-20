@@ -1840,7 +1840,7 @@ describe("parity with the relay", () => {
           ...quick,
         },
         {},
-        "en",
+        c.lang ?? "en",
         mailPage,
       );
       await nav();
@@ -1850,7 +1850,12 @@ describe("parity with the relay", () => {
           true;
       fill(form, "msg", c.typed.msg);
       (form.elements.namedItem("news") as HTMLInputElement).checked = c.typed.news;
+      fill(form, "detail", c.typed.detail ?? "");
+      fill(form, "key", c.typed.key ?? "");
       await submit(form);
+      // A pasted key is checked at send time; OpenPGP.js is not there, so it goes as pasted.
+      for (let i = 0; i < 10 && navigateMock.mock.calls.length === 0; i++)
+        await new Promise((r) => setTimeout(r, 0));
       const url = navigateMock.mock.calls[0]![0] as string;
       const mail = decodeURIComponent(url.split("&body=")[1]!);
       if (mail !== c.mail) differences.push(`${c.note}: ${JSON.stringify(mail)}`);

@@ -366,27 +366,45 @@ export const conditionCases: ConditionCase[] = [
  * hand; these cases keep the parts each path reads its own way: a list of choices (a plain post
  * repeats the name, or sends one string), a text area (the browser posts CRLF), the page and an
  * unticked box. `typed` is what the visitor entered; each suite posts it the way its path does.
+ * The fifty-second review (N2) added the parts each side resolves on its own: labels for two
+ * languages (the script gets them resolved by the page, the relay resolves them by `lang`), the
+ * German page line, a field whose condition does not hold and the visitor's key.
  */
 export const mailFields: FormField[] = [
   { type: "text", name: "name", label: "Name" },
   {
     type: "checkboxes",
     name: "topics",
-    label: "Topics",
+    label: { en: "Topics", de: "Themen" },
     options: [
-      { value: "bug", label: "Bug report" },
-      { value: "idea", label: "Idea" },
+      { value: "bug", label: { en: "Bug report", de: "Fehlerbericht" } },
+      { value: "idea", label: { en: "Idea", de: "Idee" } },
     ],
   },
-  { type: "textarea", name: "msg", label: "Message" },
+  { type: "textarea", name: "msg", label: { en: "Message", de: "Nachricht" } },
   { type: "checkbox", name: "news", label: "Newsletter" },
+  { type: "text", name: "detail", label: "Detail", showIf: { field: "news", equals: "yes" } },
+  { type: "pgpKey", name: "key", label: { en: "Your key", de: "Dein Schlüssel" } },
 ];
 
 export const mailPage = { title: "Feedback", slug: "site/feedback" };
 
+/** Only its markers are read on both sides: the script cannot load OpenPGP.js in the suite. */
+const VISITOR_KEY =
+  "-----BEGIN PGP PUBLIC KEY BLOCK-----\n\nmDMEZ0FIXTURE\n-----END PGP PUBLIC KEY BLOCK-----";
+
 export interface MailCase {
   /** A string for a text, the ticked values of `topics`, `news` ticked or not. */
-  typed: { name: string; topics: string[]; msg: string; news: boolean };
+  typed: {
+    name: string;
+    topics: string[];
+    msg: string;
+    news: boolean;
+    detail?: string;
+    key?: string;
+  };
+  /** The page's language; English when not given. */
+  lang?: "de";
   /** The body, lines joined with `\n`. */
   mail: string;
   note?: string;
@@ -407,5 +425,18 @@ export const mailCases: MailCase[] = [
     typed: { name: "", topics: [], msg: "", news: false },
     mail: "[ ] Newsletter\n\nPage: Feedback (site/feedback)",
     note: "nothing filled: only the box and the page",
+  },
+  {
+    typed: {
+      name: "Cleo",
+      topics: ["bug"],
+      msg: "",
+      news: false,
+      detail: "posted anyway",
+      key: VISITOR_KEY,
+    },
+    lang: "de",
+    mail: `Name: Cleo\nThemen: Fehlerbericht\n[ ] Newsletter\n\nSeite: Feedback (site/feedback)\n\nÖffentlicher Schlüssel des Absenders:\n${VISITOR_KEY}`,
+    note: "German: labels in the page's language, a dropped field, the visitor's key",
   },
 ];

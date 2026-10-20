@@ -723,21 +723,25 @@ describe.skipIf(!php)("relay: refusals", () => {
     const page = { page: mailPage.slug, pageTitle: mailPage.title };
     const differences: string[] = [];
     for (const c of mailCases) {
-      const { name, topics, msg, news } = c.typed;
+      const { name, topics, msg, news, detail = "", key = "" } = c.typed;
+      const lang = c.lang === "de" ? "de-DE" : "en-US";
+      // A field whose condition does not hold is posted too: the relay has to drop it itself.
       const script = await post(
-        env("mail", { name, topics, msg, news: news ? "yes" : "" }, { lang: "en-US", ...page }),
+        env("mail", { name, topics, msg, news: news ? "yes" : "", detail, key }, { lang, ...page }),
       );
       const fromScript = lastMail().body.replace(/\r\n/g, "\n").trim();
       // As a browser posts the form: one pair per ticked box, CRLF in the text area, no unticked box.
       const noScript = await plain([
         ["form", "mail"],
-        ["lang", "en-US"],
+        ["lang", lang],
         ["page", page.page],
         ["pageTitle", page.pageTitle],
         ["name", name],
         ...topics.map((t): [string, string] => ["topics", t]),
         ["msg", msg.replace(/\n/g, "\r\n")],
         ...(news ? [["news", "yes"] as [string, string]] : []),
+        ["detail", detail],
+        ["key", key.replace(/\n/g, "\r\n")],
       ]);
       const fromPlain = lastMail().body.replace(/\r\n/g, "\n").trim();
       if (script.status !== 200 || fromScript !== c.mail)
