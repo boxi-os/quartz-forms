@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.8] - 2026-10-20
+
+The sixth independent review and its side list.
+
 - Fixed: a press whose release the page never saw (the window lost the focus during it, or the
   page was hidden) held the check of every field left on the page until the next release
   anywhere. A blur of the window and a hidden page now end the press.
