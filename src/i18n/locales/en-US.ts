@@ -57,6 +57,7 @@ export default {
   demoSentEncrypted:
     "Nothing was sent. This is the message as it would have arrived, encrypted in your browser:",
   demoAgain: "Try again",
+  demoNoScript: "This demonstration needs JavaScript to show what would have been sent.",
   messagePage: "Page: {page}",
   messageKey: "Public key of the sender:",
   errorSummary: "Please check {count} field(s).",

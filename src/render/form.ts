@@ -766,7 +766,15 @@ export function renderForm(form: ResolvedForm, ctx: RenderContext): Element {
             h(
               "p",
               { className: ["quartz-form__note", "quartz-form__note--noscript"] },
-              required ? t.noScript : scriptOnly ? t.needsScript : t.noScriptPlain,
+              // A demo sends nothing, with or without the script: "needs JavaScript to send" was
+              // not true of it (fiftieth review, side list).
+              form.transport.kind === "demo"
+                ? t.demoNoScript
+                : required
+                  ? t.noScript
+                  : scriptOnly
+                    ? t.needsScript
+                    : t.noScriptPlain,
             ),
           ])
         : null,

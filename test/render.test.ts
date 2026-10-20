@@ -249,7 +249,17 @@ describe("renderForm", () => {
     expect(demo.tree.properties.dataTransport).toBe("demo");
     expect(demo.html).toContain("A demonstration: this form sends nothing.");
     expect(demo.html).toMatch(/<button type="submit"[^>]*disabled[^>]*data-enable-with-js="true"/);
-    expect(demo.html).toContain("This form needs JavaScript to send.");
+    expect(demo.html).toContain(
+      '<noscript><p class="quartz-form__note quartz-form__note--noscript">This demonstration needs JavaScript to show what would have been sent.</p></noscript>',
+    );
+    expect(demo.html).not.toContain("This form needs JavaScript to send.");
+    // Also where the form encrypts: it does not send encrypted either.
+    const encrypted = render(contact({ encryption: { mode: "required" } }), {
+      transport: { kind: "demo" },
+      keys: { k: { armored: ARMORED } },
+    });
+    expect(encrypted.html).toContain("This demonstration needs JavaScript");
+    expect(encrypted.html).not.toContain("sends encrypted and needs JavaScript");
   });
 
   it("targets the presets and mailto", () => {
