@@ -1656,6 +1656,7 @@ describe.skipIf(!php)("relay: a host with OPcache", () => {
   let cached = "";
   let restricted = "";
   let frozen = "";
+  let restrictedDefault = "";
   const procs: ChildProcess[] = [];
   // OPcache's own count of what it dropped and kept as wasted memory, next to send.php.
   const status = () => path.join(dir, "qf-opcache-status.php");
@@ -1676,6 +1677,15 @@ describe.skipIf(!php)("relay: a host with OPcache", () => {
         (b: string) => (restricted = b),
       ],
       [[...opcache, "opcache.validate_timestamps=0"], (b: string) => (frozen = b)],
+      [
+        [
+          "opcache.enable=1",
+          "opcache.revalidate_freq=2",
+          "opcache.file_update_protection=0",
+          "opcache.restrict_api=/nowhere",
+        ],
+        (b: string) => (restrictedDefault = b),
+      ],
     ] as const) {
       const port = await freePort();
       procs.push(spawnRelay(port, [...ini]));
@@ -1740,6 +1750,35 @@ describe.skipIf(!php)("relay: a host with OPcache", () => {
     );
     try {
       for (let i = 0; i < 8; i++) expect((await ticket(next)).generation).toBe(next);
+    } finally {
+      fs.writeFileSync(file, generated);
+    }
+  });
+  it("answers a new generation after revalidate_freq where restrict_api forbids it to ask", async () => {
+    // QuartzControl review 2026-10-31, N4: there the relay cannot drop its config and answers the
+    // old generation until revalidate_freq (2 s by default) has passed; QuartzControl asks once
+    // more after 3 s for that. If this fails, that wait no longer fits.
+    const ticket = async (generation?: string) =>
+      (await (
+        await fetch(`${restrictedDefault}/send.php?challenge=feedback&generation=${generation}`, {
+          headers: { Origin: ORIGIN },
+        })
+      ).json()) as { generation?: string };
+    const file = path.join(dir, "config.generated.php");
+    const generated = fs.readFileSync(file, "utf8");
+    const old = /'generation' => '([0-9a-f]{16})'/.exec(generated)?.[1];
+    for (let i = 0; i < 8; i++) expect((await ticket(old)).generation).toBe(old);
+    const next = crypto.randomBytes(8).toString("hex");
+    fs.writeFileSync(
+      file,
+      generated.replace(`'generation' => '${old}'`, `'generation' => '${next}'`),
+    );
+    const later = Date.now() / 1000 + 5;
+    fs.utimesSync(file, later, later);
+    try {
+      expect((await ticket(old)).generation).toBe(old);
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      expect((await ticket(next)).generation).toBe(next);
     } finally {
       fs.writeFileSync(file, generated);
     }
