@@ -1196,12 +1196,16 @@ if ($method === 'GET') {
         qf_json(403, ['ok' => false, 'error' => 'origin', 'message' => qf_origin_message()]);
     }
     $spam = $forms[$form]['spam'];
-    // `counters` for whoever uploaded the relay: false means no rate limit and no spent proofs.
-    $ticket = ['ok' => true, 'stamp' => qf_stamp($config, $form, qf_now()), 'counters' => qf_counters_writable($config)];
-    // `generation` of config.generated.php, new on every run of the generator: whoever has just
-    // uploaded one can tell whether this address is that relay or one left somewhere else.
-    if (is_string($config['generation'] ?? null)) {
-        $ticket['generation'] = $config['generation'];
+    $ticket = ['ok' => true, 'stamp' => qf_stamp($config, $form, qf_now())];
+    // For whoever uploaded the relay, who knows the `generation` of config.generated.php (new on
+    // every run of the generator): echoed, it tells this relay from one left at an older address,
+    // and `counters` false means no rate limit and no spent proofs. To anyone else, `counters`
+    // named the relays a solved proof of work could be sent to again for two hours, without one
+    // mail (QuartzControl review 2026-10-30, N2).
+    $generation = $config['generation'] ?? null;
+    if (is_string($generation) && hash_equals($generation, qf_str($_GET['generation'] ?? null))) {
+        $ticket['counters'] = qf_counters_writable($config);
+        $ticket['generation'] = $generation;
     }
     if (empty($spam['pow'])) {
         qf_json(200, $ticket + ['pow' => false]);

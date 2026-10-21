@@ -106,10 +106,11 @@ curl -i -X POST https://example.org/forms/send.php \
 ```
 
 With `minSeconds` above 0 the `ts: 0` is refused as `stamp` (not the relay's), which proves the
-time trap; a stamp from `GET send.php?challenge=contact` sent back at once is `too_fast`. That
-answer also says `"counters": false` when PHP cannot write the counter directory (it creates
-nothing to find out), and the `generation` of `config.generated.php`, which tells the relay you
-have just uploaded from one left at an older address.
+time trap; a stamp from `GET send.php?challenge=contact` sent back at once is `too_fast`. Asked
+with `&generation=` and the `generation` of `config.generated.php`, that answer also says
+`"counters": false` when PHP cannot write the counter directory (it creates nothing to find out),
+and repeats the generation, which tells the relay you have just uploaded from one left at an
+older address. Without it, or with another one, it says neither.
 
 The repository's `test/relay.test.ts` runs this file under `php -S` with every refusal, the
 accepted paths (mail in an outbox file), the plain-form path and the rate limit; `npm test` runs

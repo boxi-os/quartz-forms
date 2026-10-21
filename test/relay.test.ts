@@ -557,23 +557,39 @@ describe.skipIf(!php)("relay: challenge and CORS", () => {
       writeConfig();
     }
   });
-  it("answers the generation of its config.generated.php on the ticket", async () => {
+  const generationOf = () =>
+    /'generation' => '([0-9a-f]{16})'/.exec(
+      fs.readFileSync(path.join(dir, "config.generated.php"), "utf8"),
+    )?.[1];
+  it("answers the generation of its config.generated.php to whoever names it", async () => {
     // QuartzControl review 2026-10-29, N1: a relay left at the previous address answered ok after
     // an upload elsewhere, and the hash of the forms was the same for both.
-    const generated = fs.readFileSync(path.join(dir, "config.generated.php"), "utf8");
-    const generation = /'generation' => '([0-9a-f]{16})'/.exec(generated)?.[1];
+    const generation = generationOf();
     expect(generation).toBeDefined();
-    expect((await get("challenge=feedback")).json?.generation).toBe(generation);
+    expect((await get(`challenge=feedback&generation=${generation}`)).json?.generation).toBe(
+      generation,
+    );
+  });
+  it("says nothing about its counters or generation to anyone else", async () => {
+    // QuartzControl review 2026-10-30, N2: `counters: false` told anyone which relays let a solved
+    // proof of work through again, for a GET that costs no mail.
+    for (const query of ["challenge=feedback", "challenge=feedback&generation=0123456789abcdef"]) {
+      const json = (await get(query)).json;
+      expect(json?.ok).toBe(true);
+      expect(json).not.toHaveProperty("counters");
+      expect(json).not.toHaveProperty("generation");
+    }
   });
   it("says on the ticket whether it can write its counters, without creating them", async () => {
     // QuartzControl review 2026-10-29, M1: PHP running as another user than the account that
     // uploaded counters/ could not count, and nothing said so; every mail went through.
     const counters = path.join(dir, "counters");
-    expect((await get("challenge=feedback")).json?.counters).toBe(true);
+    const named = () => `&generation=${generationOf()}`;
+    expect((await get(`challenge=feedback${named()}`)).json?.counters).toBe(true);
     if (process.getuid?.() === 0) return; // root writes anywhere
     fs.chmodSync(counters, 0o555);
     try {
-      expect((await get("challenge=contact")).json?.counters).toBe(false);
+      expect((await get(`challenge=contact${named()}`)).json?.counters).toBe(false);
     } finally {
       fs.chmodSync(counters, 0o755);
     }
@@ -581,7 +597,7 @@ describe.skipIf(!php)("relay: challenge and CORS", () => {
     const missing = path.join(dir, "counters-later", "deep");
     writeConfig({ extra: `'counterDir' => '${missing}',` });
     try {
-      expect((await get("challenge=feedback")).json?.counters).toBe(true);
+      expect((await get(`challenge=feedback${named()}`)).json?.counters).toBe(true);
       expect(fs.existsSync(path.join(dir, "counters-later"))).toBe(false);
     } finally {
       writeConfig();
@@ -1661,14 +1677,16 @@ describe.skipIf(!php)("relay: a host with OPcache", () => {
   afterAll(() => procs.forEach(stopRelay));
 
   it("answers the generation of the config.generated.php uploaded last", async () => {
-    const ticket = async () =>
+    const ticket = async (generation?: string) =>
       (await (
-        await fetch(`${cached}/send.php?challenge=feedback`, { headers: { Origin: ORIGIN } })
+        await fetch(`${cached}/send.php?challenge=feedback&generation=${generation}`, {
+          headers: { Origin: ORIGIN },
+        })
       ).json()) as { generation?: string };
     const file = path.join(dir, "config.generated.php");
     const generated = fs.readFileSync(file, "utf8");
     const old = /'generation' => '([0-9a-f]{16})'/.exec(generated)?.[1];
-    for (let i = 0; i < 8; i++) expect((await ticket()).generation).toBe(old);
+    for (let i = 0; i < 8; i++) expect((await ticket(old)).generation).toBe(old);
     const next = crypto.randomBytes(8).toString("hex");
     fs.writeFileSync(
       file,
@@ -1678,7 +1696,7 @@ describe.skipIf(!php)("relay: a host with OPcache", () => {
     const later = Date.now() / 1000 + 5;
     fs.utimesSync(file, later, later);
     try {
-      expect((await ticket()).generation).toBe(next);
+      expect((await ticket(next)).generation).toBe(next);
     } finally {
       fs.writeFileSync(file, generated);
     }

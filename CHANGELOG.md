@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Changed: the relay's ticket says `counters` and `generation` only to a request that names the
+  `generation` of its `config.generated.php` (`&generation=`), which whoever uploaded it has
+  from `relay --json`. To anyone else `counters: false` named the relays without a rate limit,
+  where a solved proof of work goes through again for two hours, for a GET that costs no mail.
+  QuartzControl names it in its check after an upload.
+
 ## [0.5.12] - 2026-10-21
 
 - Fixed: the relay asks OPcache for the time stamps of `config.php` and `config.generated.php`
