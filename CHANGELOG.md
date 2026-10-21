@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.15] - 2026-10-21
+
 - Fixed: with `opcache.validate_timestamps=0` the relay no longer drops its config from OPcache on
   every request. Each drop left about 7 KB of wasted memory, and enough of them made OPcache
   restart and empty the cache of every site on that PHP-FPM: measured on debian-vm, 17,000

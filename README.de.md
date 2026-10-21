@@ -5,14 +5,15 @@ Website: Kontakt, Feedback, Anmeldung und Umfrage, zur Build-Zeit gerendert, im 
 mit OpenPGP verschlüsselt, bevor sie die Seite verlassen, und über einen konfigurierbaren Versandweg
 verschickt.
 
-**Stand: 0.5.14, privat.** Gemessen in einer gebauten Site und in Chrome; das PHP-Relay misst die
+**Stand: 0.5.15, privat.** Gemessen in einer gebauten Site und in Chrome; das PHP-Relay misst die
 Testsuite unter `php -S` (`test/relay.test.ts`). Sieben unabhängige Reviews, das dritte über 0.4.0
 als Ganzes, das vierte über 0.4.1 bis 0.5.4, das fünfte über 0.5.5 und 0.5.6, das sechste über
 0.5.7, das siebte über 0.5.8 und 0.5.9 (siehe CHANGELOG); den Platzhalter-Hinweis und den Pfad von
 „keine Felder“ aus 0.5.10, aus 0.5.11 `counters` und `generation` im Ticket und die Probedatei
 neben den Zählern, aus 0.5.12 die Frage des Relays an OPcache, bevor es seine Konfiguration liest,
-aus 0.5.13 `counters` und `generation` nur für den, der die Generation nennt, und aus 0.5.14 den
-zweiten Versuch nach einer abgelehnten Rechenaufgabe hat noch kein Review gelesen.
+aus 0.5.13 `counters` und `generation` nur für den, der die Generation nennt, aus 0.5.14 den
+zweiten Versuch nach einer abgelehnten Rechenaufgabe und aus 0.5.15 die Generation, die das Relay
+bei `validate_timestamps=0` an OPcache vorbei liest, hat noch kein Review gelesen.
 
 - Formulare werden einmal in `quartz.config.yaml` definiert (`options.forms`), nach Kennung
 - Eine Seite bindet ein Formular mit einem ` ```quartz-form `-Codeblock, einem

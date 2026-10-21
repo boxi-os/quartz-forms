@@ -1,6 +1,6 @@
 {
   "name": "quartz-forms",
-  "version": "0.5.14",
+  "version": "0.5.15",
   "description": "Quartz v5 plugin for web forms: contact, feedback, sign-up and survey forms rendered at build time, validated in the browser, encrypted with OpenPGP before they leave the page, and sent through a configurable transport (own relay, generic endpoint, mailto).",
   "type": "module",
   "license": "UNLICENSED",
@@ -103,7 +103,7 @@
       "emitter",
       "component"
     ],
-    "version": "0.5.14",
+    "version": "0.5.15",
     "quartzVersion": ">=5.0.0",
     "dependencies": [],
     "defaultEnabled": true,
