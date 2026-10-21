@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.10] - 2026-10-21
+
 - Added: an own text in `texts` that leaves out a placeholder of the plugin's wording (`{max}`)
   or names one the text does not have gives a hint. An empty text is taken as meant.
 - Changed: "no fields" is said under `forms.<id>.fields`, where the fields are missing, not on
