@@ -1629,3 +1629,67 @@ describe.skipIf(!php)("relay: rate limit", () => {
     expect(fs.existsSync(path.join(counters, "qf-probe.count"))).toBe(true);
   });
 });
+
+describe.skipIf(!php)("relay: a host with OPcache", () => {
+  // QuartzControl review 2026-10-30, M3: OPcache asks a cached file's time stamp at most every
+  // revalidate_freq seconds, so a relay that had read its config shortly before an upload went on
+  // with the old one and answered the old generation; QuartzControl's check then said "another
+  // relay" (3 of 6 uploads on debian-vm, PHP-FPM with Debian's defaults). Here with 60 s, and
+  // file_update_protection off so that a config written a moment ago is cached at all.
+  let cached = "";
+  let restricted = "";
+  const procs: ChildProcess[] = [];
+  beforeAll(async () => {
+    const opcache = [
+      "opcache.enable=1",
+      "opcache.revalidate_freq=60",
+      "opcache.file_update_protection=0",
+    ];
+    for (const [ini, set] of [
+      [opcache, (b: string) => (cached = b)],
+      [
+        [...opcache, "opcache.restrict_api=/nowhere", "display_errors=1"],
+        (b: string) => (restricted = b),
+      ],
+    ] as const) {
+      const port = await freePort();
+      procs.push(spawnRelay(port, [...ini]));
+      set(`http://127.0.0.1:${port}`);
+      await untilUp(`http://127.0.0.1:${port}`);
+    }
+  }, 30_000);
+  afterAll(() => procs.forEach(stopRelay));
+
+  it("answers the generation of the config.generated.php uploaded last", async () => {
+    const ticket = async () =>
+      (await (
+        await fetch(`${cached}/send.php?challenge=feedback`, { headers: { Origin: ORIGIN } })
+      ).json()) as { generation?: string };
+    const file = path.join(dir, "config.generated.php");
+    const generated = fs.readFileSync(file, "utf8");
+    const old = /'generation' => '([0-9a-f]{16})'/.exec(generated)?.[1];
+    for (let i = 0; i < 8; i++) expect((await ticket()).generation).toBe(old);
+    const next = crypto.randomBytes(8).toString("hex");
+    fs.writeFileSync(
+      file,
+      generated.replace(`'generation' => '${old}'`, `'generation' => '${next}'`),
+    );
+    // OPcache compares whole seconds; an upload is never in the same second as the read before it
+    const later = Date.now() / 1000 + 5;
+    fs.utimesSync(file, later, later);
+    try {
+      expect((await ticket()).generation).toBe(next);
+    } finally {
+      fs.writeFileSync(file, generated);
+    }
+  });
+  it("answers a clean ticket where restrict_api forbids it to ask OPcache", async () => {
+    // opcache_invalidate warns there, and display_errors would put the warning before the JSON
+    const res = await fetch(`${restricted}/send.php?challenge=feedback`, {
+      headers: { Origin: ORIGIN },
+    });
+    const text = await res.text();
+    expect(res.status).toBe(200);
+    expect(JSON.parse(text).ok).toBe(true);
+  });
+});

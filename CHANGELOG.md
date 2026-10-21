@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed: the relay asks OPcache for the time stamps of `config.php` and `config.generated.php`
+  before it reads them. OPcache looks at a cached file at most every `revalidate_freq` seconds
+  (2 by default) and never with `validate_timestamps=0`, so a relay that had answered shortly
+  before an upload went on with the previous config and the previous `generation`, and
+  QuartzControl's check said "another relay". Costs 1.5 µs per request with Debian's defaults
+  and 35 µs with `validate_timestamps=0`, where both files are compiled again. The first upload
+  over 0.5.11 can still meet the old `send.php` in the cache.
+
 ## [0.5.11] - 2026-10-21
 
 - Added: the relay's ticket (`GET send.php?challenge=<id>`) says `counters: true` or `false`,

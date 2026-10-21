@@ -22,6 +22,19 @@ const QF_VERSION = '0.5.11';
 const QF_SECRET_PLACEHOLDER = 'REPLACE-WITH-A-LONG-RANDOM-STRING';
 const QF_SECRET_MIN_LENGTH = 32;
 
+// OPcache looks at a file's time stamp at most every revalidate_freq seconds (2 by default) and
+// never with validate_timestamps=0, so after an upload the relay went on with the config it had
+// read before and answered the old generation: measured on debian-vm (PHP-FPM 8.4, Debian's
+// defaults), QuartzControl's check after an upload said "another relay" 3 of 6 times with a
+// visitor asking every 0.2 s, 1 of 8 without. Without force the cache asks the time stamp now and
+// drops only a changed file; with validate_timestamps=0 it drops it every time, and only that
+// shows a new config there at all (1.5 µs per request with Debian's defaults, 35 µs with
+// validate_timestamps=0). restrict_api makes the call a warning, which display_errors would put
+// into the answer.
+if (function_exists('opcache_invalidate')) {
+    @opcache_invalidate(__DIR__ . '/config.php', false);
+    @opcache_invalidate(__DIR__ . '/config.generated.php', false);
+}
 $config = require __DIR__ . '/config.php';
 header_remove('X-Powered-By');
 
