@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.11] - 2026-10-21
+
 - Added: the relay's ticket (`GET send.php?challenge=<id>`) says `counters: true` or `false`,
   whether PHP may write the counter directory. Without it the rate limit and the spent proofs of
   work do nothing, which a visitor never notices and the owner did not either. QuartzControl
