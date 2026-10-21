@@ -1655,8 +1655,15 @@ describe.skipIf(!php)("relay: a host with OPcache", () => {
   // file_update_protection off so that a config written a moment ago is cached at all.
   let cached = "";
   let restricted = "";
+  let frozen = "";
   const procs: ChildProcess[] = [];
+  // OPcache's own count of what it dropped and kept as wasted memory, next to send.php.
+  const status = () => path.join(dir, "qf-opcache-status.php");
   beforeAll(async () => {
+    fs.writeFileSync(
+      status(),
+      "<?php echo json_encode(opcache_get_status(false)['memory_usage']['wasted_memory']);\n",
+    );
     const opcache = [
       "opcache.enable=1",
       "opcache.revalidate_freq=60",
@@ -1668,6 +1675,7 @@ describe.skipIf(!php)("relay: a host with OPcache", () => {
         [...opcache, "opcache.restrict_api=/nowhere", "display_errors=1"],
         (b: string) => (restricted = b),
       ],
+      [[...opcache, "opcache.validate_timestamps=0"], (b: string) => (frozen = b)],
     ] as const) {
       const port = await freePort();
       procs.push(spawnRelay(port, [...ini]));
@@ -1675,7 +1683,10 @@ describe.skipIf(!php)("relay: a host with OPcache", () => {
       await untilUp(`http://127.0.0.1:${port}`);
     }
   }, 30_000);
-  afterAll(() => procs.forEach(stopRelay));
+  afterAll(() => {
+    procs.forEach(stopRelay);
+    fs.rmSync(status(), { force: true });
+  });
 
   it("answers the generation of the config.generated.php uploaded last", async () => {
     const ticket = async (generation?: string) =>
@@ -1698,6 +1709,37 @@ describe.skipIf(!php)("relay: a host with OPcache", () => {
     fs.utimesSync(file, later, later);
     try {
       expect((await ticket(next)).generation).toBe(next);
+    } finally {
+      fs.writeFileSync(file, generated);
+    }
+  });
+  it("drops its config only for a new generation where validate_timestamps=0", async () => {
+    // QuartzControl review 2026-10-31, M2: dropping both files on every request left about 7 KB
+    // of wasted memory each time there, and enough of it restarts OPcache for every site of the
+    // server. Measured with 0.5.14 under php -S, 16 MB: 3000 tickets, six restarts.
+    const ticket = async (generation?: string) =>
+      (await (
+        await fetch(`${frozen}/send.php?challenge=feedback&generation=${generation}`, {
+          headers: { Origin: ORIGIN },
+        })
+      ).json()) as { generation?: string };
+    const wasted = async () =>
+      Number(await (await fetch(`${frozen}/qf-opcache-status.php`)).text());
+    const file = path.join(dir, "config.generated.php");
+    const generated = fs.readFileSync(file, "utf8");
+    const old = /'generation' => '([0-9a-f]{16})'/.exec(generated)?.[1];
+    for (let i = 0; i < 8; i++) expect((await ticket(old)).generation).toBe(old);
+    const before = await wasted();
+    expect(Number.isFinite(before)).toBe(true);
+    for (let i = 0; i < 200; i++) await ticket();
+    expect(await wasted()).toBe(before);
+    const next = crypto.randomBytes(8).toString("hex");
+    fs.writeFileSync(
+      file,
+      generated.replace(`'generation' => '${old}'`, `'generation' => '${next}'`),
+    );
+    try {
+      for (let i = 0; i < 8; i++) expect((await ticket(next)).generation).toBe(next);
     } finally {
       fs.writeFileSync(file, generated);
     }

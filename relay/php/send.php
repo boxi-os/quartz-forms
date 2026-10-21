@@ -27,16 +27,40 @@ const QF_SECRET_MIN_LENGTH = 32;
 // read before and answered the old generation: measured on debian-vm (PHP-FPM 8.4, Debian's
 // defaults), QuartzControl's check after an upload said "another relay" 3 of 6 times with a
 // visitor asking every 0.2 s, 1 of 8 without. Without force the cache asks the time stamp now and
-// drops only a changed file; with validate_timestamps=0 it drops it every time, and only that
-// shows a new config there at all (1.5 µs per request with Debian's defaults, 35 µs with
-// validate_timestamps=0). restrict_api makes the call a warning, which display_errors would put
-// into the answer.
-if (function_exists('opcache_invalidate')) {
+// drops only a changed file (1.5 µs per request with Debian's defaults). With
+// validate_timestamps=0 it drops the file every time, and the dropped copy stays as wasted memory,
+// about 7 KB a request: 17,000 anonymous ticket requests made OPcache restart and empty the cache
+// of every site of that PHP-FPM (QuartzControl review 2026-10-31, M2). There the generation is
+// read from the file itself, past OPcache, and only a new one drops both files: an upload is seen
+// at once, a hand edit of config.php only once PHP restarts, as with every other script there.
+// restrict_api makes the call a warning, which display_errors would put into the answer.
+$askStamps = function_exists('opcache_invalidate') && ini_get('opcache.validate_timestamps');
+if ($askStamps) {
     @opcache_invalidate(__DIR__ . '/config.php', false);
     @opcache_invalidate(__DIR__ . '/config.generated.php', false);
 }
 $config = require __DIR__ . '/config.php';
+// A config.php that does not take config.generated.php's generation would be dropped every time.
+if (!$askStamps && function_exists('opcache_invalidate') && isset($config['generation'])) {
+    $onDisk = qf_generation_on_disk(__DIR__ . '/config.generated.php');
+    if ($onDisk !== null && $onDisk !== $config['generation']) {
+        @opcache_invalidate(__DIR__ . '/config.php', true);
+        @opcache_invalidate(__DIR__ . '/config.generated.php', true);
+        $config = require __DIR__ . '/config.php';
+    }
+}
 header_remove('X-Powered-By');
+
+/**
+ * The generation written into config.generated.php, read as text: a `require` would answer
+ * OPcache's copy. Near the top of the file (src/relay/generate.ts), so the first 2 KiB do. Null
+ * for a file without one, or none at all.
+ */
+function qf_generation_on_disk(string $file): ?string
+{
+    $head = @file_get_contents($file, false, null, 0, 2048);
+    return is_string($head) && preg_match("/'generation' => '([0-9a-f]{16})'/", $head, $m) ? $m[1] : null;
+}
 
 /**
  * The words of the page a browser without JavaScript gets, and the two lines of the plugin's own

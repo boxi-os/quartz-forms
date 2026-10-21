@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed: with `opcache.validate_timestamps=0` the relay no longer drops its config from OPcache on
+  every request. Each drop left about 7 KB of wasted memory, and enough of them made OPcache
+  restart and empty the cache of every site on that PHP-FPM: measured on debian-vm, 17,000
+  anonymous ticket requests did it once (QuartzControl review 2026-10-31, M2). There the relay
+  now reads the `generation` from `config.generated.php` as text, past OPcache, and drops both
+  files only when it is a new one, so an upload is still seen at once; a hand edit of
+  `config.php` alone is seen once PHP restarts, as with every other script on such a host. With
+  `validate_timestamps=1` (the default) the relay asks the time stamps as in 0.5.12, which
+  wastes nothing. A test with `validate_timestamps=0` counts the wasted memory.
+
 ## [0.5.14] - 2026-10-21
 
 - Fixed: a form with proof of work and without a time trap (`minSeconds: 0`) on a page opened
