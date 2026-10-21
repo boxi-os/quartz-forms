@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.13] - 2026-10-21
+
 - Changed: the relay's ticket says `counters` and `generation` only to a request that names the
   `generation` of its `config.generated.php` (`&generation=`), which whoever uploaded it has
   from `relay --json`. To anyone else `counters: false` named the relays without a rate limit,
