@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added: an own text in `texts` that leaves out a placeholder of the plugin's wording (`{max}`)
+  or names one the text does not have gives a hint. An empty text is taken as meant.
+
 ## [0.5.9] - 2026-10-20
 
 - Added: `dist/cli.js texts` gives the plugin's wording of every text in every locale, the

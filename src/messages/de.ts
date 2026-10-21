@@ -145,6 +145,9 @@ const de: { [K in keyof typeof en]: (p: Params, t: Translate) => string } = {
     "das Plugin hat keine Texte in dieser Sprache; sie gelten, wie sie dastehen",
   textsShape: () => "ein Record Textschlüssel → Wortlaut",
   textsKeyUnknown: () => "diesen Textschlüssel gibt es nicht",
+  textsPlaceholderMissing: (p) => `ohne ${s(p, "names")}; dieser Wert fehlt dann im Satz`,
+  textsPlaceholderUnknown: (p) =>
+    `${s(p, "names")} ist kein Wert dieses Textes; es bleibt so stehen`,
 
   cliNeedsValue: (p) => `${s(p, "arg")} braucht einen Wert`,
   cliUnknownArgument: (p) => `unbekanntes Argument ${s(p, "arg")}`,

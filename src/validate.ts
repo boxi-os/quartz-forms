@@ -9,7 +9,7 @@ import type {
   SpamConfig,
   Text,
 } from "./types";
-import { availableLocales, textKeys } from "./i18n";
+import { availableLocales, i18n, textKeys, type TextKey } from "./i18n";
 import { isTemplateName, templateOf } from "./templates";
 import { publicKeyBlock } from "./pgp/armor";
 import {
@@ -715,9 +715,31 @@ export function validate(
       problem(out, `texts.${locale}`, "textsShape");
       continue;
     }
-    for (const key of Object.keys(entries))
-      if (!known.has(key)) hint(out, `texts.${locale}.${key}`, "textsKeyUnknown");
+    const own = i18n(locale);
+    for (const [key, value] of Object.entries(entries)) {
+      const at = `texts.${locale}.${key}`;
+      if (!known.has(key)) {
+        hint(out, at, "textsKeyUnknown");
+        continue;
+      }
+      // A placeholder the text leaves out leaves its value out of the sentence, and one the plugin
+      // does not fill stays on the page as written; an empty text is meant to be empty.
+      if (typeof value !== "string" || value === "") continue;
+      const wanted = placeholders(own[key as TextKey]);
+      const given = placeholders(value);
+      const missing = wanted.filter((n) => !given.includes(n));
+      const unknown = given.filter((n) => !wanted.includes(n));
+      if (missing.length) hint(out, at, "textsPlaceholderMissing", { names: braced(missing) });
+      if (unknown.length) hint(out, at, "textsPlaceholderUnknown", { names: braced(unknown) });
+    }
   }
 
   return out;
 }
+
+/** The `{name}` placeholders of a text, each once, as text.ts and the page script fill them. */
+function placeholders(text: string): string[] {
+  return [...new Set([...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1]!))];
+}
+
+const braced = (names: string[]): string => names.map((n) => `{${n}}`).join(", ");

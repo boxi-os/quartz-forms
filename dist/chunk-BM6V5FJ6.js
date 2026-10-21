@@ -467,6 +467,8 @@ var en = {
   textsLocaleUnknown: () => "the plugin has no texts in this language; they are used as written",
   textsShape: () => "a record of text key \u2192 wording",
   textsKeyUnknown: () => "no such text key",
+  textsPlaceholderMissing: (p) => `without ${s(p, "names")}; the sentence then lacks that value`,
+  textsPlaceholderUnknown: (p) => `${s(p, "names")} is no value of this text; it stays as written`,
   // the command line (src/cli.ts) and the relay generator (src/relay/generate.ts)
   cliNeedsValue: (p) => `${s(p, "arg")} needs a value`,
   cliUnknownArgument: (p) => `unknown argument ${s(p, "arg")}`,
@@ -608,6 +610,8 @@ var de = {
   textsLocaleUnknown: () => "das Plugin hat keine Texte in dieser Sprache; sie gelten, wie sie dastehen",
   textsShape: () => "ein Record Textschl\xFCssel \u2192 Wortlaut",
   textsKeyUnknown: () => "diesen Textschl\xFCssel gibt es nicht",
+  textsPlaceholderMissing: (p) => `ohne ${s2(p, "names")}; dieser Wert fehlt dann im Satz`,
+  textsPlaceholderUnknown: (p) => `${s2(p, "names")} ist kein Wert dieses Textes; es bleibt so stehen`,
   cliNeedsValue: (p) => `${s2(p, "arg")} braucht einen Wert`,
   cliUnknownArgument: (p) => `unbekanntes Argument ${s2(p, "arg")}`,
   cliNoSite: () => "kein Website-Ordner angegeben (--site)",
@@ -1251,11 +1255,28 @@ function validate(opts, rawForms, rawSpam = {}) {
       problem(out, `texts.${locale}`, "textsShape");
       continue;
     }
-    for (const key of Object.keys(entries))
-      if (!known.has(key)) hint(out, `texts.${locale}.${key}`, "textsKeyUnknown");
+    const own = i18n(locale);
+    for (const [key, value] of Object.entries(entries)) {
+      const at = `texts.${locale}.${key}`;
+      if (!known.has(key)) {
+        hint(out, at, "textsKeyUnknown");
+        continue;
+      }
+      if (typeof value !== "string" || value === "") continue;
+      const wanted = placeholders(own[key]);
+      const given = placeholders(value);
+      const missing = wanted.filter((n) => !given.includes(n));
+      const unknown = given.filter((n) => !wanted.includes(n));
+      if (missing.length) hint(out, at, "textsPlaceholderMissing", { names: braced(missing) });
+      if (unknown.length) hint(out, at, "textsPlaceholderUnknown", { names: braced(unknown) });
+    }
   }
   return out;
 }
+function placeholders(text) {
+  return [...new Set([...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1]))];
+}
+var braced = (names) => names.map((n) => `{${n}}`).join(", ");
 
 // src/util/warn.ts
 var warned = /* @__PURE__ */ new Set();
@@ -1399,5 +1420,5 @@ function logHints(opts) {
 }
 
 export { __commonJS, __export, __require, __toESM, availableLocales, conditionOf, conditionsOf, defaultOptions, formatMessage, i18n, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-NBYWQPLK.js.map
-//# sourceMappingURL=chunk-NBYWQPLK.js.map
+//# sourceMappingURL=chunk-BM6V5FJ6.js.map
+//# sourceMappingURL=chunk-BM6V5FJ6.js.map

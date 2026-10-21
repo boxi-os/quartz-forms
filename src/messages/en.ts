@@ -157,6 +157,10 @@ const en = {
   textsLocaleUnknown: () => "the plugin has no texts in this language; they are used as written",
   textsShape: () => "a record of text key → wording",
   textsKeyUnknown: () => "no such text key",
+  textsPlaceholderMissing: (p: Params) =>
+    `without ${s(p, "names")}; the sentence then lacks that value`,
+  textsPlaceholderUnknown: (p: Params) =>
+    `${s(p, "names")} is no value of this text; it stays as written`,
 
   // the command line (src/cli.ts) and the relay generator (src/relay/generate.ts)
   cliNeedsValue: (p: Params) => `${s(p, "arg")} needs a value`,

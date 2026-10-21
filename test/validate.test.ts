@@ -722,4 +722,26 @@ describe("validate: plugin-wide options", () => {
       "texts.fr: the plugin has no texts in this language; they are used as written",
     ]);
   });
+
+  it("names a placeholder an own text leaves out or makes up, and lets an empty text be", () => {
+    const placed = resolveOptions(
+      options({
+        texts: {
+          de: {
+            tooLong: "Bitte kürzer.",
+            aboveMax: "Höchstens {maxx}.",
+            belowMin: "",
+            stepOf: "{total}: {current}",
+          },
+        },
+      }),
+    );
+    expect(placed.problems).toEqual([]);
+    expect(placed.hints).toEqual([
+      LEVER,
+      "texts.de.tooLong: without {max}; the sentence then lacks that value",
+      "texts.de.aboveMax: without {max}; the sentence then lacks that value",
+      "texts.de.aboveMax: {maxx} is no value of this text; it stays as written",
+    ]);
+  });
 });

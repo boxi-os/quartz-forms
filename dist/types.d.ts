@@ -111,6 +111,8 @@ declare const en: {
     textsLocaleUnknown: () => string;
     textsShape: () => string;
     textsKeyUnknown: () => string;
+    textsPlaceholderMissing: (p: Params) => string;
+    textsPlaceholderUnknown: (p: Params) => string;
     cliNeedsValue: (p: Params) => string;
     cliUnknownArgument: (p: Params) => string;
     cliNoSite: () => string;
