@@ -154,7 +154,8 @@ describe("cli relay", () => {
   });
 
   it("gives the same hash for the same definitions, and another one when a form changes", () => {
-    const a = run(["relay", "--site", site(relayOptions), "--out", tmpDir("cli-hash-a")]);
+    const outA = tmpDir("cli-hash-a");
+    const a = run(["relay", "--site", site(relayOptions), "--out", outA]);
     const b = run(["relay", "--site", site(relayOptions), "--out", tmpDir("cli-hash-b")]);
     expect(a.json.hash).toMatch(/^[0-9a-f]{64}$/);
     expect(b.json.hash).toBe(a.json.hash);
@@ -166,6 +167,13 @@ describe("cli relay", () => {
       tmpDir("cli-hash-c"),
     ]);
     expect(changed.json.hash).not.toBe(a.json.hash);
+    // The generation is the run's, not the definitions': the hash cannot tell two uploads of the
+    // same forms apart, this can (QuartzControl review 2026-10-29, N1).
+    expect(a.json.generation).toMatch(/^[0-9a-f]{16}$/);
+    expect(b.json.generation).not.toBe(a.json.generation);
+    expect(fs.readFileSync(path.join(outA, "config.generated.php"), "utf8")).toContain(
+      `'generation' => '${a.json.generation}'`,
+    );
     // without operator values config.php is created once from the example
     expect(a.json.configPhp).toBe("created");
   });

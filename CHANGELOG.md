@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   such test: Apache refuses it even with `AllowOverride None`, which leaves the counts open, and
   so does nginx with the common `location ~ /\.ht` rule. QuartzControl asks for the probe after
   an upload.
+- Added: `config.generated.php` carries a `generation`, new on every run of `relay`, which the
+  ticket answers and `--json` prints. The `hash` stays the same for the same forms, so a relay
+  left at an older address answered as though it were the one just uploaded. QuartzControl
+  compares the two after an upload.
 
 ## [0.5.10] - 2026-10-21
 

@@ -1185,6 +1185,11 @@ if ($method === 'GET') {
     $spam = $forms[$form]['spam'];
     // `counters` for whoever uploaded the relay: false means no rate limit and no spent proofs.
     $ticket = ['ok' => true, 'stamp' => qf_stamp($config, $form, qf_now()), 'counters' => qf_counters_writable($config)];
+    // `generation` of config.generated.php, new on every run of the generator: whoever has just
+    // uploaded one can tell whether this address is that relay or one left somewhere else.
+    if (is_string($config['generation'] ?? null)) {
+        $ticket['generation'] = $config['generation'];
+    }
     if (empty($spam['pow'])) {
         qf_json(200, $ticket + ['pow' => false]);
     }

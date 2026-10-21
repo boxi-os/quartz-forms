@@ -557,6 +557,14 @@ describe.skipIf(!php)("relay: challenge and CORS", () => {
       writeConfig();
     }
   });
+  it("answers the generation of its config.generated.php on the ticket", async () => {
+    // QuartzControl review 2026-10-29, N1: a relay left at the previous address answered ok after
+    // an upload elsewhere, and the hash of the forms was the same for both.
+    const generated = fs.readFileSync(path.join(dir, "config.generated.php"), "utf8");
+    const generation = /'generation' => '([0-9a-f]{16})'/.exec(generated)?.[1];
+    expect(generation).toBeDefined();
+    expect((await get("challenge=feedback")).json?.generation).toBe(generation);
+  });
   it("says on the ticket whether it can write its counters, without creating them", async () => {
     // QuartzControl review 2026-10-29, M1: PHP running as another user than the account that
     // uploaded counters/ could not count, and nothing said so; every mail went through.

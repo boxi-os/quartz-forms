@@ -21,6 +21,7 @@
  * With `--json` stdout holds exactly one JSON object. Exit status: 0 done, 1 refused (the object
  * says why), 2 usage.
  */
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import YAML from "yaml";
@@ -309,9 +310,10 @@ async function commandRelay(args: Args, say: Say, warn: Say): Promise<Record<str
       fs.copyFileSync(path.join(relayDir, "counters", name), path.join(outDir, "counters", name));
     written.push("send.php", "counters/.htaccess", "counters/qf-probe.count");
   }
+  const generation = crypto.randomBytes(8).toString("hex");
   fs.writeFileSync(
     path.join(outDir, "config.generated.php"),
-    generatedPhp(data, path.basename(site.configPath)),
+    generatedPhp(data, path.basename(site.configPath), generation),
   );
   written.push("config.generated.php");
   say(
@@ -352,6 +354,7 @@ async function commandRelay(args: Args, say: Say, warn: Say): Promise<Record<str
     missingRecipients,
     siteOrigin: data.siteOrigin,
     hash: relayHash(data),
+    generation,
     configPhp,
     patterns,
   };
