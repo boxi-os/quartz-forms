@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.12] - 2026-10-21
+
 - Fixed: the relay asks OPcache for the time stamps of `config.php` and `config.generated.php`
   before it reads them. OPcache looks at a cached file at most every `revalidate_freq` seconds
   (2 by default) and never with `validate_timestamps=0`, so a relay that had answered shortly
