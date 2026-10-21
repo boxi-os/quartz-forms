@@ -7718,11 +7718,9 @@ async function commandRelay(args, say, warn) {
   if (path.resolve(relayDir) !== outDir) {
     fs.copyFileSync(path.join(relayDir, "send.php"), path.join(outDir, "send.php"));
     fs.mkdirSync(path.join(outDir, "counters"), { recursive: true });
-    fs.copyFileSync(
-      path.join(relayDir, "counters", ".htaccess"),
-      path.join(outDir, "counters", ".htaccess")
-    );
-    written.push("send.php", "counters/.htaccess");
+    for (const name of [".htaccess", "qf-probe.count"])
+      fs.copyFileSync(path.join(relayDir, "counters", name), path.join(outDir, "counters", name));
+    written.push("send.php", "counters/.htaccess", "counters/qf-probe.count");
   }
   fs.writeFileSync(
     path.join(outDir, "config.generated.php"),

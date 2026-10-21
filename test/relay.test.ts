@@ -1606,4 +1606,18 @@ describe.skipIf(!php)("relay: rate limit", () => {
     expect(htaccess).toContain("Require all denied");
     expect(htaccess).toContain("Deny from all");
   });
+
+  it("the hourly cleanup takes the counts of past hours and leaves the probe", async () => {
+    // qf-probe.count has the counters' ending, so the web serves it where it serves them; an
+    // uploader asks for it (review 2026-10-29, M3). The cleanup must not take it for a count.
+    const counters = path.join(dir, "counters");
+    fs.copyFileSync(
+      path.join(root, "relay", "php", "counters", "qf-probe.count"),
+      path.join(counters, "qf-probe.count"),
+    );
+    fs.writeFileSync(path.join(counters, "limited-2000010100.count"), "1");
+    await post(env("limited", { x: "cleanup" }));
+    expect(fs.existsSync(path.join(counters, "limited-2000010100.count"))).toBe(false);
+    expect(fs.existsSync(path.join(counters, "qf-probe.count"))).toBe(true);
+  });
 });

@@ -23,6 +23,7 @@
     "relay/php/send.php",
     "relay/php/config.example.php",
     "relay/php/counters/.htaccess",
+    "relay/php/counters/qf-probe.count",
     "relay/php/README.md",
     "README.md",
     "CHANGELOG.md"

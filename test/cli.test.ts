@@ -76,6 +76,7 @@ describe("cli relay", () => {
     expect(r.json.written).toEqual([
       "send.php",
       "counters/.htaccess",
+      "counters/qf-probe.count",
       "config.generated.php",
       "config.php",
     ]);
@@ -96,6 +97,9 @@ describe("cli relay", () => {
       fs.readFileSync(path.join(root, "relay", "php", "send.php"), "utf8"),
     );
     expect(fs.existsSync(path.join(out, "counters", ".htaccess"))).toBe(true);
+    expect(fs.readFileSync(path.join(out, "counters", "qf-probe.count"), "utf8")).toMatch(
+      /^quartz-forms relay probe:/,
+    );
     const config = fs.readFileSync(path.join(out, "config.php"), "utf8");
     expect(config).toContain(`'secret' => '${operator.secret}'`);
     expect(config).toContain("'captchaSecret' => 'cap\\'s secret'");

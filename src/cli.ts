@@ -302,11 +302,12 @@ async function commandRelay(args: Args, say: Say, warn: Say): Promise<Record<str
   if (path.resolve(relayDir) !== outDir) {
     fs.copyFileSync(path.join(relayDir, "send.php"), path.join(outDir, "send.php"));
     fs.mkdirSync(path.join(outDir, "counters"), { recursive: true });
-    fs.copyFileSync(
-      path.join(relayDir, "counters", ".htaccess"),
-      path.join(outDir, "counters", ".htaccess"),
-    );
-    written.push("send.php", "counters/.htaccess");
+    // The probe has the counters' ending, so whatever serves it serves them: asking for the
+    // .htaccess said nothing where Apache ignores it (AllowOverride None) or nginx denies `\.ht`,
+    // both 403 for it and 200 for a count (review 2026-10-29, M3, measured on Debian).
+    for (const name of [".htaccess", "qf-probe.count"])
+      fs.copyFileSync(path.join(relayDir, "counters", name), path.join(outDir, "counters", name));
+    written.push("send.php", "counters/.htaccess", "counters/qf-probe.count");
   }
   fs.writeFileSync(
     path.join(outDir, "config.generated.php"),

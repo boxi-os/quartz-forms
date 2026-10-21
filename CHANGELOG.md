@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   whether PHP may write the counter directory. Without it the rate limit and the spent proofs of
   work do nothing, which a visitor never notices and the owner did not either. QuartzControl
   reads it after an upload.
+- Added: `counters/qf-probe.count`, a file with the counters' ending that the relay ships and
+  never cleans up. Where the web can read it, it can read the counts. The `.htaccess` was no
+  such test: Apache refuses it even with `AllowOverride None`, which leaves the counts open, and
+  so does nginx with the common `location ~ /\.ht` rule. QuartzControl asks for the probe after
+  an upload.
 
 ## [0.5.10] - 2026-10-21
 

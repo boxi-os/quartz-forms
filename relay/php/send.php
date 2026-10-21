@@ -533,7 +533,8 @@ function qf_admit(array $config, string $form, int $perHour, callable $spend, ?s
     $hour = gmdate('YmdH', qf_now());
     $file = $dir . '/' . preg_replace('/[^a-z0-9-]/', '', $form) . '-' . $hour . '.count';
     foreach (glob($dir . '/*.count') ?: [] as $old) {
-        if (!str_ends_with($old, '-' . $hour . '.count')) {
+        // qf-probe.count is no counter: it tells whoever uploads the relay whether the web reads them
+        if (!str_ends_with($old, '-' . $hour . '.count') && basename($old) !== 'qf-probe.count') {
             @unlink($old);
         }
     }
