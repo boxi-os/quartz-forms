@@ -1184,6 +1184,52 @@ describe("proof of work", () => {
     ]);
   }, 30_000);
 
+  it("works the proof out again on a new ticket when a form without a time trap is refused as pow", async () => {
+    // QuartzControl review 2026-10-30, noticed beside N6: without a time trap the relay checks no
+    // stamp, so a proof whose challenge was signed with the old secret is refused as "pow", and
+    // the retry above, which asks for "stamp", never came.
+    const form = mount(contact({ spam: { minSeconds: 0, pow: true, powDifficulty: 8 } }));
+    fetchMock.mockResolvedValueOnce(
+      ok({ ok: true, pow: true, challenge: "old", difficulty: 8, stamp: "1.old" }),
+    );
+    await nav();
+    fill(form, "message", "x");
+    const posts: string[] = [];
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (String(url).includes("?challenge="))
+        return ok({ ok: true, pow: true, challenge: "new", difficulty: 8, stamp: "2.new" });
+      const body = JSON.parse(String(init!.body));
+      posts.push(body.pow?.challenge);
+      return body.pow?.challenge === "new"
+        ? ok()
+        : ok({ ok: false, error: "pow" }, { status: 400 });
+    });
+    await submit(form);
+    await until(() => status(form).state === "success" || status(form).state === "error");
+    expect(status(form).state).toBe("success");
+    expect(posts).toEqual(["old", "new"]);
+  }, 30_000);
+
+  it("does not send again on pow when the new ticket has the same challenge", async () => {
+    const form = mount(contact({ spam: { minSeconds: 0, pow: true, powDifficulty: 8 } }));
+    fetchMock.mockResolvedValueOnce(
+      ok({ ok: true, pow: true, challenge: "same", difficulty: 8, stamp: "1" }),
+    );
+    await nav();
+    fill(form, "message", "x");
+    let sent = 0;
+    fetchMock.mockImplementation(async (url: string) => {
+      if (String(url).includes("?challenge="))
+        return ok({ ok: true, pow: true, challenge: "same", difficulty: 8, stamp: "2" });
+      sent++;
+      return ok({ ok: false, error: "pow" }, { status: 400 });
+    });
+    await submit(form);
+    await until(() => status(form).state === "success" || status(form).state === "error");
+    expect(status(form).state).toBe("error");
+    expect(sent).toBe(1);
+  }, 30_000);
+
   it("hashes in a Worker made from a Blob, sends its nonce and terminates it", async () => {
     // Review finding 18 (2026-10-19): on the main thread, yielding after every 64 hashes, 16 bits
     // took 3 to 35 s in Chrome; the same loop in a Worker takes 0.1 to 0.9 s.

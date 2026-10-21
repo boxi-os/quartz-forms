@@ -864,11 +864,8 @@ async function qfSend(
     // open step (third review, M2, 2026-10-19). The relay checks the stamp before proof and
     // captcha, so neither is spent yet: the script fetches a new stamp, waits the time trap out on
     // it and sends once more; only if that fails too does the visitor read the sentence.
-    if (
-      response.status === 400 &&
-      cfg.spam.minSeconds > 0 &&
-      (await qfErrorCode(response)) === "stamp"
-    ) {
+    const refused = response.status === 400 ? await qfErrorCode(response) : undefined;
+    if (refused === "stamp" && cfg.spam.minSeconds > 0) {
       const renewed = await qfFetchTicket(cfg);
       const stamp = renewed.data?.stamp;
       if (stamp) {
@@ -883,6 +880,17 @@ async function qfSend(
             : common.pow;
         await qfWaitTrap(cfg, renewed);
         response = (await post(stamp, pow)) ?? response;
+      }
+    } else if (refused === "pow" && cfg.spam.pow) {
+      // Without a time trap the relay checks no stamp, so a challenge signed with a secret it no
+      // longer has is refused as "pow" (QuartzControl review 2026-10-30, beside N6). Once more only
+      // when the new ticket has another challenge: on the same one the proof was not the cause.
+      // The relay checks the proof before the captcha, so a token is not spent yet.
+      const renewed = await qfFetchTicket(cfg);
+      if (renewed.data?.challenge && renewed.data.challenge !== fresh?.data?.challenge) {
+        renew?.(renewed);
+        const pow = await qfProofOfWork(cfg, renewed.data);
+        response = (await post(renewed.data.stamp ?? common.ts, pow)) ?? response;
       }
     }
   } else {
