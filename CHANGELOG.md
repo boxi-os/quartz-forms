@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.14] - 2026-10-21
+
+- Fixed: a form with proof of work and without a time trap (`minSeconds: 0`) on a page opened
+  before a new relay secret sends once more. The relay checks no stamp there and refused the
+  proof, whose challenge was signed with the old secret, as `pow`; the script fetched a new ticket
+  only after a refused stamp, so the visitor read the error. It now does the same after `pow`,
+  when the new ticket's challenge is another one.
+- Changed: the relay tests run with OPcache on, as on a host; without the question to OPcache
+  from 0.5.12 six of them fail.
+
 ## [0.5.13] - 2026-10-21
 
 - Changed: the relay's ticket says `counters` and `generation` only to a request that names the
