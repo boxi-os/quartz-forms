@@ -147,7 +147,7 @@ describe("resolveOrThrow", () => {
         }),
       ),
     ).toThrowError(
-      /4 problem\(s\)[\s\S]*Bad Id: form id[\s\S]*Bad Id: no fields[\s\S]*Bad Id\.recipient[\s\S]*forms\.ok\.recipient: mailto/,
+      /4 problem\(s\)[\s\S]*Bad Id: form id[\s\S]*Bad Id\.fields: no fields[\s\S]*Bad Id\.recipient[\s\S]*forms\.ok\.recipient: mailto/,
     );
   });
 

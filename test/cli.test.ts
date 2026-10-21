@@ -201,7 +201,7 @@ describe("cli relay", () => {
     ]);
     expect(r.status).toBe(1);
     expect(r.json.problems).toContain(
-      "forms.contact: no fields (write fields or choose a template)",
+      "forms.contact.fields: no fields (write fields or choose a template)",
     );
   });
 

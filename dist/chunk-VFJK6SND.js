@@ -1098,7 +1098,7 @@ function checkForm(form, raw, rawSpam, keyNames, globalKind, out) {
   ])
     checkText(text, `${at}.${key}`, out);
   if (!Array.isArray(form.fields) || form.fields.length === 0) {
-    problem(out, at, "noFields");
+    problem(out, `${at}.fields`, "noFields");
   } else {
     const names = /* @__PURE__ */ new Set();
     let keyFields = 0;
@@ -1420,5 +1420,5 @@ function logHints(opts) {
 }
 
 export { __commonJS, __export, __require, __toESM, availableLocales, conditionOf, conditionsOf, defaultOptions, formatMessage, i18n, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-BM6V5FJ6.js.map
-//# sourceMappingURL=chunk-BM6V5FJ6.js.map
+//# sourceMappingURL=chunk-VFJK6SND.js.map
+//# sourceMappingURL=chunk-VFJK6SND.js.map

@@ -163,11 +163,11 @@ describe("validate: forms and fields", () => {
 
   it("rejects a form without fields and an unknown template", () => {
     expect(formProblems({ recipient: "o" })).toEqual([
-      "forms.f: no fields (write fields or choose a template)",
+      "forms.f.fields: no fields (write fields or choose a template)",
     ]);
     expect(formProblems({ recipient: "o", template: "nope" as never })).toEqual([
       'forms.f.template: unknown template "nope"',
-      "forms.f: no fields (write fields or choose a template)",
+      "forms.f.fields: no fields (write fields or choose a template)",
     ]);
   });
 
