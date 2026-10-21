@@ -420,6 +420,28 @@ function qf_counter_dir(array $config): ?string
 }
 
 /**
+ * Whether PHP may write where qf_counter_dir() keeps the counters: the directory itself, or the
+ * nearest one above it that exists, which qf_counter_dir() would create it in. Asked without
+ * creating anything, for the ticket GET (`counters`). Without it, qf_admit() lets every mail
+ * through and qf_pow_spent() spends no proof, which is right for a visitor and invisible to the
+ * owner: measured on a Debian host whose PHP runs as www-data (mod_php), with counters/ uploaded
+ * 0755 by the account, a form limited to 2 an hour sent three mails of three, and the ticket said
+ * nothing (QuartzControl review 2026-10-29, M1).
+ */
+function qf_counters_writable(array $config): bool
+{
+    $dir = $config['counterDir'] ?? (__DIR__ . '/counters');
+    while (!@is_dir($dir)) {
+        $parent = dirname($dir);
+        if ($parent === $dir) {
+            return false;
+        }
+        $dir = $parent;
+    }
+    return @is_writable($dir);
+}
+
+/**
  * Marks a proof of work as used, or says that it was. The proof is bound to the form and the
  * hour, not to the message, so one solved nonce would otherwise send any number of messages for
  * up to two hours (review finding, 2026-10-19: the same nonce three times, three mails). One
@@ -1160,7 +1182,8 @@ if ($method === 'GET') {
         qf_json(403, ['ok' => false, 'error' => 'origin', 'message' => qf_origin_message()]);
     }
     $spam = $forms[$form]['spam'];
-    $ticket = ['ok' => true, 'stamp' => qf_stamp($config, $form, qf_now())];
+    // `counters` for whoever uploaded the relay: false means no rate limit and no spent proofs.
+    $ticket = ['ok' => true, 'stamp' => qf_stamp($config, $form, qf_now()), 'counters' => qf_counters_writable($config)];
     if (empty($spam['pow'])) {
         qf_json(200, $ticket + ['pow' => false]);
     }

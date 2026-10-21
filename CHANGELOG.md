@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added: the relay's ticket (`GET send.php?challenge=<id>`) says `counters: true` or `false`,
+  whether PHP may write the counter directory. Without it the rate limit and the spent proofs of
+  work do nothing, which a visitor never notices and the owner did not either. QuartzControl
+  reads it after an upload.
+
 ## [0.5.10] - 2026-10-21
 
 - Added: an own text in `texts` that leaves out a placeholder of the plugin's wording (`{max}`)

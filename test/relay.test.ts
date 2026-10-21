@@ -557,6 +557,28 @@ describe.skipIf(!php)("relay: challenge and CORS", () => {
       writeConfig();
     }
   });
+  it("says on the ticket whether it can write its counters, without creating them", async () => {
+    // QuartzControl review 2026-10-29, M1: PHP running as another user than the account that
+    // uploaded counters/ could not count, and nothing said so; every mail went through.
+    const counters = path.join(dir, "counters");
+    expect((await get("challenge=feedback")).json?.counters).toBe(true);
+    if (process.getuid?.() === 0) return; // root writes anywhere
+    fs.chmodSync(counters, 0o555);
+    try {
+      expect((await get("challenge=contact")).json?.counters).toBe(false);
+    } finally {
+      fs.chmodSync(counters, 0o755);
+    }
+    // A counterDir that is not there yet counts by the directory it would be created in.
+    const missing = path.join(dir, "counters-later", "deep");
+    writeConfig({ extra: `'counterDir' => '${missing}',` });
+    try {
+      expect((await get("challenge=feedback")).json?.counters).toBe(true);
+      expect(fs.existsSync(path.join(dir, "counters-later"))).toBe(false);
+    } finally {
+      writeConfig();
+    }
+  });
   it("answers a preflight", async () => {
     const res = await fetch(`${base}/send.php`, {
       method: "OPTIONS",

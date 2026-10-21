@@ -27,7 +27,10 @@ request is answered `500 mbstring_config` and says so); no packages to install.
    the addresses: after the upload, check that no other account on the host can read it. The
    command line writes it with mode 0600, but an upload over SFTP or FTP gets the server's
    default mode instead. 0600 works where PHP runs as your own user (PHP-FPM, suEXEC); where it
-   runs as the web server's user, 0640 with that group.
+   runs as the web server's user, 0640 with that group. PHP must also be able to write
+   `counters/` (or `counterDir`): where it runs as the web server's user, a directory your
+   account uploaded is usually not writable for it, and the relay then counts nothing and lets
+   every message through, without a rate limit and without marking used proofs of work.
 4. Set `transport.url` in the site to that `send.php` URL and rebuild the site.
 5. Whenever you change a form in `quartz.config.yaml`, run step 1 again and upload
    `config.generated.php`.
@@ -99,7 +102,9 @@ curl -i -X POST https://example.org/forms/send.php \
 ```
 
 With `minSeconds` above 0 the `ts: 0` is refused as `stamp` (not the relay's), which proves the
-time trap; a stamp from `GET send.php?challenge=contact` sent back at once is `too_fast`.
+time trap; a stamp from `GET send.php?challenge=contact` sent back at once is `too_fast`. That
+answer also says `"counters": false` when PHP cannot write the counter directory (it creates
+nothing to find out).
 
 The repository's `test/relay.test.ts` runs this file under `php -S` with every refusal, the
 accepted paths (mail in an outbox file), the plain-form path and the rate limit; `npm test` runs
