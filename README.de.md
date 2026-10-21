@@ -8,8 +8,8 @@ verschickt.
 **Stand: 0.5.9, privat.** Gemessen in einer gebauten Site und in Chrome; das PHP-Relay misst die
 Testsuite unter `php -S` (`test/relay.test.ts`). Sieben unabhängige Reviews, das dritte über 0.4.0
 als Ganzes, das vierte über 0.4.1 bis 0.5.4, das fünfte über 0.5.5 und 0.5.6, das sechste über
-0.5.7, das siebte über 0.5.8 und 0.5.9 (siehe CHANGELOG); den Platzhalter-Hinweis nach 0.5.9 hat
-noch kein Review gelesen.
+0.5.7, das siebte über 0.5.8 und 0.5.9 (siehe CHANGELOG); den Platzhalter-Hinweis und den Pfad von
+„keine Felder“ nach 0.5.9 hat noch kein Review gelesen.
 
 - Formulare werden einmal in `quartz.config.yaml` definiert (`options.forms`), nach Kennung
 - Eine Seite bindet ein Formular mit einem ` ```quartz-form `-Codeblock, einem
