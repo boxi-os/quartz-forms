@@ -223,11 +223,12 @@ return $generated + [
 let server: ChildProcess | undefined;
 /**
  * A relay on this suite's directory. More than one worker: the captcha check calls verify.php
- * on this same server. No opcache: the captcha test rewrites config.php three times within
- * milliseconds, and opcache rechecks a cached file's time stamp only every revalidate_freq
- * seconds (2 by default), so the relay read the previous config (CI run 39215450865 and one
- * local run, 2026-10-19). Measured with an include aged past file_update_protection: stale with
- * opcache on, fresh with it off. `ini` adds `-d` settings, e.g. a hoster's allow_url_fopen=0.
+ * on this same server. With OPcache, as on a host: until 0.5.12 it was off here, because the
+ * captcha test rewrites config.php three times within milliseconds and the relay read the
+ * previous config (CI run 39215450865 and one local run, 2026-10-19). send.php asks OPcache first
+ * since then. Measured with OPcache on: three runs green; with the opcache_invalidate lines taken
+ * out, six tests failed in the first run and the OPcache test in each of two more (2026-10-21).
+ * `ini` adds `-d` settings, e.g. a hoster's allow_url_fopen=0.
  *
  * In a process group of its own, which stopRelay ends as a whole: the workers are php's children,
  * and a kill of the server alone left all four running, 20 per run of the suite, 1452 after a day
@@ -244,7 +245,7 @@ function spawnRelay(port: number, ini: string[] = []): ChildProcess {
       "-t",
       dir,
       "-d",
-      "opcache.enable=0",
+      "opcache.enable=1",
       ...ini.flatMap((i) => ["-d", i]),
     ],
     {
