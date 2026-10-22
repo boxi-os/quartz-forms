@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Changed: the plugin is MIT-licensed, as the other plugins of QuartzControl are (`LICENSE`).
+  OpenPGP.js in `dist/vendor/openpgp/` stays LGPL-3.0-or-later.
+
 ## [0.5.15] - 2026-10-21
 
 - Fixed: with `opcache.validate_timestamps=0` the relay no longer drops its config from OPcache on

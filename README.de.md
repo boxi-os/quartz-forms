@@ -385,5 +385,4 @@ Die englische Fassung dieser README ist [README.md](README.md).
 
 ## Lizenz
 
-Noch nicht entschieden; das Paket ist bis dahin als `UNLICENSED` markiert. OpenPGP.js, das das
-Plugin als eigene Datei mitliefert, steht unter LGPL-3.0-or-later.
+MIT. OpenPGP.js, das das Plugin als eigene Datei mitliefert, steht unter LGPL-3.0-or-later.

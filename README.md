@@ -371,5 +371,4 @@ A German version of this README is in [README.de.md](README.de.md).
 
 ## License
 
-Not decided yet; the package is marked `UNLICENSED` until it is. OpenPGP.js, which the plugin
-ships as a separate file, is LGPL-3.0-or-later.
+MIT. OpenPGP.js, which the plugin ships as a separate file, is LGPL-3.0-or-later.
