@@ -521,10 +521,19 @@ async function qfCheckVisitorKey(
 // test key, 2026-10-19). Hence explicit rendering: the script loads once with `render=explicit`
 // and `data-persist`, which Quartz keeps in the head across navigations, and every bound form
 // renders its own widget and removes it with its cleanup.
+//
+// hCaptcha's API is not ready at the script's `load` event: rendering there worked, but logged
+// "should not render before js api is fully loaded" in Chrome, WebKit and Firefox (measured
+// 2026-10-22). Its documented way is a global callback named by `onload` in the URL, defined
+// before the script runs. Turnstile's `load` is enough and stays.
+const QF_HCAPTCHA_ONLOAD = "qfHcaptchaOnload";
 const QF_CAPTCHA_SCRIPTS: Record<string, string> = {
   turnstile: "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit",
-  hcaptcha: "https://js.hcaptcha.com/1/api.js?render=explicit",
+  hcaptcha: `https://js.hcaptcha.com/1/api.js?render=explicit&onload=${QF_HCAPTCHA_ONLOAD}`,
 };
+
+/** The load in progress per provider; a form bound meanwhile waits for the same one. */
+const qfCaptchaLoading = new Map<string, Promise<QfCaptchaApi | null>>();
 
 interface QfCaptchaApi {
   render(container: HTMLElement, options: Record<string, unknown>): string;
@@ -544,9 +553,15 @@ function qfCaptchaApi(provider: string): QfCaptchaApi | undefined {
 function qfLoadCaptcha(provider: string): Promise<QfCaptchaApi | null> {
   const src = QF_CAPTCHA_SCRIPTS[provider];
   if (!src) return Promise.resolve(null);
+  const pending = qfCaptchaLoading.get(provider);
+  if (pending) return pending;
   const loaded = qfCaptchaApi(provider);
   if (loaded) return Promise.resolve(loaded);
-  return new Promise((resolve) => {
+  const loading = new Promise<QfCaptchaApi | null>((resolve) => {
+    if (provider === "hcaptcha") {
+      (window as unknown as Record<string, () => void>)[QF_HCAPTCHA_ONLOAD] = () =>
+        resolve(qfCaptchaApi(provider) ?? null);
+    }
     let script = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`);
     if (!script) {
       script = document.createElement("script");
@@ -557,10 +572,17 @@ function qfLoadCaptcha(provider: string): Promise<QfCaptchaApi | null> {
       document.head.appendChild(script);
     }
     script.addEventListener("error", () => resolve(null));
-    // After `load` the script has run and its API is there; `turnstile.ready()` is not used,
-    // it throws for a script tag with async/defer (measured in Chrome, 2026-10-19).
-    script.addEventListener("load", () => resolve(qfCaptchaApi(provider) ?? null));
+    // After `load` the script has run and Turnstile's API is there; `turnstile.ready()` is not
+    // used, it throws for a script tag with async/defer (measured in Chrome, 2026-10-19).
+    if (provider !== "hcaptcha") {
+      script.addEventListener("load", () => resolve(qfCaptchaApi(provider) ?? null));
+    }
   });
+  // Held only while loading: afterwards the global API answers, and a script that could not
+  // load is tried again by the next form, as before.
+  qfCaptchaLoading.set(provider, loading);
+  void loading.then(() => qfCaptchaLoading.delete(provider));
+  return loading;
 }
 
 /** Renders the form's widget as soon as the provider is there, and removes it with the cleanup. */

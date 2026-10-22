@@ -1516,6 +1516,30 @@ describe("captcha", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("renders an hCaptcha widget when its onload callback says the API is ready, not at load", async () => {
+    // At the script's `load` event hCaptcha's API is not ready yet: rendering there logged
+    // "should not render before js api is fully loaded" in Chrome, WebKit and Firefox (2026-10-22).
+    const form = mount(
+      contact({ ...quick, spam: { minSeconds: 0, captcha: "hcaptcha", captchaSiteKey: "k" } }),
+    );
+    await nav();
+    const script = document.head.querySelector<HTMLScriptElement>(
+      'script[src^="https://js.hcaptcha.com"]',
+    );
+    expect(script?.src).toBe(
+      "https://js.hcaptcha.com/1/api.js?render=explicit&onload=qfHcaptchaOnload",
+    );
+    const hcaptcha = fakeProvider();
+    (window as unknown as { hcaptcha: unknown }).hcaptcha = hcaptcha;
+    script!.dispatchEvent(new Event("load"));
+    await tick();
+    expect(hcaptcha.render).not.toHaveBeenCalled();
+    (window as unknown as { qfHcaptchaOnload: () => void }).qfHcaptchaOnload();
+    await tick();
+    expect(hcaptcha.render).toHaveBeenCalledTimes(1);
+    expect(hcaptcha.render.mock.calls[0]![0]).toBe(form.querySelector(".quartz-form__captcha"));
+  });
+
   it("hands a service its token under the widget's own field name, and shows the service's field message", async () => {
     const form = mount(
       contact({ ...quick, spam: { minSeconds: 0, captcha: "hcaptcha", captchaSiteKey: "k" } }),

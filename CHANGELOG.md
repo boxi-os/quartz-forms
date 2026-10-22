@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed: hCaptcha renders its widget once its `onload` callback says the API is ready, not at the
+  script's `load` event. Every browser logged "should not render before js api is fully loaded"
+  before; the widget now also follows the page's language.
 - Changed: the plugin is MIT-licensed, as the other plugins of QuartzControl are (`LICENSE`, copyright
   boxi-os).
   OpenPGP.js in `dist/vendor/openpgp/` stays LGPL-3.0-or-later.
