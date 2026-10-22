@@ -81,3 +81,6 @@ map, `README.md` for user-facing options.
   Never widen `noExternal` in `tsup.config.ts` beyond `@quartz-community/`.
 - Every `addEventListener` in the inline script needs a matching `window.addCleanup()`.
 - All code, comments, docs and commit messages in English; `README.de.md` mirrors `README.md`.
+- `package.json` keeps `"private": true`. The plugin is installed from GitHub
+  (`quartz plugin add github:boxi-os/quartz-forms`), never from npm, and the flag stops an
+  accidental `npm publish`. It says nothing about the licence, which is MIT (`LICENSE`).
