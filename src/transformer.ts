@@ -230,7 +230,9 @@ export const Forms: QuartzTransformerPlugin<Partial<QuartzFormsOptions>> = (user
 
     externalResources(ctx) {
       // No forms, nothing to style or bind: the stylesheet and the script went onto every page of
-      // a site that only had the plugin installed (26 kB a page, fifty-first review). The dev
+      // a site that only had the plugin installed (fifty-first review). Quartz writes even these
+      // `inline` resources to static/resource-*.css/.js and links them from every page (Quartz
+      // 97a2d05, measured 2026-10-22: 6.4 kB, 0.2 kB and 20.5 kB, three requests a visit). The dev
       // server keeps them: there a page that embeds an unknown form shows a note, and without the
       // stylesheet it was a bare paragraph (fifty-second review, side list).
       if (Object.keys(opts.forms).length === 0 && !ctx.argv.serve) return {};
