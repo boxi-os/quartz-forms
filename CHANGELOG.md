@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- Changed: the plugin is MIT-licensed, as the other plugins of QuartzControl are (`LICENSE`).
+- Changed: the plugin is MIT-licensed, as the other plugins of QuartzControl are (`LICENSE`, copyright
+  boxi-os).
   OpenPGP.js in `dist/vendor/openpgp/` stays LGPL-3.0-or-later.
 
 ## [0.5.15] - 2026-10-21
