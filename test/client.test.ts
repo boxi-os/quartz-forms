@@ -1436,7 +1436,18 @@ describe("captcha", () => {
     fill(form, "message", "x");
     await submit(form);
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(status(form).text).toBe("Please complete the check below before sending.");
+    // Mail test 2026-10-25, finding 6: the sentence said "below", but it stands in the status
+    // under the button and the widget above the button. It says where the widget is.
+    expect(status(form).text).toBe("Please complete the check above the button before sending.");
+    const captchaBox = form.querySelector(".quartz-form__captcha")!;
+    const button = form.querySelector('button[type="submit"]')!;
+    const statusBox = form.querySelector(".quartz-form__status")!;
+    expect(
+      captchaBox.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      button.compareDocumentPosition(statusBox) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
 
     // The script arrives: the one bound form gets one widget, in its container, with its key.
     const turnstile = fakeProvider();
@@ -1486,7 +1497,7 @@ describe("captcha", () => {
     fill(b, "message", "x");
     await submit(b);
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(status(b).text).toBe("Please complete the check below before sending.");
+    expect(status(b).text).toBe("Please complete the check above the button before sending.");
 
     // Without a hidden field, the token is asked from the provider for this form's widget.
     turnstile.getResponse.mockImplementation(((id: string) =>

@@ -218,7 +218,7 @@ var en_US_default = {
   reloadPage: "Please reload the page and send again.",
   proofRejected: "The check before sending did not pass. Please try again.",
   captchaFailed: "The check could not be confirmed. Please complete it again.",
-  captchaRequired: "Please complete the check below before sending.",
+  captchaRequired: "Please complete the check above the button before sending.",
   sendFailed: "The message could not be sent. Please try again later.",
   rejected: "The message was not accepted: {reason}",
   rateLimited: "Too many messages at the moment. Please try again later.",
@@ -287,7 +287,7 @@ var deDE = {
   reloadPage: "Bitte lade die Seite neu und sende noch einmal.",
   proofRejected: "Die Pr\xFCfung vor dem Senden ist fehlgeschlagen. Bitte versuche es noch einmal.",
   captchaFailed: "Die Pr\xFCfung konnte nicht best\xE4tigt werden. Bitte best\xE4tige sie noch einmal.",
-  captchaRequired: "Bitte best\xE4tige vor dem Senden die Pr\xFCfung unten.",
+  captchaRequired: "Bitte best\xE4tige vor dem Senden die Pr\xFCfung \xFCber dem Button.",
   sendFailed: "Die Nachricht konnte nicht gesendet werden. Bitte versuche es sp\xE4ter noch einmal.",
   rejected: "Die Nachricht wurde nicht angenommen: {reason}",
   rateLimited: "Im Moment kommen zu viele Nachrichten. Bitte versuche es sp\xE4ter noch einmal.",
@@ -1420,5 +1420,5 @@ function logHints(opts) {
 }
 
 export { __commonJS, __export, __require, __toESM, availableLocales, conditionOf, conditionsOf, defaultOptions, formatMessage, i18n, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-VFJK6SND.js.map
-//# sourceMappingURL=chunk-VFJK6SND.js.map
+//# sourceMappingURL=chunk-GSZDC3XA.js.map
+//# sourceMappingURL=chunk-GSZDC3XA.js.map

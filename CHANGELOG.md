@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed: the sentence for a missing captcha says the check is above the button (`captchaRequired`,
+  de-DE and en-US). It said "below", but it stands in the status under the button and the widget
+  above it (real mail through all-inkl, 2026-10-25). A site's own text under `texts` stays.
 - Fixed: the relay's page for a browser without JavaScript has a viewport and `color-scheme`, so
   it reads at a phone's width and in dark mode, and after sending it links back to the form's
   page (from the Referer, on the site's origin only) or the site's start page; after a refusal

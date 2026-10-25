@@ -43,7 +43,7 @@ export default {
   reloadPage: "Please reload the page and send again.",
   proofRejected: "The check before sending did not pass. Please try again.",
   captchaFailed: "The check could not be confirmed. Please complete it again.",
-  captchaRequired: "Please complete the check below before sending.",
+  captchaRequired: "Please complete the check above the button before sending.",
   sendFailed: "The message could not be sent. Please try again later.",
   rejected: "The message was not accepted: {reason}",
   rateLimited: "Too many messages at the moment. Please try again later.",

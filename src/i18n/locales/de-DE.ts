@@ -43,7 +43,7 @@ const deDE: Translation = {
   reloadPage: "Bitte lade die Seite neu und sende noch einmal.",
   proofRejected: "Die Prüfung vor dem Senden ist fehlgeschlagen. Bitte versuche es noch einmal.",
   captchaFailed: "Die Prüfung konnte nicht bestätigt werden. Bitte bestätige sie noch einmal.",
-  captchaRequired: "Bitte bestätige vor dem Senden die Prüfung unten.",
+  captchaRequired: "Bitte bestätige vor dem Senden die Prüfung über dem Button.",
   sendFailed: "Die Nachricht konnte nicht gesendet werden. Bitte versuche es später noch einmal.",
   rejected: "Die Nachricht wurde nicht angenommen: {reason}",
   rateLimited: "Im Moment kommen zu viele Nachrichten. Bitte versuche es später noch einmal.",
