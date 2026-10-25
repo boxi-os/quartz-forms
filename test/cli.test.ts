@@ -104,6 +104,7 @@ describe("cli relay", () => {
     expect(config).toContain(`'secret' => '${operator.secret}'`);
     expect(config).toContain("'captchaSecret' => 'cap\\'s secret'");
     expect(config).toMatch(/'mailer' => \[\n\s+'sendmail' => '\/usr\/sbin\/sendmail -t -i',/);
+    expect(config).toContain("'envelopeSender' => true,");
     expect(config).toMatch(/'recipients' => \[\n\s+'owner' => 'owner@example.org',/);
     expect(config).toContain("'counterDir' => '/home/me/forms-counters'");
     expect(config).toContain("require __DIR__ . '/config.generated.php'");
@@ -131,14 +132,19 @@ describe("cli relay", () => {
   it.skipIf(!php)("writes PHP that PHP reads, with the values the relay looks up", () => {
     const out = tmpDir("cli-relay-php");
     const r = run(["relay", "--site", site(relayOptions), "--out", out], {
-      QF_RELAY_OPERATOR: JSON.stringify({ ...operator, counterDir: "", mailer: "mail" }),
+      QF_RELAY_OPERATOR: JSON.stringify({
+        ...operator,
+        counterDir: "",
+        mailer: "mail",
+        envelopeSender: false,
+      }),
     });
     expect(r.status).toBe(0);
     const read = spawnSync(
       "php",
       [
         "-r",
-        `$c = require '${path.join(out, "config.php")}'; echo json_encode([$c['secret'], $c['from'], $c['mailer'], $c['counterDir'], array_keys($c['forms']), $c['recipients']]);`,
+        `$c = require '${path.join(out, "config.php")}'; echo json_encode([$c['secret'], $c['from'], $c['mailer'], $c['envelopeSender'], $c['counterDir'], array_keys($c['forms']), $c['recipients']]);`,
       ],
       { encoding: "utf8" },
     );
@@ -147,6 +153,7 @@ describe("cli relay", () => {
       operator.secret,
       "forms@example.org",
       "mail",
+      false,
       path.join(out, "counters"),
       ["contact", "feedback"],
       { owner: "owner@example.org" },
@@ -186,6 +193,7 @@ describe("cli relay", () => {
         secret: "short",
         mailer: { sendmail: " " },
         counterDir: "relative/dir",
+        envelopeSender: "no",
       }),
     });
     expect(r.status).toBe(1);
@@ -194,6 +202,7 @@ describe("cli relay", () => {
       "operator.secret: at least 32 characters",
       'operator.mailer: "mail", { sendmail } or { file }',
       "operator.counterDir: an absolute path on the server",
+      "operator.envelopeSender: true or false",
     ]);
     expect(fs.readdirSync(out)).toEqual([]);
     expect(

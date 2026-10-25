@@ -344,8 +344,8 @@ the build log stays English).
 `relay` into a directory of its own writes the whole relay (`send.php`, `counters/.htaccess`,
 `counters/qf-probe.count`, `config.generated.php`, `config.php`). With the owner's values as JSON
 in the environment variable
-`QF_RELAY_OPERATOR` (secret, origins, sender, mailer, recipients, captcha secrets, counter
-directory) it writes `config.php` from them on every run; secrets never go through argv. With
+`QF_RELAY_OPERATOR` (secret, origins, sender, mailer, envelope sender, recipients, captcha
+secrets, counter directory) it writes `config.php` from them on every run; secrets never go through argv. With
 `--json` stdout holds one object, among others a `hash` of the generated rules that stays the same
 as long as they do, and a `generation` that is new on every run and that the uploaded relay's
 ticket answers. This is what QuartzControl runs. `config.php` is written with mode 0600; an

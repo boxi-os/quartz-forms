@@ -201,6 +201,7 @@ const en = {
   operatorRecord: (p: Params) => `operator.${s(p, "key")}: a record of name → text`,
   operatorText: (p: Params) => `operator.${s(p, "key")}: a text`,
   operatorCounterDir: () => "operator.counterDir: an absolute path on the server",
+  operatorFlag: (p: Params) => `operator.${s(p, "key")}: true or false`,
 };
 
 export default en;

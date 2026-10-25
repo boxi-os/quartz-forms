@@ -39,6 +39,10 @@ return $generated + [
     // use a path outside the web root, or the messages are one URL away from anyone).
     'mailer' => 'mail',
 
+    // The from address is also the envelope sender (-f, the Return-Path SPF checks). false leaves
+    // it to the hoster, for one that refuses a -f of its own choosing (see the README).
+    'envelopeSender' => true,
+
     // Recipient name (as written in quartz.config.yaml under `recipient`) → address.
     // Addresses stay here and never reach the site.
     'recipients' => [

@@ -1276,6 +1276,53 @@ describe.skipIf(!php)("relay: accepted submissions and their mail", () => {
       "",
     ]);
   });
+  it("envelopeSender false leaves the envelope sender to the host, where a host refuses -f", async () => {
+    // Review 2026-11-04, M3: with -f always set, a host whose sendmail refuses a foreign envelope
+    // sender answered 502 where 0.5.15 sent the mail, and the owner had no way back.
+    const refusing = path.join(dir, "sendmail-refuses-f.sh");
+    fs.writeFileSync(
+      refusing,
+      `#!/bin/sh\nprintf '%s\\n' "$@" > "${dir}/sendmail.argv"\nfor a in "$@"; do case "$a" in -f*) exit 67;; esac; done\ncat > "${dir}/sendmail.mail"\n`,
+      { mode: 0o755 },
+    );
+    const send = async (
+      extra: string,
+    ): Promise<{ status: number; argv: string[]; message?: unknown }> => {
+      fs.rmSync(path.join(dir, "sendmail.argv"), { force: true });
+      writeConfig({ extra: `'captchaSecret' => 'cap-secret', ${extra}` });
+      try {
+        const r = await post(env("feedback", { rating: "4" }));
+        const argv = fs.readFileSync(path.join(dir, "sendmail.argv"), "utf8").trim().split("\n");
+        return { status: r.status, argv, message: r.json?.message };
+      } finally {
+        writeConfig();
+      }
+    };
+    const sendmail = `'mailer' => ['sendmail' => '${refusing} -t -i']`;
+    // Refused, and the answer names the way out to the owner reading it in the network panel.
+    expect(await send(`${sendmail},`)).toEqual({
+      status: 502,
+      argv: ["-t", "-i", "-fforms@relay.test"],
+      message: expect.stringContaining("set envelopeSender to false"),
+    });
+    expect(await send(`${sendmail}, 'envelopeSender' => false,`)).toEqual({
+      status: 200,
+      argv: ["-t", "-i"],
+    });
+    // mail() through sendmail_path: the fifth argument stays empty.
+    expect(await send(`'mailer' => 'mail', 'envelopeSender' => false,`)).toEqual({
+      status: 200,
+      argv: [""],
+    });
+    // The owner's own -f in the command is the owner's, also with the switch off.
+    expect(
+      (
+        await send(
+          `'mailer' => ['sendmail' => '${refusing} -t -i -f bounce@relay.test'], 'envelopeSender' => false,`,
+        )
+      ).argv,
+    ).toEqual(["-t", "-i", "-f", "bounce@relay.test"]);
+  });
   it("a long line is sent quoted-printable, so no line of the mail exceeds 76 octets", async () => {
     // Review finding 20 (2026-10-19): the body went out 8bit with the visitor's lines as they
     // were; a textarea line of thousands of characters breaks RFC 5322's 998-octet limit, and an

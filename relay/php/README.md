@@ -99,6 +99,13 @@ the `from` domain, and delivery depends on your hoster's SPF/DKIM setup for it. 
 command with its own `-f` keeps it; a `from` that is no plain address (`Name <a@b>` counts as
 `a@b`) leaves the hoster's default sender.
 
+A hoster may refuse an envelope sender it did not choose: then every mail fails with 502
+(`"error":"mail"`, the message names `envelopeSender`), where a relay before 0.5.16 sent it.
+`'envelopeSender' => false` leaves the envelope sender to the hoster again, and SPF then checks
+the hoster's domain, not the `from` one. Some sendmail programs take a refused mail as handed
+over (exit 75, which `mail()` counts as success): if test mails do not arrive and the relay says
+`ok`, try the switch as well.
+
 With `['sendmail' => '…']` keep the `-i` flag (as in `config.example.php`): without it, a line that
 holds a single dot ends the message for sendmail, and everything the visitor wrote after it is
 lost. The quoted-printable encoding leaves such a line as it is. `mail()` passes the flag itself.

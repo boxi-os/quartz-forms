@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
-import { pluginRoot, checkKey } from './chunk-Q7R2MF3E.js';
-import { __commonJS, __require, __toESM, messageLang, publicKeyBlock, availableLocales, i18n, messageText, formatMessage, conditionsOf, isNamed, resolveOptions } from './chunk-GSZDC3XA.js';
+import { pluginRoot, checkKey } from './chunk-ONQOMBIA.js';
+import { __commonJS, __require, __toESM, messageLang, publicKeyBlock, availableLocales, i18n, messageText, formatMessage, conditionsOf, isNamed, resolveOptions } from './chunk-V5Y3CWMF.js';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
@@ -7433,6 +7433,8 @@ function operatorProblems(op) {
     if (o[key] !== void 0 && typeof o[key] !== "string") add("operatorText", { key });
   if (typeof o.counterDir === "string" && o.counterDir && !o.counterDir.startsWith("/"))
     add("operatorCounterDir");
+  if (o.envelopeSender !== void 0 && typeof o.envelopeSender !== "boolean")
+    add("operatorFlag", { key: "envelopeSender" });
   return out;
 }
 function operatorPhp(op) {
@@ -7448,6 +7450,7 @@ function operatorPhp(op) {
     lines.push(`    'captchaSecrets' => ${php(op.captchaSecrets, "    ")},`);
   lines.push(
     `    'mailer' => ${php(op.mailer, "    ")},`,
+    `    'envelopeSender' => ${php(op.envelopeSender !== false)},`,
     `    'recipients' => ${php(op.recipients, "    ")},`,
     `    'counterDir' => ${counterDir},`
   );

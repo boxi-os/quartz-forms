@@ -500,7 +500,8 @@ ${s(p, "message")}`,
   operatorMailer: () => 'operator.mailer: "mail", { sendmail } or { file }',
   operatorRecord: (p) => `operator.${s(p, "key")}: a record of name \u2192 text`,
   operatorText: (p) => `operator.${s(p, "key")}: a text`,
-  operatorCounterDir: () => "operator.counterDir: an absolute path on the server"
+  operatorCounterDir: () => "operator.counterDir: an absolute path on the server",
+  operatorFlag: (p) => `operator.${s(p, "key")}: true or false`
 };
 var en_default = en;
 
@@ -641,7 +642,8 @@ ${s2(p, "message")}`,
   operatorMailer: () => 'operator.mailer: "mail", { sendmail } oder { file }',
   operatorRecord: (p) => `operator.${s2(p, "key")}: ein Record Name \u2192 Text`,
   operatorText: (p) => `operator.${s2(p, "key")}: ein Text`,
-  operatorCounterDir: () => "operator.counterDir: ein absoluter Pfad auf dem Server"
+  operatorCounterDir: () => "operator.counterDir: ein absoluter Pfad auf dem Server",
+  operatorFlag: (p) => `operator.${s2(p, "key")}: true oder false`
 };
 var de_default = de;
 
@@ -1420,5 +1422,5 @@ function logHints(opts) {
 }
 
 export { __commonJS, __export, __require, __toESM, availableLocales, conditionOf, conditionsOf, defaultOptions, formatMessage, i18n, isNamed, logHints, messageLang, messageText, publicKeyBlock, resolveOptions, resolveOrThrow, stepsOf, templateNames, templateOf, warnOnce, wording };
-//# sourceMappingURL=chunk-GSZDC3XA.js.map
-//# sourceMappingURL=chunk-GSZDC3XA.js.map
+//# sourceMappingURL=chunk-V5Y3CWMF.js.map
+//# sourceMappingURL=chunk-V5Y3CWMF.js.map

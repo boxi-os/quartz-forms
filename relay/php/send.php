@@ -1182,15 +1182,27 @@ function qf_header_safe(string $s): string
     return trim(preg_replace('/[\r\n]+/', ' ', $s) ?? '');
 }
 
+/**
+ * The envelope sender, the Return-Path SPF checks: the from address, not the host's default for
+ * the account, which aligns with no From (mail test 2026-10-25, finding 3). Only a plain address
+ * goes to a command line; anything else leaves the host's default. `envelopeSender` false leaves
+ * it to the host for one that refuses a -f of its own choosing (review 2026-11-04, M3).
+ */
+function qf_envelope(array $config): string
+{
+    if (($config['envelopeSender'] ?? true) === false) {
+        return '';
+    }
+    $from = qf_header_safe((string) ($config['from'] ?? 'forms@localhost'));
+    $address = preg_match('/<([^<>]*)>\s*$/', $from, $m) ? trim($m[1]) : $from;
+    return preg_match('/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+$/D', $address) ? '-f' . $address : '';
+}
+
 /** Sends through mail() or a sendmail binary; headers carry nothing about the sender's machine. */
 function qf_mail(array $config, string $to, string $subject, string $body, ?string $replyTo): bool
 {
     $from = qf_header_safe((string) ($config['from'] ?? 'forms@localhost'));
-    // The envelope sender, the Return-Path SPF checks: the from address, not the host's default
-    // for the account, which aligns with no From (mail test 2026-10-25, finding 3). Only a plain
-    // address goes to a command line; anything else leaves the host's default.
-    $address = preg_match('/<([^<>]*)>\s*$/', $from, $m) ? trim($m[1]) : $from;
-    $envelope = preg_match('/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+$/D', $address) ? '-f' . $address : '';
+    $envelope = qf_envelope($config);
     $headers = [
         'From: ' . $from,
         'MIME-Version: 1.0',
@@ -1572,7 +1584,11 @@ if ($refused !== null) {
 
 if (!qf_mail($config, $to, $subject, $body, $replyTo)) {
     qf_refund($counted, $marked);
-    qf_fail(502, 'mail', 'the mail could not be handed over');
+    // The owner reads this in the browser's network panel; a host that refuses the envelope
+    // sender looks exactly like any other failure here.
+    qf_fail(502, 'mail', qf_envelope($config) !== ''
+        ? 'the mail could not be handed over; if the host refuses the from address as envelope sender (-f), set envelopeSender to false'
+        : 'the mail could not be handed over');
 }
 
 if (qf_wants_html()) {

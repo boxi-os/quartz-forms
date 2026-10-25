@@ -142,6 +142,7 @@ declare const en: {
     operatorRecord: (p: Params) => string;
     operatorText: (p: Params) => string;
     operatorCounterDir: () => string;
+    operatorFlag: (p: Params) => string;
 };
 
 type MessageCode = keyof typeof en;

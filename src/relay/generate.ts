@@ -43,6 +43,8 @@ export interface RelayOperator {
   captchaSecret?: string;
   captchaSecrets?: Record<string, string>;
   mailer: "mail" | { sendmail: string } | { file: string };
+  /** False: no -f with the from address, the host's default envelope sender instead. */
+  envelopeSender?: boolean;
   recipients: Record<string, string>;
   /** An absolute path on the server; empty or missing: `counters/` next to send.php. */
   counterDir?: string;
@@ -262,6 +264,8 @@ export function operatorProblems(op: unknown): Message[] {
     if (o[key] !== undefined && typeof o[key] !== "string") add("operatorText", { key });
   if (typeof o.counterDir === "string" && o.counterDir && !o.counterDir.startsWith("/"))
     add("operatorCounterDir");
+  if (o.envelopeSender !== undefined && typeof o.envelopeSender !== "boolean")
+    add("operatorFlag", { key: "envelopeSender" });
   return out;
 }
 
@@ -282,6 +286,7 @@ export function operatorPhp(op: RelayOperator): string {
     lines.push(`    'captchaSecrets' => ${php(op.captchaSecrets, "    ")},`);
   lines.push(
     `    'mailer' => ${php(op.mailer, "    ")},`,
+    `    'envelopeSender' => ${php(op.envelopeSender !== false)},`,
     `    'recipients' => ${php(op.recipients, "    ")},`,
     `    'counterDir' => ${counterDir},`,
   );

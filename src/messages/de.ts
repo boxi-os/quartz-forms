@@ -184,6 +184,7 @@ const de: { [K in keyof typeof en]: (p: Params, t: Translate) => string } = {
   operatorRecord: (p) => `operator.${s(p, "key")}: ein Record Name → Text`,
   operatorText: (p) => `operator.${s(p, "key")}: ein Text`,
   operatorCounterDir: () => "operator.counterDir: ein absoluter Pfad auf dem Server",
+  operatorFlag: (p) => `operator.${s(p, "key")}: true oder false`,
 };
 
 export default de;

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added: the relay option `envelopeSender` (default `true`). `false` leaves the envelope sender to
+  the hoster, as before 0.5.16, for a hoster that refuses `-f` with the from address; with 0.5.16
+  such a host answered every mail with 502 and the owner had no way back (review 2026-11-04,
+  M3). The 502 for a mail that could not be handed over names the switch when `-f` was given.
+  `relay` writes it into `config.php`, and `QF_RELAY_OPERATOR` takes it.
+
 ## [0.5.16] - 2026-10-25
 
 - Fixed: the sentence for a missing captcha says the check is above the button (`captchaRequired`,
