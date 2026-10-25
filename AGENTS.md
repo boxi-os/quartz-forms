@@ -59,6 +59,25 @@ map, `README.md` for user-facing options.
    if the result differs from the committed one.
 4. Update `README.md` / `README.de.md` (options table) and `CHANGELOG.md`.
 
+## Versioning
+
+Semantic versioning, read for 0.x as follows (it was not written down before 0.5.16, and 0.5.9
+and 0.5.11 went out as patches although by this rule they were minor):
+
+- **Minor** (`0.x.0`): a new option, field type, transport kind or CLI command; anything that
+  changes or breaks an existing configuration; anything QuartzControl has to read anew (new keys
+  in `quartz.configSchema`, a new or changed answer of `dist/cli.js`).
+- **Patch** (`0.x.y`): fixes, texts, and behaviour that becomes what the README already said (the
+  envelope sender in 0.5.16).
+- **1.0.0**: when the plugin goes public together with QuartzControl 1.2.
+
+A pushed tag is never renamed. A release is one commit (`Release x.y.z: …`) that moves
+`## [Unreleased]` to `## [x.y.z] - date` and sets the version in `package.json` (both
+`version` keys), `package-lock.json`, `QF_VERSION` in `relay/php/send.php` (a test holds it to the
+package) and the status line of `README.md` and `README.de.md`; then the tag `vx.y.z`, pushed with
+the branch. QuartzControl follows with `FORMS_READ_AGAINST` in `src/routes/Plugins/formsOptions.ts`
+after `npm run check:plugin-copies` there.
+
 ## Constraints
 
 - Quartz calls every factory with the YAML `options` laid over the manifest's `defaultOptions`,
