@@ -328,11 +328,18 @@ file_put_contents(__DIR__ . '/verify.log', "x", FILE_APPEND);
 echo json_encode(['success' => ($_POST['secret'] ?? '') === 'cap-secret' && ($_POST['response'] ?? '') === 'good']);
 `,
   );
+  // Stands in for the host's sendmail, behind mail() through sendmail_path and as a `sendmail`
+  // mailer: keeps the arguments, one per line, and the message.
+  fs.writeFileSync(
+    path.join(dir, "sendmail.sh"),
+    `#!/bin/sh\nprintf '%s\\n' "$@" > "${dir}/sendmail.argv"\ncat > "${dir}/sendmail.mail"\n`,
+    { mode: 0o755 },
+  );
   const port = await freePort();
   base = `http://127.0.0.1:${port}`;
   writeConfig();
   fs.writeFileSync(path.join(dir, "php.log"), "");
-  server = spawnRelay(port);
+  server = spawnRelay(port, [`sendmail_path=${path.join(dir, "sendmail.sh")}`]);
   await untilUp(base);
   for (const form of Object.keys(siteOptions.forms)) {
     const r = await fetch(`${base}/send.php?challenge=${form}`, { headers: { Origin: ORIGIN } });
@@ -1235,6 +1242,39 @@ describe.skipIf(!php)("relay: accepted submissions and their mail", () => {
     expect(body).toContain("Name: Ada Lovelace");
     expect(body).toMatch(/\[x\] Agreed/);
     expect(headers + body).not.toMatch(/X-Originating|User-Agent|127\.0\.0\.1/);
+  });
+  it("the envelope sender is the from address, through mail() and through sendmail, unless the command names its own", async () => {
+    // Mail test 2026-10-25, finding 3: mail() went without -f, so the envelope sender (the
+    // Return-Path, what SPF checks) was the host's default for the account, not the from address
+    // whose domain the README and QuartzControl tell the owner to set up for SPF.
+    const sendmail = path.join(dir, "sendmail.sh");
+    const envelope = async (extra: string): Promise<string[]> => {
+      fs.rmSync(path.join(dir, "sendmail.argv"), { force: true });
+      writeConfig({ extra: `'captchaSecret' => 'cap-secret', ${extra}` });
+      try {
+        expect((await post(env("feedback", { rating: "4" }))).json).toEqual({ ok: true });
+      } finally {
+        writeConfig();
+      }
+      return fs.readFileSync(path.join(dir, "sendmail.argv"), "utf8").trim().split("\n");
+    };
+    expect(await envelope(`'mailer' => 'mail',`)).toEqual(["-fforms@relay.test"]);
+    expect(await envelope(`'mailer' => 'mail', 'from' => 'Website <forms@relay.test>',`)).toEqual([
+      "-fforms@relay.test",
+    ]);
+    expect(await envelope(`'mailer' => ['sendmail' => '${sendmail} -t -i'],`)).toEqual([
+      "-t",
+      "-i",
+      "-fforms@relay.test",
+    ]);
+    // The owner's own -f stays the only one.
+    expect(
+      await envelope(`'mailer' => ['sendmail' => '${sendmail} -t -i -f bounce@relay.test'],`),
+    ).toEqual(["-t", "-i", "-f", "bounce@relay.test"]);
+    // What is no plain address goes to no command line; the mail still goes, with the host's default.
+    expect(await envelope(`'mailer' => 'mail', 'from' => 'forms@relay.test -X/tmp/log',`)).toEqual([
+      "",
+    ]);
   });
   it("a long line is sent quoted-printable, so no line of the mail exceeds 76 octets", async () => {
     // Review finding 20 (2026-10-19): the body went out 8bit with the visitor's lines as they

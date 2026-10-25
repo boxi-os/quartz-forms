@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed: the relay hands the `from` address to `mail()` and to a `sendmail` mailer as the envelope
+  sender (`-f`), so the Return-Path is that address and SPF checks its domain, as the README always
+  said. Before, the hoster's default sender for the account went out instead (real mail through
+  all-inkl, 2026-10-25: Return-Path of another domain of the account, SPF aligned with no From). A
+  `sendmail` command with its own `-f` keeps it.
 - Fixed: hCaptcha renders its widget once its `onload` callback says the API is ready, not at the
   script's `load` event. Every browser logged "should not render before js api is fully loaded"
   before; the widget now also follows the page's language.

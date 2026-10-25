@@ -21,7 +21,8 @@ return $generated + [
     // (the redirect of a plain post then goes to the site's baseUrl from the generated config).
     'allowedOrigins' => ['https://example.org'],
 
-    // Sender address of the mails. Use an address of this domain, or SPF will reject the mail.
+    // Sender address of the mails, in From and as the envelope sender (-f). Use an address of
+    // this domain, or SPF will reject the mail.
     'from' => 'forms@example.org',
 
     // Optional prefix for every subject, e.g. '[Website]'.
@@ -31,7 +32,8 @@ return $generated + [
     // Per form under 'captchaSecrets' => ['contact' => '…'] when they differ.
     'captchaSecret' => '',
 
-    // 'mail' uses PHP's mail(); ['sendmail' => '/usr/sbin/sendmail -t -i'] pipes to sendmail
+    // 'mail' uses PHP's mail(); ['sendmail' => '/usr/sbin/sendmail -t -i'] pipes to sendmail, with
+    // -f and the from address unless the command has a -f of its own
     // (keep -i: without it a line holding a single dot ends the message, see the README);
     // ['file' => '/home/you/private/outbox.txt'] appends every mail to a file (testing only:
     // use a path outside the web root, or the messages are one URL away from anyone).

@@ -1146,6 +1146,11 @@ function qf_header_safe(string $s): string
 function qf_mail(array $config, string $to, string $subject, string $body, ?string $replyTo): bool
 {
     $from = qf_header_safe((string) ($config['from'] ?? 'forms@localhost'));
+    // The envelope sender, the Return-Path SPF checks: the from address, not the host's default
+    // for the account, which aligns with no From (mail test 2026-10-25, finding 3). Only a plain
+    // address goes to a command line; anything else leaves the host's default.
+    $address = preg_match('/<([^<>]*)>\s*$/', $from, $m) ? trim($m[1]) : $from;
+    $envelope = preg_match('/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+$/D', $address) ? '-f' . $address : '';
     $headers = [
         'From: ' . $from,
         'MIME-Version: 1.0',
@@ -1172,7 +1177,12 @@ function qf_mail(array $config, string $to, string $subject, string $body, ?stri
     if (is_array($mailer) && isset($mailer['sendmail'])) {
         $raw = 'To: ' . qf_header_safe($to) . "\r\n" . 'Subject: ' . $encodedSubject . "\r\n"
             . implode("\r\n", $headers) . "\r\n\r\n" . $body . "\r\n";
-        $proc = @proc_open($mailer['sendmail'], [0 => ['pipe', 'r']], $pipes);
+        // The owner's own -f in the command wins.
+        $command = (string) $mailer['sendmail'];
+        if ($envelope !== '' && !preg_match('/(^|\s)-f/', $command)) {
+            $command .= ' ' . escapeshellarg($envelope);
+        }
+        $proc = @proc_open($command, [0 => ['pipe', 'r']], $pipes);
         if (!is_resource($proc)) {
             return false;
         }
@@ -1186,7 +1196,7 @@ function qf_mail(array $config, string $to, string $subject, string $body, ?stri
             . implode("\r\n", $headers) . "\r\n\r\n" . $body . "\r\n";
         return (bool) @file_put_contents($mailer['file'], $raw . "\r\n----\r\n", FILE_APPEND | LOCK_EX);
     }
-    return @mail($to, $encodedSubject, $body, implode("\r\n", $headers));
+    return @mail($to, $encodedSubject, $body, implode("\r\n", $headers), $envelope);
 }
 
 /* ------------------------------------------------------------------- flow */

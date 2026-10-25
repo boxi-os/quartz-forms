@@ -90,8 +90,10 @@ UTF-8, quoted-printable (no line longer than 76 octets, whatever the visitor typ
 form's subject, `From` from the config and `Reply-To` from the visitor's e-mail field (the first
 one filled in; with `autocomplete: email` on one, only such fields) when the
 form is not anonymous and the message is not encrypted (the relay cannot read an encrypted one). In the outbox file the body is therefore encoded; a mail program shows it
-decoded. Delivery depends on your hoster's SPF/DKIM setup for the
-`from` domain.
+decoded. The `from` address is also the envelope sender (`-f`, the Return-Path), so SPF checks
+the `from` domain, and delivery depends on your hoster's SPF/DKIM setup for it. A `sendmail`
+command with its own `-f` keeps it; a `from` that is no plain address (`Name <a@b>` counts as
+`a@b`) leaves the hoster's default sender.
 
 With `['sendmail' => '…']` keep the `-i` flag (as in `config.example.php`): without it, a line that
 holds a single dot ends the message for sendmail, and everything the visitor wrote after it is
