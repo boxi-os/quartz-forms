@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.16] - 2026-10-25
+
 - Fixed: the sentence for a missing captcha says the check is above the button (`captchaRequired`,
   de-DE and en-US). It said "below", but it stands in the status under the button and the widget
   above it (real mail through all-inkl, 2026-10-25). A site's own text under `texts` stays.
