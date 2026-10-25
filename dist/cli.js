@@ -7375,7 +7375,7 @@ function relayData(opts, baseUrl) {
       })
     };
   }
-  return { siteOrigin: origin, forms };
+  return { siteOrigin: origin, sitePath: basePath, forms };
 }
 function recipientNames(data) {
   return [
@@ -7400,6 +7400,7 @@ declare(strict_types=1);
 return [
     'generation' => ${php(generation)},
     'siteOrigin' => ${php(data.siteOrigin)},
+    'sitePath' => ${php(data.sitePath)},
     'forms' => ${php(data.forms)},
 ];
 `;

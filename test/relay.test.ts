@@ -1454,6 +1454,39 @@ describe.skipIf(!php)("relay: a browser without JavaScript (plain form post)", (
       writeConfig();
     }
   });
+  it("the page fits a phone, follows light or dark, and leads back to the form's page or the site's start", async () => {
+    // Mail test 2026-10-25, finding 5: a bare page at desktop width, no viewport, no color-scheme,
+    // no link; "Back" led to the filled-in form, ready to be sent twice.
+    const html = { "Content-Type": "application/x-www-form-urlencoded", Accept: "text/html" };
+    const send = (
+      headers: Record<string, string>,
+      fields: Record<string, string> = { rating: "5" },
+    ) =>
+      post(new URLSearchParams({ form: "feedback", lang: "de-DE", ...fields }).toString(), {
+        raw: true,
+        headers: { ...html, ...headers },
+      });
+    const link = (text: string) =>
+      /<a href="([^"]*)">Zurück zur Website<\/a>/.exec(text)?.[1] ?? null;
+    const fromPage = await send({ Referer: `${ORIGIN}/site/feedback?x=1#top` });
+    expect(fromPage.status).toBe(200);
+    expect(fromPage.text).toContain(
+      '<meta name="viewport" content="width=device-width, initial-scale=1">',
+    );
+    expect(fromPage.text).toContain('<meta name="color-scheme" content="light dark">');
+    expect(link(fromPage.text)).toBe(`${ORIGIN}/site/feedback?x=1`);
+    // Only the origin in the Referer (a relay on another host), or none: the start page from baseUrl.
+    expect(link((await send({ Referer: `${ORIGIN}/` })).text)).toBe(`${ORIGIN}/site/`);
+    expect(link((await send({})).text)).toBe(`${ORIGIN}/site/`);
+    // A Referer of another origin is not followed.
+    expect(link((await send({ Referer: "https://evil.test/phish" })).text)).toBe(`${ORIGIN}/site/`);
+    // A refusal sends the visitor back with the browser, which keeps what they entered.
+    const refused = await send({ Referer: `${ORIGIN}/site/feedback` }, { rating: "77" });
+    expect(refused.status).toBe(400);
+    expect(link(refused.text)).toBeNull();
+    expect(refused.text).toContain("Mit „Zurück“ im Browser kommst du zu deinen Angaben.");
+    expect(refused.text).toContain('<meta name="viewport"');
+  });
   it("answers with a short page in the submission's language when there is no redirect", async () => {
     const de = await plain({ form: "feedback", lang: "de-DE", rating: "5" });
     expect(de.status).toBe(200);

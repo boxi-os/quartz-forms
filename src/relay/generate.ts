@@ -11,6 +11,8 @@ import { conditionsOf, isNamed } from "../conditions";
  */
 export interface RelayData {
   siteOrigin: string | null;
+  /** The path of baseUrl, without a trailing slash: the site's start page is origin + this + "/". */
+  sitePath: string;
   forms: Record<string, RelayForm>;
 }
 
@@ -173,7 +175,7 @@ export function relayData(opts: ResolvedOptions, baseUrl: unknown): RelayData {
       }),
     };
   }
-  return { siteOrigin: origin, forms };
+  return { siteOrigin: origin, sitePath: basePath, forms };
 }
 
 /** The recipient names the relay forms use, each once, in order of appearance. */
@@ -215,6 +217,7 @@ declare(strict_types=1);
 return [
     'generation' => ${php(generation)},
     'siteOrigin' => ${php(data.siteOrigin)},
+    'sitePath' => ${php(data.sitePath)},
     'forms' => ${php(data.forms)},
 ];
 `;

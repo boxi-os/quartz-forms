@@ -77,6 +77,8 @@ function qf_words(string $lang): array
         'notSentTitle' => 'Nicht gesendet',
         'notSentText' => 'Die Nachricht konnte nicht gesendet werden.',
         'fieldsIntro' => 'Diese Angaben wurden nicht angenommen:',
+        'backToSite' => 'Zurück zur Website',
+        'backHint' => 'Mit „Zurück“ im Browser kommst du zu deinen Angaben.',
         'unknownField' => 'Dieses Feld gehört nicht zum Formular.',
         'required' => 'Dieses Feld ist ein Pflichtfeld.',
         'invalidEmail' => 'Bitte gib eine gültige E-Mail-Adresse ein.',
@@ -99,6 +101,8 @@ function qf_words(string $lang): array
         'notSentTitle' => 'Not sent',
         'notSentText' => 'The message could not be sent.',
         'fieldsIntro' => 'These entries were not accepted:',
+        'backToSite' => 'Back to the website',
+        'backHint' => 'Your browser’s Back button takes you to what you entered.',
         'unknownField' => 'This field is not part of the form.',
         'required' => 'This field is required.',
         'invalidEmail' => 'Please enter a valid e-mail address.',
@@ -208,6 +212,30 @@ function qf_field_sentences(array $rules, array $errors, string $lang): array
 }
 
 /**
+ * Where the page below leads back to: the page the form was on, when the browser named it in the
+ * Referer on the site's origin (a relay on the site's own host gets the whole address), else the
+ * site's start page from baseUrl, base path included; empty when no address of the site is known.
+ * Only the site's origin, as for a redirect: the Referer is the poster's to choose.
+ */
+function qf_back_url(array $config): string
+{
+    $site = qf_site_origin($config);
+    if ($site === '') {
+        return '';
+    }
+    $p = parse_url((string) ($_SERVER['HTTP_REFERER'] ?? ''));
+    if (is_array($p) && isset($p['scheme'], $p['host']) && in_array(strtolower($p['scheme']), ['http', 'https'], true)) {
+        $origin = $p['scheme'] . '://' . $p['host'] . (isset($p['port']) ? ':' . $p['port'] : '');
+        $path = (string) ($p['path'] ?? '');
+        if (strcasecmp($origin, $site) === 0 && $path !== '' && $path !== '/') {
+            return $site . $path . (isset($p['query']) ? '?' . $p['query'] : '');
+        }
+    }
+    $base = $config['sitePath'] ?? '';
+    return $site . (is_string($base) && str_starts_with($base, '/') ? rtrim($base, '/') : '') . '/';
+}
+
+/**
  * Answer for the no-JavaScript path: a redirect when the form has one, else a plain page. The
  * detail is a sentence for the owner (English, like the JSON message) or the list of refused
  * fields for the visitor.
@@ -232,14 +260,26 @@ function qf_html(int $status, string $title, string $text, ?string $redirect = n
     $lang = htmlspecialchars(substr($GLOBALS['qfLang'] ?? 'en', 0, 2), ENT_QUOTES, 'UTF-8');
     $t = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
     $p = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+    $w = qf_words($GLOBALS['qfLang'] ?? 'en');
     if (is_array($detail)) {
-        $w = qf_words($GLOBALS['qfLang'] ?? 'en');
         $items = array_map(fn ($l) => '<li>' . htmlspecialchars($l, ENT_QUOTES, 'UTF-8') . '</li>', $detail);
         $d = '<p>' . htmlspecialchars($w['fieldsIntro'], ENT_QUOTES, 'UTF-8') . '</p><ul>' . implode('', $items) . '</ul>';
     } else {
         $d = $detail === '' ? '' : '<p><small>' . htmlspecialchars($detail, ENT_QUOTES, 'UTF-8') . '</small></p>';
     }
-    echo "<!doctype html><html lang=\"$lang\"><meta charset=\"utf-8\"><title>$t</title><h1>$t</h1><p>$p</p>$d</html>";
+    // A page of its own on a phone, in the visitor's light or dark, with a way back: it was a bare
+    // page at desktop width with no link, and "Back" led to the filled-in form, ready to be sent
+    // twice (mail test 2026-10-25, finding 5). After a refusal the way back is the browser's
+    // own, which keeps what was entered; a link would load the form empty.
+    $backUrl = $status < 400 ? qf_back_url($GLOBALS['config']) : '';
+    $back = $status >= 400
+        ? '<p>' . htmlspecialchars($w['backHint'], ENT_QUOTES, 'UTF-8') . '</p>'
+        : ($backUrl === '' ? '' : '<p><a href="' . htmlspecialchars($backUrl, ENT_QUOTES, 'UTF-8') . '">'
+            . htmlspecialchars($w['backToSite'], ENT_QUOTES, 'UTF-8') . '</a></p>');
+    $style = 'body{font:1rem/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;max-width:36rem;margin:0 auto;padding:2rem 1rem}h1{font-size:1.5rem;margin:0 0 .75rem}';
+    echo "<!doctype html><html lang=\"$lang\"><meta charset=\"utf-8\">"
+        . '<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark">'
+        . "<title>$t</title><style>$style</style><h1>$t</h1><p>$p</p>$d$back</html>";
     exit;
 }
 

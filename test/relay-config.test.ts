@@ -101,6 +101,7 @@ describe("relay-config", () => {
     // and the site's origin is where it goes when the request's Origin is not an allowed one.
     expect(generated).toContain("'redirect' => '/site/danke'");
     expect(generated).toContain("'siteOrigin' => 'https://example.org'");
+    expect(generated).toContain("'sitePath' => '/site'");
     expect(generated).toMatch(/'pow' => true,\n\s+'powDifficulty' => 16/);
     expect(generated).toContain("'rateLimitPerHour' => 10");
     expect(generated).toMatch(/'minSeconds' => 3,\n\s+'noScript' => true/);

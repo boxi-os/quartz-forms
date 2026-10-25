@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed: the relay's page for a browser without JavaScript has a viewport and `color-scheme`, so
+  it reads at a phone's width and in dark mode, and after sending it links back to the form's
+  page (from the Referer, on the site's origin only) or the site's start page; after a refusal
+  it says that the browser's Back button keeps what was entered. It was a bare page at desktop
+  width without a way back (real mail through all-inkl, 2026-10-25). `config.generated.php`
+  carries the site's base path as `sitePath` for it.
 - Fixed: the relay hands the `from` address to `mail()` and to a `sendmail` mailer as the envelope
   sender (`-f`), so the Return-Path is that address and SPF checks its domain, as the README always
   said. Before, the hoster's default sender for the account went out instead (real mail through

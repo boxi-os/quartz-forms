@@ -222,7 +222,7 @@ hour.
 
 Without JavaScript a form with `encryption: off` or `optional` posts as a plain form to the relay,
 which answers with the redirect or a short page (one that names the refused fields with the
-sentences the script would show). Such a post carries neither the stamp nor a
+sentences the script would show, and after sending links back to the site). Such a post carries neither the stamp nor a
 proof of work, so the relay applies only honeypot, rate limit and field checks to it; with
 `pow: true` or a `minSeconds` of your own the build says so. `noScript: false` refuses these posts and renders the form without
 a target until the script runs, with a `<noscript>` note. With `optional` the "send encrypted" box stays unticked and disabled until the

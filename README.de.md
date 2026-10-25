@@ -229,7 +229,8 @@ weil die Aufgabe für alle Besucher der Stunde dieselbe ist.
 
 Ohne JavaScript schickt ein Formular mit `encryption: off` oder `optional` einen einfachen
 Formular-Post ans Relay, das mit der Weiterleitung oder einer kurzen Seite antwortet (sie nennt
-abgewiesene Felder mit den Sätzen, die das Skript zeigen würde). Ein solcher
+abgewiesene Felder mit den Sätzen, die das Skript zeigen würde, und führt nach dem Senden zur
+Website zurück). Ein solcher
 Post trägt weder Stempel noch Proof of Work; das Relay prüft daran nur Honeypot,
 Ratenbegrenzung und Felder, und bei `pow: true` oder einem eigenen `minSeconds` sagt der Bau das. `noScript: false` weist diese
 Posts ab und rendert das Formular ohne Ziel, bis das Skript läuft, mit einem `<noscript>`-Hinweis. Bei `optional` bleibt das Häkchen

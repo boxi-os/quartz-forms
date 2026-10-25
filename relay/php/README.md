@@ -77,6 +77,10 @@ no-referrer` hides both from a plain form post without JavaScript (the browser s
   `allowedOrigins`, else with the site's `baseUrl` from the generated config, plus the site's
   base path) or a short page in the submission's language; when fields were refused, the page
   names each one by its label with the sentence the browser script would show at the field.
+  The page fits a phone and follows the visitor's light or dark mode. After sending it links back
+  to the page the form was on when the browser's Referer names it on the site's origin (a relay
+  on the site's own host), else to the site's start page (`sitePath` in the generated config);
+  after a refusal it points to the browser's Back button, which keeps what was entered.
 
 ## What it promises
 
