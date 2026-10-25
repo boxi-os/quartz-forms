@@ -5,7 +5,7 @@ Website: Kontakt, Feedback, Anmeldung und Umfrage, zur Build-Zeit gerendert, im 
 mit OpenPGP verschlüsselt, bevor sie die Seite verlassen, und über einen konfigurierbaren Versandweg
 verschickt.
 
-**Stand: 0.5.16, privat.** Gemessen in einer gebauten Site und in Chrome; das PHP-Relay misst die
+**Stand: 0.6.0, privat.** Gemessen in einer gebauten Site und in Chrome; das PHP-Relay misst die
 Testsuite unter `php -S` (`test/relay.test.ts`), und es hat echte Mail über all-inkl.com verschickt. Sieben unabhängige Reviews, das dritte über 0.4.0
 als Ganzes, das vierte über 0.4.1 bis 0.5.4, das fünfte über 0.5.5 und 0.5.6, das sechste über
 0.5.7, das siebte über 0.5.8 und 0.5.9 (siehe CHANGELOG); den Platzhalter-Hinweis und den Pfad von
@@ -13,9 +13,11 @@ als Ganzes, das vierte über 0.4.1 bis 0.5.4, das fünfte über 0.5.5 und 0.5.6,
 neben den Zählern, aus 0.5.12 die Frage des Relays an OPcache, bevor es seine Konfiguration liest,
 aus 0.5.13 `counters` und `generation` nur für den, der die Generation nennt, aus 0.5.14 den
 zweiten Versuch nach einer abgelehnten Rechenaufgabe, aus 0.5.15 die Generation, die das Relay
-bei `validate_timestamps=0` an OPcache vorbei liest, und aus 0.5.16 den Umschlag-Absender, die
-Seite des Relays ohne JavaScript und das hCaptcha-Widget, das auf sein `onload` wartet, hat noch
-kein Review gelesen.
+bei `validate_timestamps=0` an OPcache vorbei liest, und aus 0.5.16 das hCaptcha-Widget, das auf
+sein `onload` wartet, hat noch kein Review gelesen. Den Umschlag-Absender und die Seite des Relays
+ohne JavaScript (0.5.16) hat das Review der Mailtest-Fixes in QuartzControl mitgelesen
+(2026-11-04); der Schalter `envelopeSender` (0.6.0) kam aus diesem Review und ist selbst noch
+nicht gelesen.
 
 - Formulare werden einmal in `quartz.config.yaml` definiert (`options.forms`), nach Kennung
 - Eine Seite bindet ein Formular mit einem ` ```quartz-form `-Codeblock, einem

@@ -4,7 +4,7 @@ A [Quartz v5](https://quartz.jzhao.xyz) plugin for web forms on a static site: c
 sign-up and survey forms, rendered at build time, validated in the browser, encrypted with OpenPGP
 before they leave the page, and sent through a configurable transport.
 
-**Status: 0.5.16, private.** Measured in a built site and in Chrome; the PHP relay is measured
+**Status: 0.6.0, private.** Measured in a built site and in Chrome; the PHP relay is measured
 under `php -S` by the test suite (`test/relay.test.ts`) and sent real mail through all-inkl.com. Reviewed independently seven times, the
 third time 0.4.0 as a whole, the fourth 0.4.1 to 0.5.4, the fifth 0.5.5 and 0.5.6, the sixth 0.5.7,
 the seventh 0.5.8 and 0.5.9 (see the CHANGELOG); the placeholder hint and the path of “no fields”
@@ -12,8 +12,10 @@ in 0.5.10, in 0.5.11 `counters` and `generation` on the ticket and the probe fil
 counters, in 0.5.12 the relay's question to OPcache before it reads its config, in 0.5.13
 the ticket's `counters` and `generation` only for whoever names the generation, in 0.5.14
 the second try after a refused proof of work, in 0.5.15 the generation read past OPcache where
-`validate_timestamps=0`, and in 0.5.16 the envelope sender, the relay's page without JavaScript
-and the hCaptcha widget rendered on its `onload` are not reviewed yet.
+`validate_timestamps=0`, and in 0.5.16 the hCaptcha widget rendered on its `onload` are not
+reviewed yet. The envelope sender and the relay's page without JavaScript (0.5.16) were read
+along with QuartzControl's review of the mail-test fixes (2026-11-04); the switch
+`envelopeSender` (0.6.0) came out of that review and is not reviewed itself.
 
 - Forms are defined once in `quartz.config.yaml` (`options.forms`), by id
 - A page embeds a form with a ` ```quartz-form ` code block, a `{{form:id}}` placeholder or

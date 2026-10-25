@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-25
+
 - Added: the relay option `envelopeSender` (default `true`). `false` leaves the envelope sender to
   the hoster, as before 0.5.16, for a hoster that refuses `-f` with the from address; with 0.5.16
   such a host answered every mail with 502 and the owner had no way back (review 2026-11-04,
