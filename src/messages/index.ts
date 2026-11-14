@@ -8,7 +8,7 @@ export type { MessageCode, Params };
  * A message of the plugin about a definition: where (the option's path, as it stands in
  * quartz.config.yaml), what (a code) and with what (the values the sentence names). The sentence
  * is made from it per language; the build log takes English, the command line `--lang`.
- * QuartzControl reads the path to put a message at its form, field or section.
+ * QuartzHub reads the path to put a message at its form, field or section.
  */
 export interface Message {
   path: string;

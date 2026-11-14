@@ -492,7 +492,7 @@ function checkForm(
   ] as [string, Text | undefined][])
     checkText(text, `${at}.${key}`, out);
 
-  // Under `fields`, where the fields are missing: QuartzControl places a message by its path, and
+  // Under `fields`, where the fields are missing: QuartzHub places a message by its path, and
   // on the form's own path it stood at the form's general part (its review 2026-10-28).
   if (!Array.isArray(form.fields) || form.fields.length === 0) {
     problem(out, `${at}.fields`, "noFields");

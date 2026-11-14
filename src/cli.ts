@@ -1,7 +1,7 @@
 /**
  * quartz-forms on the command line, for an installed copy as much as for a checkout: everything
  * it needs is bundled into dist/cli.js (`yaml` included), so it runs from a site's
- * `.quartz/plugins/quartz-forms` without `npm install`. QuartzControl calls it in a child
+ * `.quartz/plugins/quartz-forms` without `npm install`. QuartzHub calls it in a child
  * process; `npm run relay:config` is a thin wrapper around `relay`.
  *
  *   node dist/cli.js relay --site <dir> --out <dir> [--skip-pattern-check] [--json]

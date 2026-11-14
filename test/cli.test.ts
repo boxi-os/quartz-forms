@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import YAML from "yaml";
 import { generatePair, tmpDir } from "./keys";
 
-// dist/cli.js as an installed copy runs it: QuartzControl calls it in a child process, with the
+// dist/cli.js as an installed copy runs it: QuartzHub calls it in a child process, with the
 // owner's values in the environment, and reads one JSON object from stdout.
 const root = path.resolve(__dirname, "..");
 const cli = path.join(root, "dist", "cli.js");
@@ -175,7 +175,7 @@ describe("cli relay", () => {
     ]);
     expect(changed.json.hash).not.toBe(a.json.hash);
     // The generation is the run's, not the definitions': the hash cannot tell two uploads of the
-    // same forms apart, this can (QuartzControl review 2026-10-29, N1).
+    // same forms apart, this can (review 2026-10-29, N1).
     expect(a.json.generation).toMatch(/^[0-9a-f]{16}$/);
     expect(b.json.generation).not.toBe(a.json.generation);
     expect(fs.readFileSync(path.join(outA, "config.generated.php"), "utf8")).toContain(
@@ -383,7 +383,7 @@ describe("versions", () => {
     // Third review, N8 (2026-10-19): both said 0.1.2 when the package was 0.4.0.
     const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
     const readme = (file: string) => fs.readFileSync(path.join(root, file), "utf8");
-    expect(readme("README.md")).toContain(`**Status: ${pkg.version}, `);
-    expect(readme("README.de.md")).toContain(`**Stand: ${pkg.version}, `);
+    expect(readme("README.md")).toContain(`**Status: ${pkg.version}.**`);
+    expect(readme("README.de.md")).toContain(`**Stand: ${pkg.version}.**`);
   });
 });

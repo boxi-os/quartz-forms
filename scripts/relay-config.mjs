@@ -7,7 +7,7 @@
 //   npm run relay:config -- /path/to/site [--out relay/php] [--skip-pattern-check]
 //
 // A thin wrapper around `node dist/cli.js relay` (src/cli.ts), which is what an installed copy
-// and QuartzControl run; needs the plugin built (`npm run build`). With a `php` on the PATH every
+// and QuartzHub run; needs the plugin built (`npm run build`). With a `php` on the PATH every
 // field pattern is compiled the way send.php compiles it, and a pattern PCRE cannot read stops
 // the run: `--skip-pattern-check` writes the config anyway.
 

@@ -905,7 +905,7 @@ async function qfSend(
       }
     } else if (refused === "pow" && cfg.spam.pow) {
       // Without a time trap the relay checks no stamp, so a challenge signed with a secret it no
-      // longer has is refused as "pow" (QuartzControl review 2026-10-30, beside N6). Once more only
+      // longer has is refused as "pow" (review 2026-10-30, beside N6). Once more only
       // when the new ticket has another challenge: on the same one the proof was not the cause.
       // The relay checks the proof before the captcha, so a token is not spent yet.
       const renewed = await qfFetchTicket(cfg);

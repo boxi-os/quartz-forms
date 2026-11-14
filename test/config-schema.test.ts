@@ -1,4 +1,4 @@
-// `quartz.configSchema` in package.json describes the options for editors such as QuartzControl,
+// `quartz.configSchema` in package.json describes the options for editors such as QuartzHub,
 // which builds its form from it. A schema that misses an option hides it; one that names an option
 // the plugin does not have offers a switch that does nothing. Neither shows up in any other test,
 // because the plugin never reads its own schema.
@@ -33,7 +33,7 @@ function resolve(schema: unknown): Schema {
   const defs = root.$defs as Schema | undefined;
   const target = match && defs ? defs[match[1]!] : undefined;
   if (!isObject(target)) throw new Error(`unresolvable ${schema.$ref}`);
-  // Keywords beside the $ref win, as QuartzControl reads them.
+  // Keywords beside the $ref win, as QuartzHub reads them.
   const { $ref: _ref, ...own } = schema;
   return { ...resolve(target), ...own };
 }
@@ -178,7 +178,7 @@ function checkType(node: ts.TypeNode, schema: Schema, at: string): void {
   problems.push(`${at}: type syntax this test does not follow (${ts.SyntaxKind[node.kind]})`);
 }
 
-// Every property, at every depth, as QuartzControl would show it.
+// Every property, at every depth, as QuartzHub would show it.
 function* properties(schema: Schema, at: string): Generator<[string, Schema, Schema]> {
   const props = isObject(schema.properties) ? schema.properties : {};
   for (const [key, raw] of Object.entries(props)) {

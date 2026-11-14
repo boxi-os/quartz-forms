@@ -3,7 +3,7 @@ import type { Params, Translate } from "./types";
 
 const s = (p: Params, key: string): string => String(p[key] ?? "");
 
-/** Die Meldungen des Plugins auf Deutsch, für die Kommandozeile (`--lang de`) und QuartzControl. */
+/** Die Meldungen des Plugins auf Deutsch, für die Kommandozeile (`--lang de`) und QuartzHub. */
 const de: { [K in keyof typeof en]: (p: Params, t: Translate) => string } = {
   textEmpty: () => "leerer Text",
   textShape: () => "ein Text ist ein String oder ein Record Sprache → String",

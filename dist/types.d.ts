@@ -151,7 +151,7 @@ type MessageCode = keyof typeof en;
  * A message of the plugin about a definition: where (the option's path, as it stands in
  * quartz.config.yaml), what (a code) and with what (the values the sentence names). The sentence
  * is made from it per language; the build log takes English, the command line `--lang`.
- * QuartzControl reads the path to put a message at its form, field or section.
+ * QuartzHub reads the path to put a message at its form, field or section.
  */
 interface Message {
     path: string;
@@ -168,7 +168,7 @@ interface Message {
 /**
  * A user-facing text: one string for every language, or a record keyed by language code
  * (`{ de: "Name", en: "Name" }`). Resolution: exact code, then primary subtag, then the first
- * value. QuartzControl offers the site's languages as keys (`x-quartz-keys: "languages"`).
+ * value. QuartzHub offers the site's languages as keys (`x-quartz-keys: "languages"`).
  */
 type Text = string | Record<string, string>;
 interface QuartzFormsOptions {

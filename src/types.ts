@@ -8,7 +8,7 @@
 /**
  * A user-facing text: one string for every language, or a record keyed by language code
  * (`{ de: "Name", en: "Name" }`). Resolution: exact code, then primary subtag, then the first
- * value. QuartzControl offers the site's languages as keys (`x-quartz-keys: "languages"`).
+ * value. QuartzHub offers the site's languages as keys (`x-quartz-keys: "languages"`).
  */
 export type Text = string | Record<string, string>;
 

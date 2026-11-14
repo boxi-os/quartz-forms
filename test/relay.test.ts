@@ -570,7 +570,7 @@ describe.skipIf(!php)("relay: challenge and CORS", () => {
       fs.readFileSync(path.join(dir, "config.generated.php"), "utf8"),
     )?.[1];
   it("answers the generation of its config.generated.php to whoever names it", async () => {
-    // QuartzControl review 2026-10-29, N1: a relay left at the previous address answered ok after
+    // review 2026-10-29, N1: a relay left at the previous address answered ok after
     // an upload elsewhere, and the hash of the forms was the same for both.
     const generation = generationOf();
     expect(generation).toBeDefined();
@@ -579,7 +579,7 @@ describe.skipIf(!php)("relay: challenge and CORS", () => {
     );
   });
   it("says nothing about its counters or generation to anyone else", async () => {
-    // QuartzControl review 2026-10-30, N2: `counters: false` told anyone which relays let a solved
+    // review 2026-10-30, N2: `counters: false` told anyone which relays let a solved
     // proof of work through again, for a GET that costs no mail.
     for (const query of ["challenge=feedback", "challenge=feedback&generation=0123456789abcdef"]) {
       const json = (await get(query)).json;
@@ -589,7 +589,7 @@ describe.skipIf(!php)("relay: challenge and CORS", () => {
     }
   });
   it("says on the ticket whether it can write its counters, without creating them", async () => {
-    // QuartzControl review 2026-10-29, M1: PHP running as another user than the account that
+    // review 2026-10-29, M1: PHP running as another user than the account that
     // uploaded counters/ could not count, and nothing said so; every mail went through.
     const counters = path.join(dir, "counters");
     const named = () => `&generation=${generationOf()}`;
@@ -1246,7 +1246,7 @@ describe.skipIf(!php)("relay: accepted submissions and their mail", () => {
   it("the envelope sender is the from address, through mail() and through sendmail, unless the command names its own", async () => {
     // Mail test 2026-10-25, finding 3: mail() went without -f, so the envelope sender (the
     // Return-Path, what SPF checks) was the host's default for the account, not the from address
-    // whose domain the README and QuartzControl tell the owner to set up for SPF.
+    // whose domain the README and QuartzHub tell the owner to set up for SPF.
     const sendmail = path.join(dir, "sendmail.sh");
     const envelope = async (extra: string): Promise<string[]> => {
       fs.rmSync(path.join(dir, "sendmail.argv"), { force: true });
@@ -1768,9 +1768,9 @@ describe.skipIf(!php)("relay: rate limit", () => {
 });
 
 describe.skipIf(!php)("relay: a host with OPcache", () => {
-  // QuartzControl review 2026-10-30, M3: OPcache asks a cached file's time stamp at most every
+  // review 2026-10-30, M3: OPcache asks a cached file's time stamp at most every
   // revalidate_freq seconds, so a relay that had read its config shortly before an upload went on
-  // with the old one and answered the old generation; QuartzControl's check then said "another
+  // with the old one and answered the old generation; QuartzHub's check then said "another
   // relay" (3 of 6 uploads on debian-vm, PHP-FPM with Debian's defaults). Here with 60 s, and
   // file_update_protection off so that a config written a moment ago is cached at all.
   let cached = "";
@@ -1844,7 +1844,7 @@ describe.skipIf(!php)("relay: a host with OPcache", () => {
     }
   });
   it("drops its config only for a new generation where validate_timestamps=0", async () => {
-    // QuartzControl review 2026-10-31, M2: dropping both files on every request left about 7 KB
+    // review 2026-10-31, M2: dropping both files on every request left about 7 KB
     // of wasted memory each time there, and enough of it restarts OPcache for every site of the
     // server. Measured with 0.5.14 under php -S, 16 MB: 3000 tickets, six restarts.
     const ticket = async (generation?: string) =>
@@ -1875,8 +1875,8 @@ describe.skipIf(!php)("relay: a host with OPcache", () => {
     }
   });
   it("answers a new generation after revalidate_freq where restrict_api forbids it to ask", async () => {
-    // QuartzControl review 2026-10-31, N4: there the relay cannot drop its config and answers the
-    // old generation until revalidate_freq (2 s by default) has passed; QuartzControl asks once
+    // review 2026-10-31, N4: there the relay cannot drop its config and answers the
+    // old generation until revalidate_freq (2 s by default) has passed; QuartzHub asks once
     // more after 3 s for that. If this fails, that wait no longer fits.
     const ticket = async (generation?: string) =>
       (await (

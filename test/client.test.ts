@@ -1185,7 +1185,7 @@ describe("proof of work", () => {
   }, 30_000);
 
   it("works the proof out again on a new ticket when a form without a time trap is refused as pow", async () => {
-    // QuartzControl review 2026-10-30, noticed beside N6: without a time trap the relay checks no
+    // review 2026-10-30, noticed beside N6: without a time trap the relay checks no
     // stamp, so a proof whose challenge was signed with the old secret is refused as "pow", and
     // the retry above, which asks for "stamp", never came.
     const form = mount(contact({ spam: { minSeconds: 0, pow: true, powDifficulty: 8 } }));

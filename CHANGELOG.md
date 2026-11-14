@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-14
+
+- Changed: the header of the generated relay file (`relay-config.php`) names QuartzHub instead of
+  QuartzControl as the other way to generate it again; comments and tests likewise. Nothing else
+  changed.
+
 ## [0.6.0] - 2026-10-25
 
 - Added: the relay option `envelopeSender` (default `true`). `false` leaves the envelope sender to
