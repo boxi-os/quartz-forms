@@ -15,7 +15,7 @@ aus 0.5.13 `counters` und `generation` nur für den, der die Generation nennt, a
 zweiten Versuch nach einer abgelehnten Rechenaufgabe, aus 0.5.15 die Generation, die das Relay
 bei `validate_timestamps=0` an OPcache vorbei liest, und aus 0.5.16 das hCaptcha-Widget, das auf
 sein `onload` wartet, hat noch kein Review gelesen. Den Umschlag-Absender und die Seite des Relays
-ohne JavaScript (0.5.16) hat das Review der Mailtest-Fixes in QuartzControl mitgelesen
+ohne JavaScript (0.5.16) hat das Review der Mailtest-Fixes mitgelesen
 (2026-11-04); der Schalter `envelopeSender` (0.6.0) kam aus diesem Review und ist selbst noch
 nicht gelesen.
 

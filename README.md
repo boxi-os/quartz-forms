@@ -14,7 +14,7 @@ the ticket's `counters` and `generation` only for whoever names the generation, 
 the second try after a refused proof of work, in 0.5.15 the generation read past OPcache where
 `validate_timestamps=0`, and in 0.5.16 the hCaptcha widget rendered on its `onload` are not
 reviewed yet. The envelope sender and the relay's page without JavaScript (0.5.16) were read
-along with QuartzControl's review of the mail-test fixes (2026-11-04); the switch
+along with the review of the mail-test fixes (2026-11-04); the switch
 `envelopeSender` (0.6.0) came out of that review and is not reviewed itself.
 
 - Forms are defined once in `quartz.config.yaml` (`options.forms`), by id

@@ -69,7 +69,7 @@ and 0.5.11 went out as patches although by this rule they were minor):
   in `quartz.configSchema`, a new or changed answer of `dist/cli.js`).
 - **Patch** (`0.x.y`): fixes, texts, and behaviour that becomes what the README already said (the
   envelope sender in 0.5.16).
-- **1.0.0**: not set yet. It was planned for QuartzControl 1.2, which went out with 0.x.
+- **1.0.0**: not set yet.
 
 A pushed tag is never renamed. A release is one commit (`Release x.y.z: …`) that moves
 `## [Unreleased]` to `## [x.y.z] - date` and sets the version in `package.json` (both
