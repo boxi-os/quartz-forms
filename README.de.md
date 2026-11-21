@@ -311,7 +311,9 @@ Feld, in einem Durchgang in Formularreihenfolge.
 
 Jeder einstellbare Wert ist eine Custom Property an `.quartz-form`: `--quartz-forms-gap`,
 `-radius`, `-border`, `-border-focus`, `-field-bg`, `-error`, `-success`, `-button-bg`,
-`-button-fg`, `-max-width`. Gesetzt werden sie in `custom.scss`:
+`-button-fg`, `-max-width`. Dieselbe Liste steht mit Vorgaben und Beschreibung auf Englisch und
+Deutsch in `package.json` unter `quartz.cssVariables`, für Editoren wie QuartzHub (Stile ▸
+Variablen). Gesetzt werden sie in `custom.scss`:
 
 ```scss
 .quartz-form {

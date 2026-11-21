@@ -1,6 +1,6 @@
 {
   "name": "quartz-forms",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "Quartz v5 plugin for web forms: contact, feedback, sign-up and survey forms rendered at build time, validated in the browser, encrypted with OpenPGP before they leave the page, and sent through a configurable transport (own relay, generic endpoint, mailto).",
   "type": "module",
   "license": "MIT",
@@ -103,7 +103,7 @@
       "emitter",
       "component"
     ],
-    "version": "0.6.1",
+    "version": "0.7.0",
     "quartzVersion": ">=5.0.0",
     "dependencies": [],
     "defaultEnabled": true,
@@ -1827,6 +1827,114 @@
           }
         }
       }
+    },
+    "cssVariables": {
+      "groups": [
+        {
+          "id": "shape",
+          "label": "Spacing and shape",
+          "label_de": "Abstände und Form"
+        },
+        {
+          "id": "colors",
+          "label": "Colours",
+          "label_de": "Farben"
+        }
+      ],
+      "variables": [
+        {
+          "name": "quartz-forms-gap",
+          "selector": ".quartz-form",
+          "default": "1rem",
+          "kind": "length",
+          "group": "shape",
+          "description": "Room between fields.",
+          "description_de": "Abstand zwischen den Feldern."
+        },
+        {
+          "name": "quartz-forms-radius",
+          "selector": ".quartz-form",
+          "default": "5px",
+          "kind": "length",
+          "group": "shape",
+          "description": "Corner radius of fields and buttons.",
+          "description_de": "Eckenradius der Felder und Buttons."
+        },
+        {
+          "name": "quartz-forms-max-width",
+          "selector": ".quartz-form",
+          "default": "40rem",
+          "kind": "length",
+          "group": "shape",
+          "description": "Maximum width of a form.",
+          "description_de": "Größte Breite eines Formulars."
+        },
+        {
+          "name": "quartz-forms-border",
+          "selector": ".quartz-form",
+          "default": "var(--lightgray)",
+          "kind": "color",
+          "group": "colors",
+          "description": "Border of fields.",
+          "description_de": "Rahmen der Felder."
+        },
+        {
+          "name": "quartz-forms-border-focus",
+          "selector": ".quartz-form",
+          "default": "var(--secondary)",
+          "kind": "color",
+          "group": "colors",
+          "description": "Border of the field being edited.",
+          "description_de": "Rahmen des Felds, in dem gerade getippt wird."
+        },
+        {
+          "name": "quartz-forms-field-bg",
+          "selector": ".quartz-form",
+          "default": "var(--light)",
+          "kind": "color",
+          "group": "colors",
+          "description": "Background of fields.",
+          "description_de": "Hintergrund der Felder."
+        },
+        {
+          "name": "quartz-forms-error",
+          "selector": ".quartz-form",
+          "default": "#b3261e",
+          "defaultDark": "#f2b8b5",
+          "kind": "color",
+          "group": "colors",
+          "description": "Colour of error messages.",
+          "description_de": "Farbe der Fehlermeldungen."
+        },
+        {
+          "name": "quartz-forms-success",
+          "selector": ".quartz-form",
+          "default": "#2e7d32",
+          "defaultDark": "#a5d6a7",
+          "kind": "color",
+          "group": "colors",
+          "description": "Colour of the message after sending.",
+          "description_de": "Farbe der Meldung nach dem Senden."
+        },
+        {
+          "name": "quartz-forms-button-bg",
+          "selector": ".quartz-form",
+          "default": "var(--secondary)",
+          "kind": "color",
+          "group": "colors",
+          "description": "Background of the send button.",
+          "description_de": "Hintergrund des Senden-Buttons."
+        },
+        {
+          "name": "quartz-forms-button-fg",
+          "selector": ".quartz-form",
+          "default": "var(--light)",
+          "kind": "color",
+          "group": "colors",
+          "description": "Text colour of the send button.",
+          "description_de": "Schriftfarbe des Senden-Buttons."
+        }
+      ]
     }
   },
   "engines": {

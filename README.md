@@ -295,7 +295,9 @@ pass in form order.
 
 Every tunable value is a custom property on `.quartz-form`: `--quartz-forms-gap`, `-radius`,
 `-border`, `-border-focus`, `-field-bg`, `-error`, `-success`, `-button-bg`, `-button-fg`,
-`-max-width`. Set them in `custom.scss`:
+`-max-width`. The same list, with defaults and a description in English and German, is in
+`package.json` under `quartz.cssVariables`, for editors such as QuartzHub (Styles ▸ Variables).
+Set them in `custom.scss`:
 
 ```scss
 .quartz-form {

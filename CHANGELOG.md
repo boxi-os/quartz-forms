@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-21
+
+- Added: `quartz.cssVariables` in `package.json`: the ten `--quartz-forms-*` custom properties with
+  their defaults (and dark defaults), selector, kind, group and a description in English and
+  German, for editors such as QuartzHub (Styles ▸ Variables). A test holds the list against the
+  stylesheet in both directions.
+
 ## [0.6.1] - 2026-11-14
 
 - Changed: the header of the generated relay file (`relay-config.php`) names QuartzHub instead of
